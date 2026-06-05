@@ -74,6 +74,9 @@ async def create_project(
         exchange_rate=project.get("exchange_rate", Decimal("0.85")),
         margin_percent=project.get("margin_percent", Decimal("0")),
         config_version_id=project.get("config_version_id"),
+        status=project.get("status", "potential"),
+        status_source=project.get("status_source", "manual"),
+        signed_at=project.get("signed_at"),
         msn_inputs=[],
     )
 
@@ -98,6 +101,9 @@ async def list_projects(
                 exchange_rate=p.get("exchange_rate", Decimal("0.85")),
                 margin_percent=p.get("margin_percent", Decimal("0")),
                 config_version_id=p.get("config_version_id"),
+                status=p.get("status", "potential"),
+                status_source=p.get("status_source", "manual"),
+                signed_at=p.get("signed_at"),
                 msn_inputs=[MsnInputResponse(**mi) for mi in msn_inputs],
             )
         )
@@ -124,6 +130,9 @@ async def get_project(
         exchange_rate=project.get("exchange_rate", Decimal("0.85")),
         margin_percent=project.get("margin_percent", Decimal("0")),
         config_version_id=project.get("config_version_id"),
+        status=project.get("status", "potential"),
+        status_source=project.get("status_source", "manual"),
+        signed_at=project.get("signed_at"),
         msn_inputs=[MsnInputResponse(**mi) for mi in msn_inputs],
     )
 

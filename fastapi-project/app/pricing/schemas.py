@@ -4,6 +4,7 @@ All monetary and rate fields use Decimal type -- never float.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -166,6 +167,9 @@ class ProjectResponse(BaseModel):
     exchange_rate: Decimal
     margin_percent: Decimal
     config_version_id: int | None = None
+    status: str = "potential"
+    status_source: str = "manual"
+    signed_at: datetime | None = None
     msn_inputs: list[MsnInputResponse] = []
 
 

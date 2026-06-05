@@ -97,7 +97,7 @@ v2.0 phases execute in numeric order: 6 -> 7 -> 8 -> 9 -> 10. Phase 8 (route ren
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. Project Schema Foundation | 2/2 | Complete   | 2026-06-05 |
+| 6. Project Schema Foundation | 2/2 | Complete    | 2026-06-05 |
 | 7. Project Status Backend & Auto-Sign | 0/0 | Not started | - |
 | 8. Route Rename (Dashboard → Calculation) | 0/0 | Not started | - |
 | 9. Calculation-Page Status Control | 0/0 | Not started | - |

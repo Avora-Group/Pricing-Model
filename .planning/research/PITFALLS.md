@@ -1,172 +1,172 @@
 # Pitfalls Research
 
-**Domain:** ACMI Pricing Platform (Excel-to-web financial calculator, aviation domain)
-**Researched:** 2026-03-04
-**Confidence:** HIGH — findings verified across official documentation, industry sources, and direct domain analysis
+**Domain:** Metrics dashboard + status lifecycle automation + route rename, added to a shipped FastAPI + Next.js 14 (App Router) ACMI pricing app (v2.0 milestone)
+**Researched:** 2026-06-05
+**Confidence:** HIGH (grounded in the actual codebase: migrations 003/004, middleware.ts, quotes router, pricing repository; routing facts verified against Next.js docs)
+
+## Codebase ground truth (read before the pitfalls)
+
+These facts drive every pitfall below. Verified by reading source:
+
+1. **Quotes have NO link to projects today.** `quotes` (migration 004) is keyed by `client_code` + `quote_number`, stores immutable JSONB snapshots, and has its own `status` enum (`draft`/`sent`/`accepted`/`rejected`). There is **no `project_id` column and no join table.** "Quotes linked to projects" is net-new schema, not a tweak.
+2. **`pricing_projects` has NO `status` column** (migration 003). It is a mutable, `created_by`-scoped session container with `exchange_rate`, `margin_percent`, config FKs. `status` (`potential`/`signed`) must be added.
+3. **`/dashboard` is hardcoded in at least 7 places**: `middleware.ts` (protectedRoutes, viewerAllowedRoutes, 2 redirect targets), `app/page.tsx` (root redirect), `api/auth/callback/azure/route.ts` (post-login redirect), `Sidebar.tsx`, `BottomTabBar.tsx` (+ their `viewerAllowedHrefs` sets), and `QuoteHeader.tsx` (`router.push('/dashboard')`).
+4. **The page at `/dashboard` IS the pricing workspace** (`DashboardSummary` — "Configure MSN inputs and view pricing summary"). The rename moves the *workspace* to `/calculation`; the *new* Dashboard is a different, read-only metrics page that will reuse the now-freed `/dashboard` URL (or a new one — a decision that must be made explicitly).
+5. **MGH and `period_months` live on `project_msn_inputs`** (per-MSN), not on the project and not on quotes. Quotes store `total_eur_per_bh` (project-level) and per-MSN `monthly_revenue`/`monthly_cost`. Contract value (`EUR/BH × MGH × period months`) pulls inputs from **three different tables/snapshots** — a fragmentation risk.
+6. **Money discipline already exists**: Python uses `Decimal` everywhere; `DecimalEncoder` serializes Decimals as strings into JSONB; Postgres `NUMERIC` columns return Python `Decimal` via asyncpg. Aggregation code must not break this chain.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Rounding Behavior Divergence from Excel
+### Pitfall 1: Route rename breaks bookmarks, deep links, and hardcoded redirects
 
 **What goes wrong:**
-The web application produces numbers that differ from the Excel workbook by small but commercially significant amounts — typically fractions of a EUR/BH that compound into material cost differences on multi-month ACMI contracts. The app "looks correct" but pricing decisions made from it diverge from the validated Excel model.
+The team renames the route folder `(dashboard)/dashboard` → `(dashboard)/calculation` (or repoints the URL) but misses one of the 7+ hardcoded `/dashboard` references. Symptoms: users with `/dashboard` bookmarks land on the *new metrics* page expecting the pricing workspace (or hit a 404); post-login Azure redirect sends users to a now-wrong page; viewer-role users get redirected to a route their allowlist no longer covers, producing a redirect loop or lockout.
 
 **Why it happens:**
-Excel uses its own rounding rules (ROUND, ROUNDUP, ROUNDDOWN behave differently) and stores intermediate values at full IEEE 754 double-precision. Python `float` types are also IEEE 754 doubles, but intermediate rounding applied at different stages than Excel causes divergence. If Python's `decimal.Decimal` is not used consistently, or if PostgreSQL `NUMERIC` columns are mixed with `FLOAT` columns anywhere in the pipeline, tiny differences accumulate. The chain is: Python `float` intermediate → PostgreSQL `double precision` storage → Python `float` retrieval → final display. Every float-to-decimal boundary is a potential divergence point.
+`/dashboard` is a magic string spread across middleware, root page, auth callback, two nav components, and QuoteHeader. There is no single source of truth for "where is the workspace." App Router folder renames silently change URLs with no redirect left behind. The semantics also flip: `/dashboard` historically *meant* the workspace; after the rename it means metrics.
 
 **How to avoid:**
-- Use Python `decimal.Decimal` for ALL calculations in the pricing engine, never `float`
-- Store all monetary and rate values in PostgreSQL as `NUMERIC(precision, scale)` — never `FLOAT`, `REAL`, or `DOUBLE PRECISION`
-- Map every `ROUND()`, `ROUNDUP()`, `ROUNDDOWN()`, `INT()`, `CEILING()`, `FLOOR()` in the Excel workbook explicitly; translate each to the correct Python/Decimal equivalent with matching semantics
-- Apply rounding ONLY at the final output step (EUR/BH rate), not at intermediate calculation steps — matches Excel's full-precision intermediate behaviour
-- Never round inside the pricing engine functions; return full-precision Decimal, round only at the serialisation boundary
+- Decide the URL map explicitly and write it down: `/calculation` = workspace (old `/dashboard` content), `/dashboard` = new metrics page. Confirm which URL existing bookmarks should resolve to.
+- Add a permanent `next.config.ts` redirect for the OLD semantics if you want old bookmarks to keep reaching the *workspace*: `{ source: '/dashboard', destination: '/calculation', permanent: false }` — but note this collides with reusing `/dashboard` for metrics. Safer: give metrics a brand-new URL (e.g. `/overview` or `/pipeline`) and leave `/dashboard` redirecting to `/calculation` so no bookmark breaks. Use `permanent: false` (307) until the rename is proven, then flip to 308.
+- Grep `grep -rn "/dashboard" nextjs-project/src` and fix every hit: middleware `protectedRoutes` + `viewerAllowedRoutes` + both redirect targets, `app/page.tsx`, Azure callback, `Sidebar.tsx`, `BottomTabBar.tsx`, `QuoteHeader.tsx`.
+- Update viewer allowlists in BOTH middleware and the nav components (they duplicate the set) so viewers can reach whatever the new default landing page is.
 
 **Warning signs:**
-- Component totals that match Excel individually but the final EUR/BH diverges by €0.01–0.50
-- Different results when the same inputs are entered in a different order
-- Results that match on round-number inputs but diverge on fractional inputs (e.g., 2.5 cycle ratio)
-- PostgreSQL `FLOAT` or `REAL` column types anywhere in the pricing schema
+Redirect loops after login; viewer users bounced to a blank/forbidden page; `router.push('/dashboard')` from QuoteHeader landing on metrics instead of the editor; e2e/login smoke test failing only for the viewer role.
 
 **Phase to address:**
-Pricing engine implementation phase. Must be enforced before any formula is written. Establish a `Decimal`-only rule in the engine module and write a linting check or code review gate before first formula is implemented.
+First phase (route rename). Do the rename and redirect wiring as an isolated, shippable change BEFORE building metrics, so the URL semantics are settled.
 
 ---
 
-### Pitfall 2: Undiscovered Excel Formula Dependencies (Hidden Sheets, Named Ranges, Circular References)
+### Pitfall 2: Double-counting revenue when a project has multiple quotes
 
 **What goes wrong:**
-During formula extraction, developers transcribe the "visible" formulas from the workbook but miss hidden sheets, named ranges acting as configuration constants, or iteratively-calculated circular references that Excel resolves silently with its iterative calculation setting enabled. The pricing engine is incomplete without these, but it produces plausible-looking (wrong) results.
+Contract-value and revenue aggregates sum across all quotes (or all accepted quotes) for a project. A single project legitimately has many quotes over its life — drafts, revisions, a rejected v1, an accepted v2. Summing them inflates pipeline/signed revenue by 2–5×. Equally, a quote covering 3 MSNs summed alongside the project's own MSN inputs double-counts the same aircraft.
 
 **Why it happens:**
-Complex ACMI pricing workbooks routinely use:
-- Named ranges as configuration constants (e.g., `InsuranceRate = 0.0045`) — not visible in formula cells
-- Hidden sheets containing rate tables, lookup arrays, and sensitivity factors
-- VLOOKUP/INDEX-MATCH against range tables that become database lookup tables but whose exact range boundaries are unclear
-- Circular references that Excel handles via iterative calculation (enable under File > Options > Formulas > Iterative Calculation) — these cannot be directly translated to Python without redesign
-- Dependency chains spanning 5–8 sheets where a change in sheet 1 feeds sheet 4 which feeds sheet 7
+Quotes are immutable snapshots, so a renegotiation produces a NEW quote rather than mutating the old one. Naive `SUM(monthly_revenue)` over `quote_msn_snapshots` joined to a project counts every historical revision. There's no current notion of "the one quote that represents this project's value."
 
 **How to avoid:**
-- Before any development begins, conduct a full workbook audit: use Excel's Name Manager (Formulas > Name Manager) to enumerate ALL named ranges; show all hidden sheets; use Formulas > Trace Dependents/Precedents to map the full dependency tree
-- Produce a written dependency map documenting every input → intermediate → output chain before writing a single line of Python
-- Identify any circular references explicitly and design explicit iterative algorithms (e.g., Newton-Raphson) to replace them — do not attempt to reproduce Excel's iterative mode
-- Tag every VLOOKUP/INDEX-MATCH target range as a future database table and document the exact range semantics (exact match vs. approximate match, sort order requirements)
-- Keep the original Excel file open alongside development for continuous spot-checking
+- Define "the authoritative quote per project" explicitly. Recommended: contract value for a **signed** project = the **single accepted quote** (enforce at most one accepted quote per project, or pick `MAX(created_at)` among accepted). For **potential** projects, use the latest non-rejected quote, or the project's own live MSN inputs — but pick ONE source, never sum across quotes.
+- In SQL, aggregate with `DISTINCT ON (project_id) ... ORDER BY project_id, accepted DESC, created_at DESC` to collapse to one quote per project before summing MSN rows.
+- Add a DB constraint or service-layer check: a project can have at most one `accepted` quote at a time (partial unique index on `(project_id) WHERE status='accepted'` once the FK exists).
 
 **Warning signs:**
-- Named constants that appear in formulas but are not defined anywhere in the codebase
-- A formula result that is exactly an integer or suspiciously round number — may be a lookup hitting a hidden table
-- Calculation results that are correct for simple test cases but wrong for edge cases (extreme MGH, very high cycle ratio)
-- Any formula containing `INDIRECT()`, `OFFSET()`, or `INDIRECT(ADDRESS(...))` — these are especially opaque
+Dashboard total revenue noticeably exceeds the sum of known signed contracts; revenue jumps when a quote is revised rather than staying flat; the same MSN appears in the fleet-utilization count more than once.
 
 **Phase to address:**
-Pre-development discovery phase (before pricing engine implementation). The workbook audit must be a deliverable, not an assumption. Block pricing engine coding until the dependency map is complete and reviewed.
+Quote→project linkage phase (define authoritative-quote rule + constraint) AND the metrics phase (aggregation queries must apply the rule).
 
 ---
 
-### Pitfall 3: Block Hours vs. Flight Hours vs. Cycles Confusion in Formula Translation
+### Pitfall 3: Status automation silently overwrites a manual override
 
 **What goes wrong:**
-Cost components are calculated on different bases — some per block hour, some per flight cycle, some per calendar month — and the Excel workbook silently converts between them using the cycle ratio and utilisation inputs. When translating formulas, developers misread which base is being used for a given component, producing costs that are correct in shape but wrong in magnitude.
+A user manually sets a project to `signed` (or back to `potential` after a deal falls through). Later, an unrelated quote action — accepting a different quote, re-accepting, or a background re-sync — fires the auto-sign rule and flips the status back, destroying the human decision. Or the reverse: a manual `potential` override is stomped the next time any accepted quote is touched.
 
 **Why it happens:**
-ACMI pricing has genuine complexity here:
-- **Block hours**: Gate-to-gate including taxi. All ACMI contract rates are expressed per BH.
-- **Flight cycles**: One takeoff + landing. Engine LLP costs, airframe structural checks, and landing gear are cycle-driven, not hour-driven.
-- **Cycle ratio (CR)**: The ratio of flight hours to flight cycles. High CR = long sectors (fewer cycles per hour). Low CR = short sectors (more cycles per hour, higher maintenance cost per BH).
-- **MGH (Minimum Guaranteed Hours)**: Monthly contracted minimum. Under-utilisation still incurs this cost.
-- Maintenance components (M) and DOC components may blend hour-based and cycle-based costs, with the cycle ratio acting as a converter.
-
-The formula `cost_per_BH = (cost_per_cycle × cycles_per_BH)` is trivial but requires knowing that `cycles_per_BH = 1 / cycle_ratio`. Getting this inverted or applied to the wrong component is a silent error.
+"Accepted quote auto-signs project" is implemented as an unconditional `UPDATE pricing_projects SET status='signed'` on quote acceptance, with no record of whether the current status was set by a human or by automation. There's no precedence rule, so the last writer wins and automation usually writes last.
 
 **How to avoid:**
-- Document the unit (per BH, per cycle, per month, per flight, per year) for every intermediate variable during the workbook audit
-- In Python, encode units in variable names or comments: `engine_llp_cost_per_cycle`, `airframe_check_cost_per_bh`, `crew_cost_per_month`
-- Write unit-assertion tests: if a result should be `EUR/BH`, trace every input through its unit conversions and verify algebraically
-- Test with extreme cycle ratio values (CR = 1.0 for ultra-short haul; CR = 8.0 for long haul) and verify that M costs move in the expected direction (higher M cost per BH at low CR)
+- Track provenance: add `status_source TEXT CHECK (status_source IN ('auto','manual'))` (and ideally `status_updated_by`, `status_updated_at`) to `pricing_projects`. Automation only writes when `status_source <> 'manual'` (or only promotes `potential`→`signed`, never demotes). Manual edits set `status_source='manual'` and are sticky.
+- Make automation **monotonic and idempotent**: accepting a quote can promote to `signed` but should never auto-demote. Demotion is a manual-only action.
+- Decide explicitly what un-accepting / rejecting a previously-accepted quote does to a project that auto-signed: recommended is "leave signed, surface a warning" rather than auto-reverting.
 
 **Warning signs:**
-- Maintenance cost per BH does not change when cycle ratio changes (means cycle ratio is not applied to M component)
-- Crew cost per BH changes when cycle ratio changes (means cycle ratio is incorrectly applied to crew, which should be hour-based)
-- Results with CR = 2.0 look exactly double CR = 1.0 results (suggests CR is applied linearly when it should be applied as a ratio)
+Users report status "changing by itself"; a project flips status without anyone editing it; audit shows status updated by the quote-acceptance code path moments after a manual edit.
 
 **Phase to address:**
-Pricing engine implementation. Include unit-dimension tests as part of the test suite alongside numeric correctness tests.
+Status lifecycle phase — bake provenance + monotonic automation into the schema and service from the start; retrofitting precedence after the fact requires data backfill.
 
 ---
 
-### Pitfall 4: Quote Records Becoming Stale When Pricing Configuration Changes
+### Pitfall 4: Stale / abandoned session projects pollute pipeline metrics
 
 **What goes wrong:**
-A quote is saved with inputs and a final EUR/BH result. Six months later, the maintenance rate tables or insurance factors in the database are updated. The saved quote, when reopened, either recalculates with new factors (showing a different number than was originally presented to the client) or displays the old number but the system cannot explain how it was calculated. In either case, the system is untrustworthy for contract negotiations.
+`pricing_projects` are mutable, per-user session containers (`list_projects` filters by `created_by`). Users spin up throwaway projects to experiment, abandon empty ones, or leave half-configured drafts. The new Dashboard counts ALL projects as "pipeline," so "potential projects: 47" is mostly noise, and "total pipeline value" includes scratch work.
 
 **Why it happens:**
-Developers treat quotes as live recalculations rather than immutable snapshots. The natural database design — store inputs, recalculate on open — makes sense for a calculator but breaks for a quoting tool. ACMI contracts are legal documents; the EUR/BH rate agreed in April must be reproducible in November even if rates have changed.
+The projects table was designed as a scratch workspace, not a CRM pipeline. Adding `status` doesn't change that every save creates a row. The metrics layer treats every row as a real opportunity. No concept of "real vs. draft" exists.
 
 **How to avoid:**
-- Store the FULL calculation snapshot with each quote: all inputs, all intermediate component values (A/BH, C/BH, M/BH, I/BH, DOC/BH, Other COGS/BH, Overhead/BH), and the final EUR/BH
-- Store a snapshot of the pricing configuration parameters (rates, factors, lookup table values) used at quote creation time — either as a JSON blob in the quote record or via a versioned `pricing_config` table with a foreign key
-- Never recalculate a saved quote on open — display the stored values
-- Provide a separate "recalculate with current rates" action that creates a NEW quote version, never overwrites the original
-- Add `created_at`, `created_by`, `config_version` columns to every quote record
+- Decide the inclusion rule for metrics explicitly. Recommended: a project enters pipeline metrics only when it has at least one quote (or a non-default name, or an explicit "promote to pipeline" action). Empty/unconfigured projects are excluded.
+- Consider a `is_archived`/soft-delete flag and exclude archived from metrics.
+- Decide the **ownership scope of the Dashboard**: today projects are per-user. A company pipeline dashboard almost certainly needs to aggregate across ALL users, not just `current_user`. Confirm this — it's a behavioral change from `list_projects`'s `WHERE created_by = $1`.
+- Filter metrics by `status` deliberately: potential vs signed counts should exclude drafts with no economic content.
 
 **Warning signs:**
-- Quote table schema stores only inputs and final total (no intermediate breakdown)
-- No `pricing_config_version` concept exists in the schema
-- A quote opened tomorrow shows different numbers than when it was created
-- Users ask "why did this quote change?" — they have noticed recalculation drift
+Project counts far exceed the number of real deals the sales team recognizes; pipeline value dwarfs realistic figures; two salespeople see different totals because the dashboard is still user-scoped.
 
 **Phase to address:**
-Database schema design phase (very early). This is a schema-level decision; retrofitting immutability after launch is a significant migration.
+Metrics/Dashboard phase (inclusion + ownership-scope rules in the aggregation queries). Flag the per-user vs. company-wide decision for the roadmap owner early.
 
 ---
 
-### Pitfall 5: MGH Sensitivity Not Reflected Correctly in Per-BH Cost
+### Pitfall 5: Decimal → float drift in aggregates
 
 **What goes wrong:**
-MGH (Minimum Guaranteed Hours) is a monthly contracted floor. Fixed costs (aircraft lease, crew base salaries, insurance premiums) are spread across the guaranteed hours to produce a per-BH rate. If the formula divides by actual utilisation rather than the maximum of (actual utilisation, MGH), fixed costs are under-recovered in low-utilisation months and the quoted rate is too low to cover the lessor's actual cost exposure.
+Per-row money is correctly stored as `NUMERIC`/`Decimal`, but the aggregation or API layer coerces to `float` (e.g. summing in Python with `sum()` over values that got JSON-parsed to float, building totals in JS `number`, or `json.dumps` without the existing `DecimalEncoder`). Totals show `185000.00000001` or rounding mismatches versus the per-quote figures, undermining trust in a financial dashboard.
 
 **Why it happens:**
-Developers focus on the "normal operation" case where actual hours exceed MGH, making the MGH parameter appear irrelevant in testing. The edge case — actual < MGH — is the commercially critical scenario (it defines the minimum revenue the lessor will accept) and is the core reason MGH exists as a pricing input.
+The discipline is enforced per-quote (`Decimal`, `DecimalEncoder`) but new aggregation code is greenfield and easy to write with float math. JSONB snapshot fields store Decimals as strings; if a metric reads `monthly_revenue` out of `dashboard_state` JSONB rather than the typed `NUMERIC` column, it must re-wrap in `Decimal(str(...))`. The frontend's JS `number` cannot represent these exactly.
 
 **How to avoid:**
-- Explicitly test with utilisation below MGH and verify that per-BH costs INCREASE (fixed costs spread over fewer hours)
-- Document the formula as `effective_hours = max(actual_hours, MGH)` where `effective_hours` is the denominator for fixed-cost amortisation
-- Include an MGH sensitivity test case: same cost parameters, MGH=300, test at 200/250/300/350 actual hours — costs should plateau once actual ≥ MGH
+- Aggregate in SQL with `NUMERIC` (`SUM(monthly_revenue)::numeric`, `ROUND(..., 2)`) rather than pulling rows into Python/JS and summing. Postgres keeps it exact.
+- Where Python aggregation is unavoidable, start from `Decimal` and never pass through `float`; reuse the existing `DecimalEncoder` on the way out.
+- Prefer the typed `NUMERIC` columns (`quote_msn_snapshots.monthly_revenue`, `pricing_projects` rates) over re-parsing JSONB snapshot values.
+- On the frontend, treat money as formatted strings from the API; do not re-sum money in JS. Send pre-aggregated, pre-rounded values.
+- Round only at display time, with a single agreed rounding rule (EUR, 2dp).
 
 **Warning signs:**
-- Per-BH rate does not change when MGH is changed while keeping all other inputs constant
-- Rate at 200 actual hours is identical to rate at 300 actual hours when MGH is 300
-- Sales team reports the tool shows the same rate regardless of how low the guaranteed hours are set
+Trailing-precision noise (`...0001`, `...9999`) in totals; dashboard total ≠ sum of the per-quote numbers shown elsewhere; `float` appearing in new aggregation code or response models.
 
 **Phase to address:**
-Pricing engine implementation and formula validation. Include MGH boundary tests in the test matrix.
+Metrics phase. Add a test asserting aggregate totals equal hand-summed Decimal expectations.
 
 ---
 
-### Pitfall 6: Pricing Formula Treated as Application Logic Rather Than Isolated, Testable Engine
+### Pitfall 6: Contract-value formula inputs are scattered across tables/snapshots
 
 **What goes wrong:**
-Pricing formulas are woven into API endpoint handlers or database access functions. When a formula is wrong (and they will be — it is complex), reproducing the error requires running the full application. Testing requires integration setup. The formula cannot be compared against Excel outputs in isolation.
+`Contract value = EUR/BH × MGH × period months`, but `EUR/BH` is project-level (`total_eur_per_bh` on the quote), while `MGH` and `period_months` are **per-MSN** (`project_msn_inputs` / quote snapshot `msn_input`). Developers pick the wrong granularity — multiply a project-level rate by one MSN's MGH, or sum per-MSN revenue AND also apply the project rate — producing wrong contract values that look plausible.
 
 **Why it happens:**
-The natural FastAPI pattern leads developers to write `POST /quotes` handlers that do everything: validate input, run calculations, and write to the database. It feels like it works, and for basic cases it does. The problem emerges when a calculation error is found months later and must be bisected.
+The data model never anticipated a single "contract value." MGH and period are per-aircraft; rate is sometimes blended at project level. There's genuine ambiguity: is contract value the sum over MSNs of (per-MSN rate × per-MSN MGH × per-MSN months), or a single blended figure? The quote already stores per-MSN `monthly_revenue`, which may be the cleaner basis.
 
 **How to avoid:**
-- Isolate the pricing engine as a pure Python module with no database or HTTP dependencies: `from pricing_engine import calculate_acmi_quote; result = calculate_acmi_quote(inputs)`
-- The engine takes a `QuoteInputs` dataclass and returns a `QuoteBreakdown` dataclass — nothing else
-- Write the engine's tests as pure unit tests: input → expected output, no database, no HTTP
-- Build a parallel-run validation harness: given the Excel workbook, extract N representative input sets with their known outputs; run those inputs through the Python engine; assert outputs match within a defined tolerance (e.g., ±€0.01/BH on final rate)
-- The API endpoint's job is validation, calling the engine, and persisting — not calculating
+- Define the formula at the correct granularity ONCE, in writing: recommended `contract_value = Σ_msn (msn.eur_per_bh × msn.mgh × msn.period_months)` using per-MSN values, OR `Σ_msn (msn.monthly_revenue × msn.period_months)` if `monthly_revenue` already bakes in MGH × rate. Pick the basis and document the assumption (e.g. MGH is monthly block hours, period in months).
+- Verify against a known historical quote by hand before trusting the dashboard.
+- Beware mismatched period semantics: `project_msn_inputs.period_months` defaults to 12; quote snapshots carry `periodStart`/`periodEnd`. Reconcile which defines "period months" for value.
 
 **Warning signs:**
-- Pricing logic in `routers/quotes.py` rather than `engine/pricing.py`
-- No pure unit tests for the pricing formulas (all tests require a running database)
-- A bug in one formula requires redeploying the entire application to test a fix
+Contract value off by exactly the MSN count, or by a factor of `period_months`; multi-MSN projects wildly higher/lower than single-MSN ones of similar size; numbers that don't reconcile with the EUR/BH the sales team quoted.
 
 **Phase to address:**
-Pricing engine implementation phase. This is an architectural decision made before the first formula is written.
+Metrics phase; lock the formula and granularity before building the aggregate, with a worked example test.
+
+---
+
+### Pitfall 7: Fleet utilization counts the same MSN twice or counts the wrong universe
+
+**What goes wrong:**
+"Committed vs available MSNs" double-counts an MSN that appears in multiple signed projects or multiple quotes, counts MSNs from abandoned draft projects as committed, or compares committed against a stale "available" universe. Utilization > 100% or nonsensical denominators result.
+
+**Why it happens:**
+MSNs live in `project_msn_inputs` (mutable, per project) and in `quote_msn_snapshots` (per quote, possibly many quotes per MSN). There's no single registry of "which MSNs exist and which are committed." Summing across quotes/projects re-counts. The `aircraft` table is the only true MSN universe.
+
+**How to avoid:**
+- Define "committed" as a `DISTINCT` set of MSNs belonging to **signed** projects (via the authoritative quote per project from Pitfall 2), not a count of rows.
+- Define "available" against the master `aircraft` table (the real fleet), not against the union of all projects.
+- Use `COUNT(DISTINCT msn)` and explicitly exclude potential/draft projects from "committed."
+
+**Warning signs:**
+Utilization exceeds 100%; committed MSN count exceeds fleet size; an MSN in two signed deals counted twice.
+
+**Phase to address:**
+Metrics phase, after the authoritative-quote rule (Pitfall 2) exists.
 
 ---
 
@@ -174,126 +174,94 @@ Pricing engine implementation phase. This is an architectural decision made befo
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Use Python `float` for calculations instead of `decimal.Decimal` | Simpler code, faster to write | Silent rounding divergence from Excel; accumulates in intermediate steps | Never — the divergence is invisible and hard to diagnose later |
-| Store only final EUR/BH in quote record (not full breakdown) | Simpler schema | Cannot audit or explain a quote; cannot support actuals comparison in v2 | Never for this domain — break-down is a stated output requirement |
-| Recalculate quotes on open instead of storing snapshot | Smaller database, always "current" | Quotes change retroactively; unacceptable for contract reference | Never — legal/commercial documents must be immutable |
-| Hardcode pricing configuration (rates, factors) in Python | Fast initial development | Rates cannot be updated without a code deploy; no history of rate changes | Only acceptable in first sprint as placeholder; must be externalised before first real quote |
-| Skip the Excel dependency map and start coding formulas | Saves 1–2 days of upfront work | High probability of missing hidden sheets/named ranges; discovered late when formulas produce wrong results | Never — the workbook audit is the cheapest insurance available |
-| Single `admin` role for all users | No auth complexity in v1 | Competitor or external party seeing another team's quotes; pricing data is commercially sensitive | Acceptable in very early internal-only development; must add per-user isolation before any multi-user deployment |
-| Embed all formula variants in one giant function | Simpler initially | Untestable; formula bugs require full-stack debugging | Never — separate per-component functions (aircraft, crew, maintenance, insurance, DOC, overhead) |
-
----
+| Reuse `/dashboard` URL for the new metrics page instead of a fresh URL | One fewer route to name | Breaks every existing bookmark's expected destination; entangles rename with new feature | Never — give metrics a new URL and redirect old `/dashboard` to `/calculation` |
+| Auto-sign via unconditional `UPDATE status='signed'` (no provenance) | Ships automation in one line | Stomps manual overrides (Pitfall 3); requires schema backfill to fix | Never for this feature — provenance is the whole point |
+| Aggregate money in Python/JS with `float` | Faster to write | Precision drift in a financial tool; erodes user trust | Never for money; fine for counts |
+| Count all `pricing_projects` rows as pipeline | No filtering logic | Metrics dominated by scratch projects (Pitfall 4) | Only in a throwaway prototype, never in shipped metrics |
+| Keep Dashboard user-scoped (`created_by = me`) like `list_projects` | Reuse existing query | Each salesperson sees a different "company" pipeline | Acceptable only if product explicitly wants per-user dashboards — confirm |
+| Sum revenue across all quotes per project | Trivial SQL | 2–5× inflated revenue (Pitfall 2) | Never |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Excel workbook (source of truth) | Treating the workbook as documentation to read once | Treat the workbook as the canonical test oracle; run parallel calculations throughout development and after every formula change |
-| PostgreSQL NUMERIC columns | Mixing `NUMERIC` and `FLOAT` in the same calculation (e.g., NUMERIC input × FLOAT rate factor) | All monetary and rate columns: `NUMERIC(18, 6)` minimum; never store rates as `FLOAT` or `REAL` |
-| Python `decimal.Decimal` ↔ FastAPI JSON | Pydantic serialising `Decimal` to `str` or `float` by default, causing frontend to receive strings or lossy floats | Configure Pydantic model with `json_encoders = {Decimal: str}` and parse consistently; or use `float` only at the final display layer |
-| asyncpg parameter binding | Passing Python `Decimal` to asyncpg and receiving `str` back, then doing arithmetic on `str` | Use `asyncpg`'s `Codecs` to register `Decimal` ↔ `NUMERIC` type codec; verify round-trip with test queries |
-| Next.js frontend number display | Displaying raw float values with JavaScript's default `toString()` causing `0.30000000000000004` | Use `Intl.NumberFormat` with explicit `minimumFractionDigits`/`maximumFractionDigits`; never display raw float to user |
-| Future Business Central integration | Sending EUR/BH rates as floats to BC | BC financial modules expect decimal/currency types; ensure the API contract uses string-encoded decimals |
-
----
+| Next.js middleware route allowlists | Renaming the route but not updating `protectedRoutes` / `viewerAllowedRoutes` (and the duplicate sets in Sidebar/BottomTabBar) | Update every allowlist; the route name appears in 4+ allowlist locations |
+| Azure SSO post-login redirect | Leaving `callback/azure/route.ts` redirecting to `/dashboard` (now metrics) when users expect the workspace | Point post-login to the intended landing page; verify the viewer role can access it |
+| asyncpg ↔ Postgres `NUMERIC` | Reading money from JSONB snapshot strings and forgetting to re-wrap in `Decimal` | Read from typed `NUMERIC` columns; if from JSONB, `Decimal(str(v))` |
+| New `quotes.project_id` FK | Adding the column but no migration to link existing immutable quotes to projects | Decide backfill policy: existing quotes likely stay `project_id NULL`; metrics must tolerate unlinked quotes |
+| JSONB serialization | Using plain `json.dumps` for new project/status payloads instead of the existing `DecimalEncoder` | Reuse `serialize` / `DecimalEncoder` from `quotes/service.py` |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Loading all aircraft MSN records to filter in Python | Quote list page slow as MSN count grows | Filter in SQL using `WHERE` clauses; never load all rows to memory | ~500 aircraft records |
-| Recalculating all historical quotes on every config change | Cascading slow writes when updating a rate factor | Never recalculate historical quotes; store snapshots; future "what-if" recalculation is a separate explicit action | Any config update |
-| N+1 query in quote list (fetching aircraft details per quote) | Quote history page makes N+1 DB calls | Use JOIN in the list query to fetch aircraft data alongside quotes | 20+ quotes in history view |
-| Storing component breakdown as separate rows (one row per component) | Many rows per quote; complex queries for history | Store full breakdown as JSONB column on the quote row alongside the component columns | Not a scale issue but a query-complexity trap from the start |
-| No database index on `quotes.created_by` or `quotes.created_at` | Quote history searches slow as quotes accumulate | Add indexes on filter columns during schema creation | ~1,000 quotes |
-
----
+| N+1 queries building the dashboard (one query per project for its quotes/MSNs) | Dashboard load grows linearly with project count | Compute aggregates in a few set-based SQL queries with GROUP BY / DISTINCT ON | Noticeable past ~100 projects; painful in the hundreds |
+| Aggregating in app code after `SELECT *` of all rows | High memory, slow response | `SUM`/`COUNT`/`DISTINCT` in SQL, return only totals | Hundreds–thousands of quote_msn rows |
+| No index supporting `quotes.project_id` joins/filters once added | Sequential scans on every dashboard load | Index `quotes(project_id)` and partial index for accepted-per-project | As quote volume grows |
+| Recomputing metrics on every page render with `cache: 'no-store'` | Repeated full aggregation per navigation | Acceptable at this scale (single-digit users); revisit caching only if slow | Unlikely at internal-team scale |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| No row-level isolation on quotes (any user can see all quotes) | Sales team member A sees competitor-sensitive pricing prepared by team member B; or external contractors see internal margin data | Enforce `WHERE created_by = current_user_id` or team-level ownership on all quote queries; even in v1 with single role, filter by user |
-| Exposing margin percentage in API responses to roles that should not see it | A less senior user or external viewer sees the margin applied, revealing internal pricing strategy | Separate the "full quote" (with margin) from the "client quote" (total rate only); RBAC on which roles see margin detail |
-| JWT tokens containing full pricing configuration | Token payload is decodable by any party with the token | JWT payload: user ID and role only; never embed pricing data in tokens |
-| Hardcoded JWT secret or database credentials in source code | Credentials committed to git; accessible to anyone with repo access | All secrets via environment variables; add `.env` to `.gitignore` from day zero |
-| No audit log for quote creation/modification | Cannot determine who priced a contract that later causes a dispute | Add `created_by`, `created_at`, `last_modified_by`, `last_modified_at` to all quote records; these are not optional |
-| Admin endpoints without authentication (common in early development) | Pricing configuration update endpoint left unprotected during development | Apply auth middleware to ALL routes from the first commit; never add auth "later" |
-
----
+| Exposing company-wide pipeline/revenue to `viewer` role without intent | Viewers see aggregate financials they shouldn't | Decide explicitly whether viewers see the metrics dashboard; enforce in middleware allowlist AND the data endpoint |
+| Trusting client-supplied status transitions | A user forces `signed` via API bypassing UI rules | Validate status + provenance server-side in the service layer, not just the UI |
+| Cross-user project visibility leak via new aggregate endpoint | If dashboard goes company-wide, a per-user-scoped detail endpoint might now leak another user's project details | Keep authorization explicit per endpoint; aggregate ≠ row-level access |
+| Reusing IDOR-prone project endpoints for status update | One user flips another user's project status | Authorize `update_project`/status changes against ownership or role |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Showing raw decimal values for component costs (e.g., `47.3821047`) | Sales team cannot quickly sense-check or communicate costs; erodes trust in the tool | Always format monetary values to 2 decimal places for display; show full precision only in a dedicated "calculation detail" view |
-| No visible indication of which pricing configuration version was used | Users cannot tell if a quote was made with "old rates" or "current rates" | Show config version or effective date on every quote view |
-| Requiring all 7 inputs before any output is shown | Sales team cannot do quick back-of-envelope estimates; feels inflexible | Show partial output as inputs are entered where mathematically possible; or provide sensible defaults for secondary inputs |
-| Quote list with no search or filter | Once 20+ quotes exist, finding a specific aircraft/period quote is tedious | Include search by aircraft MSN, date range, and created-by from the first release |
-| No way to duplicate/clone a quote | Sales team re-enters the same base parameters to compare margin scenarios | Add "Clone quote" action in v1; they will use it constantly |
-| Showing "black box" totals with no formula breakdown | Finance and operations teams cannot verify the tool; will revert to Excel | The per-BH cost breakdown (A + C + M + I + DOC + Other COGS + Overhead) must be the primary output view, not a secondary drill-down |
-
----
+| Silent route rename with no notice | Long-time users' muscle memory / bookmarks land somewhere unexpected | Redirect old URL; optionally a one-time banner explaining "Dashboard is now Calculation" |
+| Auto-sign with no visible feedback | User accepts a quote and doesn't realize the project flipped to signed | Show a toast/inline note: "Project marked Signed (from accepted quote)"; show status provenance |
+| No way to tell auto-set vs manual status apart | User can't trust or audit the status | Surface `status_source` ("Signed — auto from quote QN-123" vs "Signed — set by you") |
+| Metrics include scratch projects, numbers feel wrong | Sales team distrusts the whole dashboard | Exclude empty/draft projects; show what's counted |
+| Two pages both reachable, unclear which is the workspace | Users edit on the wrong page | Clear labels: "Calculation" (workspace) vs "Dashboard/Overview" (read-only metrics) |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Pricing engine**: Results match Excel workbook on 10+ real test cases including edge cases (very high MGH, low cycle ratio, extreme period length) — verify before shipping any UI
-- [ ] **Quote immutability**: Opening a saved quote after changing a pricing config shows IDENTICAL numbers to when it was first created — test by changing a rate, then reopening a pre-change quote
-- [ ] **Decimal precision**: All intermediate values in the calculation chain are `decimal.Decimal`; search codebase for `float(` or `* 1.0` inside pricing engine code
-- [ ] **PostgreSQL column types**: Every rate and monetary column is `NUMERIC`, not `FLOAT` — run `\d+ table_name` in psql and verify
-- [ ] **MGH boundary**: Quote at 200 actual hours with MGH=300 produces a HIGHER EUR/BH than 300 actual hours — if they are the same, MGH is not being applied
-- [ ] **Component breakdown stored**: Saved quote record contains all 7 component values (A, C, M, I, DOC, Other COGS, Overhead), not just the final total
-- [ ] **Authentication on ALL routes**: Every API endpoint returns 401 without a valid token — run `curl` against each endpoint without Authorization header
-- [ ] **User isolation**: User A's quotes are not visible to User B — test with two accounts
-- [ ] **Cycle ratio effect**: Changing cycle ratio changes the Maintenance and potentially DOC cost per BH — if M cost is identical at CR=1 and CR=4, the formula is wrong
-- [ ] **Environment factor effect**: If the workbook has an environment factor (hot/high, cold climate, etc.), verify that changing it changes the relevant cost components
-
----
+- [ ] **Route rename:** Often missing one of the 7 hardcoded `/dashboard` refs — verify `grep -rn "/dashboard" nextjs-project/src` returns only intended hits, and viewer login + Azure login both land correctly.
+- [ ] **Old bookmarks:** Often missing the redirect — verify visiting the old `/dashboard` URL still reaches the pricing workspace (not a 404 or the wrong page).
+- [ ] **Quote→project link:** Often missing the FK migration and backfill decision — verify existing quotes don't crash metrics (NULL `project_id` handled).
+- [ ] **Status automation:** Often missing provenance — verify a manual override survives a subsequent quote acceptance.
+- [ ] **Revenue aggregate:** Often missing de-duplication — verify a project with 3 quotes counts revenue once, and the total reconciles to known contracts.
+- [ ] **Fleet utilization:** Often missing DISTINCT — verify utilization never exceeds 100% and committed ≤ fleet size.
+- [ ] **Decimal totals:** Often missing the type discipline — verify aggregate totals equal hand-summed Decimal values with no precision noise.
+- [ ] **Contract-value formula:** Often missing a worked example — verify one real historical quote's value by hand.
+- [ ] **Dashboard scope:** Often missing the per-user vs company-wide decision — verify two users see the intended (same or different) totals.
+- [ ] **Viewer access to metrics:** Often missing the access decision — verify viewers see exactly what's intended on the new dashboard.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Floating-point rounding divergence discovered after launch | HIGH | Audit all formula code for `float` usage; replace with `Decimal`; migrate stored quote breakdowns using a recalculation pass; communicate to users which quotes may have been affected |
-| Missing hidden sheet or named range discovered mid-development | MEDIUM | Stop formula development; complete the full workbook audit before resuming; design the missing configuration as a database table; add test cases for the affected components |
-| Quote recalculation (non-immutable) discovered after quotes are in use | HIGH | Add snapshot columns to quote table; backfill by re-running calculations with the current config (noting these are approximate for old quotes); add created_at config version reference; document which quotes were backfilled |
-| Block/flight/cycle unit confusion in a formula | MEDIUM | Identify the affected component(s); write unit-annotated test cases; fix the formula; re-run any quotes where the error would have been material; communicate corrections |
-| Pricing configuration hardcoded in Python discovered at rate-change time | MEDIUM | Extract to a `pricing_config` database table; add admin UI or migration script for updates; deploy and verify existing quotes are unaffected (they should reference old config snapshot) |
-| Security: quotes visible across all users | LOW–MEDIUM | Add `WHERE created_by = ?` filter to all quote queries; test with two user accounts; review for any other unfiltered queries |
-
----
+| Missed `/dashboard` reference | LOW | Grep, patch the string, add redirect; no data impact |
+| Double-counted revenue | MEDIUM | Rewrite aggregation with DISTINCT ON / authoritative-quote rule; numbers self-correct, no data loss |
+| Automation overwrote manual override | HIGH | If no provenance column existed, the manual value is lost; must add provenance, then manually re-set affected projects from memory/audit — add provenance up front to avoid |
+| Float drift in aggregates | LOW–MEDIUM | Move math into SQL `NUMERIC`; rounding test catches regressions |
+| Wrong contract-value granularity | MEDIUM | Redefine formula, re-run aggregation; verify against hand example |
+| Stale projects in metrics | LOW | Add inclusion filter (has-quote / status); counts drop to real values |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Rounding/precision divergence | Phase: Pricing engine foundation (before first formula) | Run parallel calculation suite against Excel; assert output matches within ±€0.01/BH |
-| Hidden Excel dependencies | Phase: Pre-development workbook audit (before any coding) | Written dependency map reviewed and signed off before engine sprint begins |
-| Block hours vs. cycles unit confusion | Phase: Pricing engine implementation | Unit-dimension tests in test suite; verify cycle ratio sensitivity |
-| Quote immutability/configuration versioning | Phase: Database schema design (very early) | Change a rate, reopen old quote, confirm identical values displayed |
-| MGH sensitivity formula correctness | Phase: Pricing engine implementation + test | Boundary test: actual < MGH produces higher EUR/BH than actual = MGH |
-| Formula in application logic (not isolated engine) | Phase: Architecture setup (before first formula) | Pricing engine has 100% unit-testable pure functions; no DB imports in engine module |
-| Pricing config hardcoded in Python | Phase: Database schema design | No literal rate or factor values in Python source; all sourced from DB config table |
-| Missing quote breakdown columns | Phase: Database schema design | Schema review: all 7 component columns present on quote record |
-| No user isolation on quotes | Phase: Authentication and data access layer | Two-user isolation test passes before any quote data enters production |
-| Black-box UX (no breakdown visible) | Phase: UI implementation | Component breakdown (A/C/M/I/DOC/Other/Overhead) is the primary visible output |
-
----
+| 1. Route rename breakage | Phase: Route rename (isolated, first) | Grep clean; viewer + Azure login land correctly; old `/dashboard` redirects |
+| 3. Status automation stomps manual | Phase: Status lifecycle | Manual override survives a later quote acceptance (provenance test) |
+| 2. Double-counted revenue | Phase: Quote→project linkage (rule + constraint) + Metrics (apply rule) | Project with N quotes counts once; total reconciles |
+| 6. Contract-value granularity | Phase: Metrics | Hand-verified value for one real quote |
+| 5. Decimal/float drift | Phase: Metrics | Aggregate == hand-summed Decimal, no precision noise |
+| 4. Stale session projects | Phase: Metrics | Counts match sales team's real pipeline; scope decision confirmed |
+| 7. Fleet utilization double-count | Phase: Metrics (after linkage rule) | Utilization ≤ 100%; committed ≤ fleet size |
 
 ## Sources
 
-- Python floating-point and Decimal precision: [Python 3 docs — Floating Point Issues](https://docs.python.org/3/tutorial/floatingpoint.html), [Still Using Python float for Money?](https://medium.com/the-pythonworld/still-using-python-float-for-money-heres-why-that-s-dangerous-73a4f9e2539d)
-- PostgreSQL financial precision: [PostgreSQL and Financial Calculations — CommandPrompt](https://www.commandprompt.com/blog/postgresql-and-financial-calculations-part-one/), [Working with Money in Postgres — Crunchy Data](https://www.crunchydata.com/blog/working-with-money-in-postgres)
-- Excel formula migration risks: [Transforming a Financial Model into a Web App — Adventures in CRE](https://www.adventuresincre.com/financial-model-web-app/), [Excel to Web App — Modgility](https://www.modgility.com/blog/turn-excel-into-a-web-app)
-- Excel circular references and named range risks: [Conquering Circular References in Excel — Macabacus](https://macabacus.com/blog/conquering-circular-references-in-excel), [Excel Circular References — PerfectXL](https://www.perfectxl.com/academy/circular-references/what-is-a-circular-reference/)
-- ACMI block hours definition: [ACMI Aircraft Leasing — FlyMarathon](https://commercial.flymarathon.aero/acmi/what-is-acmi-aircraft-leasing-and-how-does-it-differ-from-other-types/), [ACMI Block Hour Rate Definition — Law Insider](https://www.lawinsider.com/dictionary/acmi-block-hour-rate)
-- Aviation maintenance reserves and cycle ratios: [Basics of Aircraft Maintenance Reserve Development — AircraftMonitor](https://www.aircraftmonitor.com/uploads/1/5/9/9/15993320/basics_of_aircraft_maintenance_reserves___v1.pdf)
-- DOC components: [Aircraft Operating Costs — FAA](https://www.faa.gov/regulations_policies/policy_guidance/benefit_cost/econ-value-section-4-op-costs.pdf), [Direct Operating Cost — GlobeAir](https://www.globeair.com/g/direct-operating-cost-doc)
-- Quote versioning and immutability: [Price Versioning — DealHub](https://dealhub.io/glossary/price-versioning/), [Database Design for Audit Logging — Red Gate](https://www.red-gate.com/blog/database-design-for-audit-logging/)
-- Formula transparency requirements: [Transparency in Pricing Tools — PricingHUB](https://www.pricinghub.net/en/transparency-pricing-tool/), [Finance Teams and AI Transparency — Rillion](https://www.rillion.com/blog/finance-labs/ai-transparency-in-finance-report/)
-- Race conditions in concurrent systems: [Race Conditions in Web Applications — PortSwigger](https://portswigger.net/web-security/race-conditions)
-- Excel rounding function differences: [Rounding in Excel — AbleBits](https://www.ablebits.com/office-addins-blog/excel-round-functions/)
+- Codebase (HIGH): `fastapi-project/migrations/003_create_pricing_config.sql` (pricing_projects, project_msn_inputs — no status column), `004_create_quotes.sql` (quotes have no project_id, own status enum), `app/quotes/router.py` + `service.py` (Decimal/DecimalEncoder discipline), `app/pricing/repository.py` (ProjectRepository, user-scoped list_projects), `nextjs-project/src/middleware.ts`, `app/page.tsx`, `api/auth/callback/azure/route.ts`, `components/sidebar/Sidebar.tsx`, `navigation/BottomTabBar.tsx`, `components/quotes/QuoteHeader.tsx`, `app/(dashboard)/dashboard/page.tsx` (hardcoded `/dashboard`).
+- [Next.js — Redirecting (next.config redirects, 307 vs 308 permanent)](https://nextjs.org/docs/app/building-your-application/routing/redirecting) (HIGH)
+- [Next.js — next.config.js redirects](https://nextjs.org/docs/app/api-reference/config/next-config-js/redirects) (HIGH)
+- Domain reasoning on immutable-snapshot / mutable-pipeline modeling and Decimal aggregation (MEDIUM).
 
 ---
-*Pitfalls research for: ACMI Pricing Platform (aviation lease pricing calculator)*
-*Researched: 2026-03-04*
+*Pitfalls research for: adding metrics dashboard + status lifecycle automation + route rename to a shipped ACMI pricing app (v2.0)*
+*Researched: 2026-06-05*

@@ -1,248 +1,188 @@
-# Project Research Summary
+# Project Research Summary — v2.0 Dashboard & Project Pipeline
 
-**Project:** ACMI Pricing Platform
-**Domain:** Aviation ACMI wet lease pricing — internal CPQ-style web application replacing Excel workbooks
-**Researched:** 2026-03-04
-**Confidence:** HIGH (stack, architecture, pitfalls), MEDIUM (features — niche domain)
+**Project:** ACMI Pricing Platform — Milestone v2.0
+**Domain:** B2B ACMI leasing pricing tool (existing shipped app); adding executive metrics dashboard and project pipeline lifecycle
+**Researched:** 2026-06-05
+**Confidence:** HIGH (stack and architecture grounded in direct codebase reads; features and pitfalls grounded in CRM/lessor patterns + codebase verification)
 
 ## Executive Summary
 
-This project is a formula-driven pricing calculator that translates an existing Excel workbook into a reliable, auditable web application for an ACMI lessor's internal sales team. The core product is straightforward: given five inputs (MSN, MGH, cycle ratio, operating environment, and contract period), compute a per-block-hour EUR rate across seven cost components (Aircraft, Crew, Maintenance, Insurance, DOC, Other COGS, Overhead) and present the breakdown alongside a margin-adjusted final rate. The architecture follows a well-established FastAPI + Next.js + PostgreSQL pattern with hard constraints that match the AeroVista reference codebase — no technology decisions need to be made, only applied carefully.
+This milestone adds two surfaces to a shipped, production pricing app: a project pipeline lifecycle (potential/signed status on `pricing_projects`) and a read-only executive Dashboard showing aggregate metrics across all projects. Because the app already exists, the dominant challenge is integration, not invention. Every required technology — recharts, next-themes, Zustand, zod, Tailwind v4 — is already installed and proven. No new dependencies are needed. The primary build work is schema additions (two migrations), backend wiring (quote→project FK, auto-sign logic, one new metrics endpoint), and a frontend route rename that displaces the old `/dashboard` URL to make room for the new metrics page.
 
-The single biggest risk is formula fidelity. The Excel workbook is the contractual benchmark; any divergence between the Python pricing engine and the workbook's output destroys user trust immediately and permanently. This risk is mitigated by treating the pricing engine as an isolated, stateless, fully unit-tested module — completely separate from the API and database layers — and by conducting a full workbook dependency audit before writing a single formula. Floating-point arithmetic must never appear in the pricing pipeline; Python `decimal.Decimal` throughout the engine and PostgreSQL `NUMERIC` columns throughout the schema are non-negotiable.
+The central new primitive is the `pricing_projects.status` column and the `quotes.project_id` FK. Everything else — counts, pipeline value, utilization, margin averages, auto-sign automation — depends on these two columns existing first. The recommended build order is data layer (migrations) → backend project status + linkage → auto-sign transaction → frontend route rename → Calculation status UI → Dashboard metrics page. This ordering ensures each step is independently verifiable before the next builds on it.
 
-The secondary risk is quote immutability. This is a legal and commercial quoting tool — quotes must be reproducible exactly as issued, regardless of subsequent changes to pricing configuration rates. This is a schema-level decision that must be made before the first quote is saved. The correct design (store all seven component values plus a foreign key to a versioned pricing config) is straightforward but cannot be retrofitted cheaply after launch. Get it right in the schema design phase and it becomes a non-issue.
-
----
+The key risks are concentrated in four areas: (1) the route rename is spread across 7+ hardcoded `/dashboard` references and will silently break navigation if done partially; (2) revenue aggregates will be inflated 2–5x if the "authoritative quote per project" rule is not enforced before summing; (3) the auto-sign hook will overwrite manual overrides unless provenance is tracked from the start; and (4) fleet utilization will miscount without `DISTINCT` MSN logic anchored to the `aircraft` master table. All four risks are preventable with up-front schema and query discipline — retrofitting any of them is significantly more expensive.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack is fully constrained to match the AeroVista reference architecture. All core technology decisions are locked; the research task was to identify the correct library versions and reject common antipatterns within those constraints. The main discoveries: python-jose and passlib are both unmaintained and must not be used (use PyJWT 2.11.0 and pwdlib[argon2] 0.3.0 respectively); xlrd does not support `.xlsx` files (use openpyxl 3.1.5); no aviation-specific ACMI pricing libraries exist (the engine is pure `decimal.Decimal` arithmetic); and xlwings requires Excel installed on the host (incompatible with Docker/Linux production servers).
-
-See `.planning/research/STACK.md` for full version table and rationale.
+No new dependencies are required. The v2.0 features run entirely on the already-installed stack. The one decision a dashboard typically forces — "which charting library?" — is already resolved: `recharts@3.8.0` is installed, React 19-compatible in this project's lockfile, and actively used with a proven dark/light theming pattern in `SensitivityChart.tsx`. Every Dashboard chart should copy that pattern verbatim.
 
 **Core technologies:**
-- Python 3.12 + FastAPI 0.115.x: Backend runtime — locked to match AeroVista; asyncio performance improvements in 3.12
-- asyncpg 0.31.0: PostgreSQL driver — fastest Python async driver; raw SQL + BaseRepository pattern (no ORM)
-- PyJWT 2.11.0: JWT auth — replaces unmaintained python-jose; Python 3.12 compatible
-- pwdlib[argon2] 0.3.0: Password hashing — replaces unmaintained passlib; Argon2 is OWASP-recommended
-- Python `decimal.Decimal` (stdlib): Pricing arithmetic — mandatory; float arithmetic will produce silent rounding divergence from Excel
-- openpyxl 3.1.5: Excel formula extraction — only actively maintained `.xlsx` library; use `data_only=False` to read formula strings
-- Next.js 14 (App Router) + TypeScript 5.x: Frontend — locked; Server Components reduce bundle size
-- Zustand 4.x: Frontend state — locked; one store per domain
-- react-hook-form 7.x + Zod 3.x: Form validation — type-safe input handling for pricing parameters
-- PostgreSQL 15+ with `NUMERIC` columns: All monetary and rate values stored as `NUMERIC`, never `FLOAT`
+- **Next.js 16.1.6 (App Router):** Dashboard is a read-only server-rendered page — identical pattern to the existing dashboard page; no client-side data fetching layer needed
+- **recharts 3.8.0:** Already installed and production-proven; SVG-based, integrates with next-themes; copy the `SensitivityChart` mounted-guard + `resolvedTheme` color pattern for every chart
+- **asyncpg + BaseRepository (raw SQL):** Metrics are SQL aggregates (`COUNT FILTER`, `SUM`, `GROUP BY`); raw SQL matches the codebase ethos and avoids the N+1 pattern already present in `list_projects`
+- **Tailwind v4 + next-themes 0.4.6:** Dashboard styling uses existing `dark:` utilities; theme integration already wired app-wide
+- **zod 4.3.6:** Reuse for dashboard API response validation and project status `PATCH` body
+- **StatusBadge.tsx (existing):** Extend, do not replace, for project status pills
+
+**What NOT to add:** Any second charting library (Tremor, Chart.js, visx), any component kit (shadcn, MUI), React Query / SWR, or frontend money arithmetic. All monetary math stays on the backend in Python `Decimal` / Postgres `NUMERIC`.
 
 ### Expected Features
 
-The feature research found no direct ACMI-specific SaaS competitors — the market relies on proprietary Excel workbooks. Feature priorities are derived from the Excel-to-web-app replacement pattern, ACMI domain analysis, and the PROJECT.md requirements. The critical dependency chain is: MSN master data enables the pricing engine; the pricing engine enables quotes; quotes enable history, status workflow, duplication, and PDF export. Authentication gates everything.
+**Must have (table stakes — v2.0 launch):**
+- `pricing_projects.status` column (potential/signed) with manual override in the Calculation page
+- `quotes.project_id` FK — without this, no metric can be attributed to a project
+- Accepted-quote auto-signs its project (idempotent, atomic, with `status_overridden` guard)
+- Dashboard: project counts split by status (potential vs signed)
+- Dashboard: pipeline contract value (potential) and signed contract value (EUR/BH × MGH × period months)
+- Dashboard: average EUR/BH rate and average margin
+- Dashboard: fleet utilization — committed MSN count (signed projects) vs available (aircraft master), with utilization % headline
+- Rename current Dashboard tab to "Calculation" (prerequisite framing; clears the URL for the new metrics page)
 
-See `.planning/research/FEATURES.md` for full dependency map and prioritization matrix.
+**Should have (add after v2.0 core ships — v2.x):**
+- Time-bounded utilization (period overlap logic) — flat committed/available proves misleading as leases expire
+- Pipeline breakdowns by client / aircraft type — low cost once GROUP BY columns exist
+- Pipeline/signed trend over time — capture `signed_at` timestamp in v2.0 even if the chart ships later
 
-**Must have (table stakes — v1 launch):**
-- Team authentication (email/password JWT) — proprietary pricing IP must be gated before go-live
-- MSN master data management (CRUD) — without aircraft records, the pricing engine has no inputs
-- Pricing engine with all components (A, C, M, I, DOC, Other COGS, Overhead) — the core product; must exactly match Excel
-- Pricing inputs form (MGH, Cycle Ratio, Environment, Period, MSN with auto-fill)
-- Component-level cost breakdown display — single-screen layout showing all cost lines; the primary differentiator from the spreadsheet
-- Margin input and EUR/BH final rate output — the headline deliverable
-- Quote save with name/reference — named, user-attributed, timestamped saves
-- Quote list (sortable, filterable DataTable)
-- Quote detail view (read-only, showing saved inputs and breakdown)
-- Input validation with clear errors — users are migrating from a spreadsheet that accepted any input silently
+**Defer to v3+:**
+- Weighted pipeline / probability — no multi-state funnel to weight against
+- AI forecasting / deal scoring — no win/loss history yet
+- Actuals comparison — out of scope per PROJECT.md
 
-**Should have (v1.x — add after core is validated):**
-- Quote duplication / clone — highest-value low-effort feature; confirmed by Excel-to-web migration research as the most-requested post-launch addition
-- Quote status workflow (Draft / Final / Sent / Won / Lost) — once the quote list is used as a pipeline view
-- PDF export for client delivery — once sales begins sending quotes from the tool rather than transcribing to email
-- Input validation refinements based on actual usage patterns
-
-**Defer (v2+):**
-- Actuals vs. budget comparison — requires separate operational data pipeline; explicitly scoped to v2 per PROJECT.md
-- Business Central integration — separate integration milestone; design the quote data model to export cleanly (CSV/JSON) so a future integration layer can consume it
-- Aggregated reporting / margin trend dashboards — requires quote volume to be meaningful; build after several months of v1 usage
-- Per-component sensitivity display — valuable for negotiation but deferred until sales team requests it
-- Advanced RBAC — v1 is a small, trusted team; fine-grained roles become necessary as the team grows
-
-**Explicit anti-features (do not build):**
-- Real-time fuel cost pass-through (fuel is lessee's cost in ACMI; not part of the EUR/BH rate)
-- Client-facing portal (separate product decision for v3+; deliver via PDF for now)
-- AI/dynamic pricing suggestions (no public ACMI market rate data exists; hallucinated suggestions destroy trust)
-- Multi-currency output (EUR is the contract standard; add only if repeatedly requested post-launch)
-- Mobile native app (web-first per PROJECT.md; complex multi-input quote forms suit desktop/tablet)
+**Anti-features to explicitly reject:**
+- Many-stage pipeline funnel (this is a pricing tool, not a CRM)
+- Real-time/live-updating dashboard (on-load aggregation is sufficient for an internal team)
+- Editing metrics or status on the Dashboard (violates the read-only decision; all mutation belongs in Calculation)
+- Auto-revert when a quote un-accepts (automation should only escalate potential→signed; demotion is manual)
 
 ### Architecture Approach
 
-The architecture follows a strict layered pattern: Routers handle HTTP only, Services own business rules, Repositories own SQL, and the PricingEngineService is a completely isolated stateless module with no database or HTTP dependencies. This last point is the most important architectural decision: the pricing engine must be callable as `result = engine.generate_quote(inputs, aircraft, config)` with no mocks, no test database, no HTTP client. Every formula function (one per cost component) gets its own pure unit test verifying against known Excel outputs.
-
-The data flow for the core use case is: user fills QuoteInputForm → quoteStore calls POST /api/v1/pricing/calculate → QuoteService pre-fetches aircraft data and active pricing config → PricingEngineService runs all component calculations → QuoteResult returned to frontend → user clicks Save → POST /api/v1/quotes → QuoteRepository persists all seven component values plus inputs and config foreign key.
-
-See `.planning/research/ARCHITECTURE.md` for full system diagram, project structure, schema DDL, and data flow diagrams.
+This is an integration milestone, not a greenfield design. Two schema migrations establish the foundation; the rest is additive backend endpoints and frontend wiring against the existing FastAPI + Next.js server-component pattern. The highest-complexity integration point is the transactional two-table write in `PATCH /quotes/{id}/status` (update quote status AND project status atomically). The highest-risk deployment step is the route rename, which requires synchronized edits to 7+ hardcoded `/dashboard` references across middleware, nav components, auth callback, and `QuoteHeader`.
 
 **Major components:**
-
-1. PricingEngineService (services/pricing_engine.py) — stateless pure functions, one per ACMI cost component; translates Excel formulas to Python Decimal arithmetic; no I/O; 100% unit-testable
-2. QuoteService + QuoteRepository — orchestrates pre-fetching, calls engine, persists immutable snapshots; enforces the rule that saved quotes are never recalculated on open
-3. AircraftRepository + pricing_configs table — MSN master data and versioned pricing configuration; rates are in the database, never hardcoded in Python
-4. FastAPI Router layer (api/v1/) — versioned from day one; validation via Pydantic; no business logic
-5. Next.js 14 App Shell + Zustand feature stores (quoteStore, aircraftStore, pricingConfigStore, authStore) — one store per domain; API calls live in store actions; components read state only
-6. PostgreSQL 15+ with NUMERIC columns — all monetary values as NUMERIC(precision, scale); soft deletes on quotes; indexes on created_by and created_at from day one
+1. **Migrations 008 + 009** — add `pricing_projects.status` / `status_overridden` and `quotes.project_id` FK; idempotent; backfill via `DEFAULT 'potential'` and nullable FK respectively
+2. **`PATCH /pricing/projects/{id}/status`** — new endpoint; manual override sets `status_overridden = TRUE`; uses existing `update_project(**fields)`
+3. **`PATCH /quotes/{id}/status` (modified)** — existing endpoint gains an atomic auto-sign hook: on `accepted`, if `project_id` is set and `status_overridden` is false, set project `status='signed'` in the same transaction
+4. **`GET /dashboard/metrics`** — new router (`app/dashboard/`); single aggregation query returning counts, contract values, avg rate/margin, fleet utilization; registered in `main.py`
+5. **Frontend route rename** — move `(dashboard)/dashboard/page.tsx` → `(dashboard)/calculation/page.tsx`; new `(dashboard)/dashboard/page.tsx` becomes the read-only metrics page; update Sidebar, middleware, root redirect, Azure callback, BottomTabBar, QuoteHeader in one synchronized change
+6. **Calculation-page status control** — status badge + potential/signed toggle calling a new `updateProjectStatusAction`; reuses `StatusBadge` component
+7. **New Dashboard page** — Server Component fetching `/dashboard/metrics` via existing cookie-forwarding idiom; StatCard grid + recharts charts (bar for pipeline, utilization bar)
 
 ### Critical Pitfalls
 
-These are not hypothetical — they are the failure modes most likely to derail this specific project type (Excel-to-web financial calculator in a niche aviation domain).
+1. **Route rename breaks navigation (7+ hardcoded refs)** — Do the rename as a single isolated change before other UI work; grep `nextjs-project/src` for `/dashboard` and fix every hit; add a `next.config.ts` redirect so existing bookmarks do not 404; verify viewer + Azure login land on the correct page after the change.
 
-1. **Rounding divergence from Excel** — Use Python `decimal.Decimal` for ALL intermediate calculations; store all rates and monetary values as PostgreSQL `NUMERIC`, never `FLOAT`; apply rounding only at the final EUR/BH output boundary, not within component functions. A linting check or code review gate before the first formula is written is the cheapest prevention.
+2. **Double-counted revenue from multiple quotes per project** — Define "authoritative quote" (latest accepted, or latest non-rejected for potential projects) and enforce it with a `DISTINCT ON (project_id)` query before aggregating; consider a partial unique index on `(project_id) WHERE status='accepted'` to enforce at most one accepted quote per project.
 
-2. **Undiscovered Excel formula dependencies (hidden sheets, named ranges, circular references)** — Conduct a full workbook dependency audit before writing any Python: enumerate all named ranges via Name Manager, reveal all hidden sheets, trace all precedent/dependent chains across sheets, identify any circular references that require redesign. The audit is a deliverable, not an assumption. Block pricing engine coding until it is complete and reviewed.
+3. **Auto-sign silently overwrites manual overrides** — Add `status_overridden BOOLEAN DEFAULT FALSE` to `pricing_projects` in the migration; auto-sign only fires when `status_overridden = FALSE`; manual override sets `status_overridden = TRUE`; automation is monotonic (never auto-demotes).
 
-3. **Quote records becoming stale when pricing configuration changes** — Store the full calculation snapshot with every quote: all seven component values as discrete columns, plus a foreign key to the `pricing_config` row used at creation time. Never recalculate a saved quote on open; display stored values. This is a schema-level decision that cannot be cheaply retrofitted.
+4. **Decimal → float drift in aggregates** — Aggregate in SQL using `NUMERIC`/`SUM` rather than pulling rows into Python or JS; reuse existing `DecimalEncoder` on any Python path; send pre-aggregated, pre-rounded values to the frontend; never re-sum money in JS.
 
-4. **Block hours vs. flight hours vs. cycles unit confusion** — Document the unit (per BH, per cycle, per month) for every intermediate variable during the workbook audit. Write unit-dimension tests: maintenance cost per BH must increase when cycle ratio decreases; crew cost per BH must not change when cycle ratio changes. Test with extreme cycle ratio values (CR=1.0 for ultra-short haul, CR=8.0 for long haul).
-
-5. **Pricing formulas embedded in application logic** — The pricing engine must be a standalone pure module before any other code is written. If formulas end up in the route handler, they cannot be unit-tested without a running HTTP server and database. When (not if) a formula needs correction, the fix location will be unclear. Enforce the isolation rule before the first formula is written.
-
-6. **MGH sensitivity not applied correctly** — Fixed costs (aircraft lease, crew salaries, insurance) must be divided by `max(actual_hours, MGH)`, not actual_hours alone. Test with actual hours below MGH and verify that per-BH costs increase. This is the core contractual mechanic of ACMI pricing.
-
----
+5. **Fleet utilization double-counts MSNs** — Use `COUNT(DISTINCT msn)` over signed projects only; define "available" against the `aircraft` master table, not the union of project inputs; verify committed <= fleet size in a test.
 
 ## Implications for Roadmap
 
-Research strongly supports a five-phase build order that matches the dependency chain: foundation first, then aircraft master data, then the pricing engine (the critical path), then quote persistence, then polish. This order is not negotiable — each phase is a prerequisite for the next. The pricing engine phase carries the most uncertainty and should not begin until the Excel workbook audit is complete.
+Based on research, the dependency chain is strict and suggests a 5-phase structure. The data layer must precede all other work; the route rename is independent and should be isolated to prevent partial-broken navigation.
 
-### Phase 1: Foundation and Authentication
+### Phase 1: Schema Foundation
+**Rationale:** Everything else depends on `pricing_projects.status` and `quotes.project_id` existing. Migrations are idempotent and backfill safely via defaults. No frontend or UI risk.
+**Delivers:** Database columns that make every subsequent feature possible; existing projects get `status='potential'` automatically; existing quotes remain valid with `project_id = NULL`; `status_overridden` column prevents future override-stomping; `signed_at` timestamp captured for future trend charts.
+**Addresses:** The "no project entity" gap from FEATURES.md; Pitfalls 2 and 3 (authoritative-quote constraint and provenance column established here).
+**Avoids:** Retrofitting provenance after data exists (highest recovery cost per PITFALLS.md).
+**Research flag:** None — standard `ALTER TABLE` migrations following the idempotent pattern already in migrations 001–007.
 
-**Rationale:** Authentication gates access to all features. The database schema (specifically the quotes and pricing_configs tables with their immutability requirements) must be designed correctly before any data is stored. Getting both right first means never having to retrofit security or schema structure.
+### Phase 2: Backend Project Status + Quote Linkage + Auto-Sign
+**Rationale:** Wire all backend behavior before the frontend touches anything. The transactional auto-sign is the highest-correctness risk and should be tested in isolation.
+**Delivers:** `PATCH /pricing/projects/{id}/status`; updated `ProjectResponse` schema with `status` + `status_overridden`; `quotes.project_id` wired through `POST /quotes/` and `SaveQuoteRequest` (closing the gap in `SaveQuoteDialog`); auto-sign logic in `PATCH /quotes/{id}/status` wrapped in a transaction with override guard.
+**Addresses:** FEATURES.md table stakes (auto-sign, manual override, quote linkage).
+**Avoids:** Pitfall 3 (provenance + monotonic automation baked in, not retrofitted); Pitfall 5 (Decimal discipline enforced in new code from day one).
+**Research flag:** None — patterns are clear. The transactional write needs a careful test plan (override path, draft→accepted directly, re-accept after override), not deeper research.
 
-**Delivers:** Working login/logout, JWT-protected route scaffold, asyncpg connection pool, BaseRepository, initial database migrations (users, aircraft, pricing_configs tables with correct NUMERIC column types and immutability design)
+### Phase 3: Frontend Route Rename (Dashboard → Calculation)
+**Rationale:** Isolate the rename as its own shippable change after backend stabilizes. If rename and new metrics page are developed together, a partial rename is much harder to debug and rollback.
+**Delivers:** Pricing workspace at `/calculation`; `/dashboard` redirects to `/calculation` via `next.config.ts` (no bookmark breakage); Sidebar / middleware / Azure callback / BottomTabBar / QuoteHeader all updated in one commit; `/dashboard` URL freed for the metrics page.
+**Addresses:** FEATURES.md "Calculation rename" item.
+**Avoids:** Pitfall 1 (the entire pitfall is addressed by doing this as an isolated, grepped, smoke-tested change before anything else occupies `/dashboard`).
+**Research flag:** None — Next.js redirect and middleware patterns are well-documented (HIGH confidence in PITFALLS.md sources).
 
-**Addresses:** Team authentication (P1 table stakes), input validation foundation
+### Phase 4: Calculation-Page Status UI
+**Rationale:** Backend project status endpoint exists (Phase 2) and Calculation page lives at its new URL (Phase 3). Add the status badge and toggle as the only new mutation surface.
+**Delivers:** Status badge (potential/signed) on the Calculation page; toggle fires `updateProjectStatusAction` → `PATCH /pricing/projects/{id}/status`; UI reflects provenance ("Signed — auto from quote" vs "Signed — set manually") to avoid Pitfall 3 UX variant.
+**Addresses:** FEATURES.md "manual status override" and "project status editable in Calculation page".
+**Avoids:** Pitfall 3 UX variant (auto-sign feedback visible to users).
+**Research flag:** None — reuses `StatusBadge.tsx` and existing Server Action cookie-forwarding pattern.
 
-**Avoids:** Security pitfall of adding auth "later"; schema pitfall of non-immutable quote records (design the schema correctly from the start even though quotes table is built in Phase 4)
-
-**Research flag:** Standard patterns — no research needed during planning. FastAPI JWT auth with PyJWT is well-documented. Spend time on schema design review before writing migrations.
-
-### Phase 2: Aircraft / MSN Master Data
-
-**Rationale:** The pricing engine cannot run without aircraft data. MSN master data must exist in the database before any quote can be created. Building this second gives the team something demonstrable (a working CRUD feature) while establishing the data foundation the engine requires.
-
-**Delivers:** Aircraft CRUD API, aircraft list and detail pages, AircraftSelector component, AircraftService + AircraftRepository, aircraft table with MSN/registration/asset_value/monthly_lease_rate columns
-
-**Addresses:** MSN master data management (P1 table stakes), MSN-driven auto-fill (P1 differentiator)
-
-**Avoids:** The temptation to hardcode test aircraft data in the engine (creates cleanup debt)
-
-**Research flag:** Standard patterns — no research needed. CRUD with asyncpg and Next.js DataTable is fully established.
-
-### Phase 3: Pricing Engine (Critical Path)
-
-**Rationale:** This is the core product and the highest-risk phase. The Excel workbook audit must be completed before this phase begins — it is a phase prerequisite, not a task within the phase. The engine must be built formula-by-formula against the workbook, with each component function having its own unit test before the next function is started. This phase cannot be estimated accurately until the workbook has been reviewed.
-
-**Delivers:** Full workbook dependency map (audit deliverable), PricingEngineService with all component functions, pricing_configs table + PricingConfigRepository, unit test suite with Excel-validated fixtures, POST /api/v1/pricing/calculate endpoint, QuoteInputForm + PricingBreakdown + MarginControl frontend components, quoteStore calculateQuote action — "Enter inputs, see EUR/BH breakdown" working end-to-end. Nothing saved yet.
-
-**Addresses:** Pricing engine with all components (P1 table stakes), component-level breakdown display (P1 differentiator), margin input + EUR/BH output (P1 table stakes)
-
-**Avoids:** Rounding divergence (Decimal-only rule enforced at engine module level from the first function), hidden dependency pitfall (workbook audit is a prerequisite), unit confusion (unit-dimension tests alongside numeric tests), monolithic formula function antipattern (one function per component)
-
-**Research flag:** REQUIRES research phase — specifically a thorough workbook audit before development. The Excel formulas are the unknown. All Phase 3 time estimates carry LOW confidence until the workbook is reviewed. Plan for a dedicated workbook audit session with the formula owner before this phase begins.
-
-### Phase 4: Quote Persistence and History
-
-**Rationale:** Once the pricing calculation is trusted (validated against the Excel workbook in Phase 3), saving and retrieving quotes is straightforward. This phase adds the persistence layer that transforms the calculator into an auditable quoting tool.
-
-**Delivers:** quotes table migration (with all seven component columns and pricing_config_id foreign key), QuoteRepository, POST /api/v1/quotes (save) and GET /api/v1/quotes (history) endpoints, Save Quote button in UI, quote history list page, quote detail page (read-only, displaying saved values)
-
-**Addresses:** Quote save with name/reference (P1 table stakes), quote history / audit record (P1 table stakes), quote list with sort/filter (P1 table stakes), quote retrieval / detail view (P1 table stakes)
-
-**Avoids:** Quote immutability pitfall (stored values displayed, never recalculated on open), missing breakdown columns pitfall (all seven components stored as discrete NUMERIC columns), N+1 query in history list (JOIN aircraft data in the history query from day one), missing indexes (add on created_by, created_at DESC at migration time)
-
-**Research flag:** Standard patterns — no research needed. The schema design is specified in ARCHITECTURE.md. Quote repository pattern follows BaseRepository.
-
-### Phase 5: Polish and Production Readiness
-
-**Rationale:** The core product is complete after Phase 4. This phase adds the features that make the tool professional and deployable, plus the operational hardening needed for a tool handling proprietary pricing data.
-
-**Delivers:** Pricing config admin page (update rates without deployment), quote status field (Draft/Final/Sent/Won/Lost), dark/light mode toggle, empty states, loading states, comprehensive error handling, input validation tightening, Docker Compose deployment configuration (FastAPI + Next.js + PostgreSQL + Nginx), deployment documentation
-
-**Addresses:** Dark/light mode (P1 differentiator per AeroVista pattern), quote status workflow (P2 — included here as it is low effort), input validation improvements (P1 table stakes)
-
-**Avoids:** Hardcoded pricing configuration antipattern (admin page makes this a non-issue), UX pitfall of no visible config version (show config name/effective date on quote detail)
-
-**Research flag:** Standard patterns — no research needed. Deployment with Gunicorn + UvicornWorker behind Nginx is documented in STACK.md.
+### Phase 5: Dashboard Metrics Page
+**Rationale:** The read-only consumer of everything built in Phases 1–4. Built last so aggregation queries run against real linked/signed data. Three design decisions (authoritative-quote rule, dashboard scope, period source) must be confirmed in requirements before writing SQL.
+**Delivers:** New read-only Dashboard at `/dashboard`; `GET /dashboard/metrics` (one aggregation query, no N+1); StatCard grid (potential count, signed count, pipeline value, signed value, avg EUR/BH, avg margin, fleet utilization %); recharts charts using the `SensitivityChart` dark-mode pattern; company-wide scope (confirmed per open question).
+**Addresses:** All FEATURES.md dashboard metrics table stakes.
+**Uses:** recharts 3.8.0 (no install); Server Component + `cache: 'no-store'`; existing StatCard and `StatusBadge` components.
+**Avoids:** Pitfall 2 (authoritative-quote rule in aggregation query); Pitfall 4 (include only projects with at least one quote; company-wide scope explicitly confirmed); Pitfall 5 (aggregate in SQL NUMERIC); Pitfall 6 (formula locked with hand-verified test against a known historical quote); Pitfall 7 (DISTINCT MSN counting).
+**Research flag:** NEEDS DESIGN DECISIONS BEFORE CODING — three open questions gate the aggregation SQL: (a) authoritative-quote selection rule for potential projects, (b) company-wide vs per-user dashboard scope, (c) `period_months` source (live `project_msn_inputs` vs quote snapshot). These are product decisions, not research gaps, but they must be resolved in requirements before Phase 5 starts.
 
 ### Phase Ordering Rationale
 
-- **Foundation before everything:** Auth and schema correctness cannot be retrofitted. The immutability design and NUMERIC column types must be established before any data is written.
-- **Aircraft before engine:** The engine's inputs reference aircraft-specific data (asset value, monthly lease rate). Seeding aircraft records also provides realistic test data for engine development.
-- **Engine before persistence:** Saving an untrusted calculation would seed the database with wrong data. The engine must be validated against the Excel workbook before any quote is saved.
-- **Persistence before polish:** The core value proposition (trusted, auditable quotes) must be working before effort is spent on admin UX and deployment configuration.
-- **Workbook audit as a hard prerequisite for Phase 3:** This is the single biggest project risk. The audit takes 1–2 days and prevents weeks of debugging wrong formulas.
+- Phases 1 → 2 are strictly ordered by schema dependency.
+- Phase 3 (rename) is independent of backend phases and can run in parallel if two engineers are available, but must complete before Phase 5 (metrics page occupies `/dashboard`).
+- Phase 4 depends on Phase 2 (backend endpoint) and Phase 3 (Calculation URL stable).
+- Phase 5 depends on Phases 1–4 for meaningful data and a settled URL.
+- Front-loading schema decisions (provenance column, FK, DISTINCT rule) avoids the highest-recovery-cost pitfalls before any UI lands on top of them.
 
 ### Research Flags
 
-Phases requiring deeper research during planning:
-- **Phase 3 (Pricing Engine):** The Excel workbook must be audited before any development estimates for this phase are trusted. Key unknowns: number of formula dependencies, presence of hidden sheets or named ranges, existence of circular references, VLOOKUP/INDEX-MATCH table structures. The workbook audit is the research deliverable for this phase.
+Needs planning attention before coding starts:
+- **Phase 5 (Dashboard Metrics):** Three product decisions gate the aggregation queries. Resolve in requirements. No external research needed — these are internal design choices.
 
-Phases with well-documented standard patterns (skip research-phase):
-- **Phase 1 (Foundation):** FastAPI JWT auth with PyJWT, asyncpg pool setup, and database schema design are all well-documented. The ARCHITECTURE.md file includes the complete DDL for all tables.
-- **Phase 2 (Aircraft CRUD):** Standard CRUD pattern with BaseRepository. No aviation-specific complexity at this layer.
-- **Phase 4 (Quote Persistence):** Repository pattern is fully specified. Schema is defined in ARCHITECTURE.md. The only complexity is enforcing immutability, which is a design rule not a research question.
-- **Phase 5 (Polish):** Docker Compose deployment, Nginx configuration, and Gunicorn setup are all documented in STACK.md.
-
----
+Standard patterns (no `/gsd:research-phase` needed):
+- **Phase 1:** Idempotent Postgres `ALTER TABLE` — same pattern as migrations 001–007.
+- **Phase 2:** FastAPI endpoint + asyncpg transaction — pattern in `quotes/router.py`.
+- **Phase 3:** Next.js App Router redirect + middleware — HIGH-confidence documented patterns.
+- **Phase 4:** Reuses `StatusBadge` and Server Action patterns already in production.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Core stack is locked to AeroVista. Library selections (PyJWT, pwdlib, openpyxl) verified against official FastAPI PRs and PyPI. Version compatibility confirmed for Python 3.12. |
-| Features | MEDIUM | No direct ACMI SaaS competitors found — features inferred from domain analysis, analogous tools (AeroQuote, Aircraft Cost Calculator), and PROJECT.md requirements. Core P1 features are unambiguous; P2/P3 prioritization is judgment-based. |
-| Architecture | HIGH | Derived from AeroVista reference architecture plus well-established FastAPI layered patterns. Database schema design and component boundaries are fully specified with concrete DDL and code examples. |
-| Pitfalls | HIGH | Verified across multiple authoritative sources (Python docs, PostgreSQL docs, FastAPI official docs, Excel migration case studies). The pitfalls are specific to this project type (financial calculator, Excel migration) and confirmed by domain analysis. |
+| Stack | HIGH | All decisions from direct `package.json` / lockfile reads and production-verified component usage; recharts React 19 compatibility confirmed from lockfile |
+| Features | MEDIUM | Domain patterns (CRM auto-sign, lessor utilization) well-established; project-specific mapping (authoritative quote, period semantics) requires product confirmation |
+| Architecture | HIGH | Grounded in direct reads of every relevant source file; integration points explicit and build order is dependency-ordered |
+| Pitfalls | HIGH | Every pitfall derived from the actual schema/code (not speculation); 7 hardcoded refs, N+1 in `list_projects`, missing `project_id` on quotes — all verified facts |
 
-**Overall confidence:** HIGH for technical approach; the only genuine uncertainty is the Excel workbook content, which cannot be assessed until the workbook is reviewed.
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Excel workbook content (Phase 3 blocker):** The workbook has not been reviewed as part of this research. The number and complexity of formula dependencies, hidden sheets, named ranges, and circular references are unknown. All Phase 3 estimates are provisional until a full workbook audit is completed. Resolve by scheduling a workbook audit session before Phase 3 planning.
-
-- **No ACMI-specific Python libraries:** Confirmed that no open-source ACMI pricing libraries exist. The pricing engine is greenfield formula translation. This is a gap in available tooling, not a gap in research — it means the project carries this implementation risk entirely.
-
-- **xlcalculator maintenance status:** Used only as a validation tool for formula translation (not in production). Its maintenance activity is unclear. If it proves unreliable for formula cross-checking, the alternative is manual parallel computation against Excel reference values — more time-consuming but equally valid.
-
-- **PDF export implementation approach:** Deferred to v1.x but not researched in depth. When this phase arrives, decide between server-side PDF generation (WeasyPrint or ReportLab) or print CSS. The constraint of selectively hiding cost components from client-facing PDFs (not exposing margin breakdown) needs a design decision at implementation time.
-
----
+- **Authoritative-quote rule for potential projects:** Research recommends "latest non-rejected quote" but product must confirm. Gates the contract-value aggregate query. Resolve before Phase 5.
+- **Dashboard scope (company-wide vs per-user):** `list_projects` is currently `created_by`-scoped. A company pipeline almost certainly needs all users' projects. Must be an explicit product decision — it is a behavioral change from current behavior.
+- **Period months source reconciliation:** `project_msn_inputs.period_months` defaults to 12; quote snapshots carry `periodStart`/`periodEnd`. Confirm which is canonical for contract-value math before writing the aggregate.
+- **Capture `signed_at` timestamp in Phase 1:** Trend-over-time charts (v2.x) require status-change timestamps. Add `signed_at TIMESTAMPTZ` in the Phase 1 migration even if the chart ships later — retrofitting loses history.
+- **Post-login landing page:** Confirm whether Dashboard (metrics) or Calculation (workspace) is the default post-login page; affects `app/page.tsx` root redirect and Azure SSO callback target.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- FastAPI GitHub PR #11589 — PyJWT migration from python-jose
-- FastAPI GitHub PR #13917 — pwdlib/Argon2 migration from passlib
-- FastAPI full-stack template PR #1539 — passlib replacement confirmation
-- Python 3 official docs — floating point and Decimal precision
-- PostgreSQL official docs — NUMERIC vs FLOAT column behavior
-- FastAPI official deployment docs — Gunicorn + UvicornWorker configuration
-- xlrd GitHub README — explicit statement that .xlsx support removed in v2.0
-- AeroVista reference architecture — component structure and naming conventions
+- `fastapi-project/migrations/003_create_pricing_config.sql`, `004_create_quotes.sql` — verified schema (no status column, no project_id FK)
+- `fastapi-project/app/pricing/routes/projects.py`, `app/pricing/repository.py` — existing ProjectRepository, update_project pattern, N+1 in list_projects verified
+- `fastapi-project/app/quotes/router.py`, `app/quotes/repository.py`, `app/quotes/service.py` — existing status handler, Decimal/DecimalEncoder discipline
+- `fastapi-project/app/main.py`, `app/db/base_repository.py` — router registration, asyncpg fetch patterns
+- `nextjs-project/src/middleware.ts`, `app/page.tsx`, `api/auth/callback/azure/route.ts` — 7 hardcoded /dashboard references verified
+- `nextjs-project/src/components/sidebar/Sidebar.tsx`, `navigation/BottomTabBar.tsx`, `components/quotes/QuoteHeader.tsx` — remaining /dashboard hardcodes
+- `nextjs-project/src/app/(dashboard)/dashboard/page.tsx` — existing SSR + auth-cookie fetch pattern to reuse
+- `nextjs-project/src/components/sensitivity/SensitivityChart.tsx` — proven recharts + next-themes dark/light pattern
+- `nextjs-project/src/components/quotes/StatusBadge.tsx` — status-pill pattern to extend
+- `nextjs-project/package.json`, `package-lock.json` — recharts 3.8.0, next-themes 0.4.6, React 19.2.3 compatibility confirmed
+- [Next.js — Redirecting (next.config redirects, 307 vs 308)](https://nextjs.org/docs/app/building-your-application/routing/redirecting)
 
 ### Secondary (MEDIUM confidence)
-- SKYbrary — ACMI component definitions (A/C/M/I breakdown)
-- Law Insider — ACMI Block Hour Rate contract definition
-- IALTA — Maintenance reserve calculation methodology
-- ACC Aviation 2025 ACMI Market Insights — market context and rate ranges
-- FastAPI layered architecture articles (Medium, dev.to) — service/repository pattern
-- AeroQuote, Aircraft Cost Calculator — analogous feature comparison
-- openpyxl documentation — formula tokenizer coverage (limited)
-
-### Tertiary (LOW confidence)
-- xlcalculator GitHub — formula validation tool; maintenance status unclear
-- SpreadsheetWeb Excel-to-web guide — single source for migration feature list
-- EASA Software LeasePlan case study — vendor marketing confirming clone/scenario value
+- [Improvado — Sales Dashboard: Core Metrics & Design Framework (2026)](https://improvado.io/blog/sales-dashboard)
+- [DealHub — Quote Syncing](https://dealhub.io/glossary/quote-syncing/) — accepted-quote auto-signs opportunity pattern
+- [Cirium — Aviation Finance / Lessors tooling](https://www.cirium.com/industry-solutions/aviation-finance/lessors/) — fleet utilization framing
+- [GoCardless — Total Contract Value (TCV)](https://gocardless.com/en-us/guides/posts/what-is-total-contract-value-tcv/) — contract value definition
+- [LogRocket — Best React chart libraries 2026](https://blog.logrocket.com/best-react-chart-libraries-2026/) — recharts recommendation for React 19
 
 ---
-
-*Research completed: 2026-03-04*
+*Research completed: 2026-06-05*
+*Milestone: v2.0 Dashboard & Project Pipeline*
 *Ready for roadmap: yes*

@@ -39,12 +39,11 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
       const costsState = useCostsConfigStore.getState()
 
       // Ensure the working session has a backing project so the quote is
-      // attributable on the Dashboard (status starts as 'potential')
+      // attributable on the Dashboard (status starts as 'potential').
+      // The project carries the client name -- that is its dashboard identity.
       let projectId = pricingState.projectId
       if (!projectId) {
-        const projectName =
-          pricingState.projectName.trim() || clientName.trim()
-        const created = await createProjectAction(projectName)
+        const created = await createProjectAction(clientName.trim())
         if (!('error' in created)) {
           projectId = created.id
           usePricingStore.getState().setProjectId(created.id)

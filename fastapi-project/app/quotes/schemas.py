@@ -88,8 +88,10 @@ class UpdateQuoteStatusRequest(BaseModel):
     @classmethod
     def validate_status(cls, v: str) -> str:
         """Status must be one of the allowed values."""
-        allowed = {"draft", "sent", "accepted", "rejected"}
+        allowed = {"draft", "sent", "signed", "active", "rejected"}
         v = v.strip().lower()
+        if v == "accepted":  # legacy alias from v1
+            v = "signed"
         if v not in allowed:
             raise ValueError(f"Status must be one of: {', '.join(sorted(allowed))}")
         return v

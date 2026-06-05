@@ -13,7 +13,7 @@ interface QuoteListProps {
   isViewer?: boolean
 }
 
-const STATUSES = ['draft', 'sent', 'accepted', 'rejected']
+const STATUSES = ['draft', 'sent', 'signed', 'active', 'rejected']
 
 type QuoteSortKey = 'quote_number' | 'client_name' | 'status' | 'created_at'
 

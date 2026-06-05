@@ -1,11 +1,36 @@
 # Requirements: ACMI Pricing Platform
 
-**Defined:** 2026-03-04
+**Defined:** 2026-06-05 (milestone v2.0)
 **Core Value:** Accurate, repeatable ACMI pricing quotes that sales teams can generate, save, and retrieve — replacing manual spreadsheet-based pricing.
 
-## v1 Requirements
+## v2.0 Requirements
 
-Requirements for initial release. Each maps to roadmap phases.
+Milestone v2.0 — Dashboard & Project Pipeline. Each maps to roadmap phases.
+
+### Navigation & Routing
+
+- [ ] **NAV-01**: User sees the pricing workspace as "Calculation" in the sidebar, served at `/calculation` — all nav links, middleware route protection, viewer allowlists, and redirects (root page, Azure callback, BottomTabBar, QuoteHeader) updated consistently
+- [ ] **NAV-02**: User lands on the new Dashboard (`/dashboard`) after login; root redirect points to Dashboard
+
+### Project Pipeline
+
+- [ ] **PROJ-01**: Every pricing project has a status of `potential` or `signed` (new projects default to `potential`)
+- [ ] **PROJ-02**: User can manually set a project's status (potential ↔ signed) from the Calculation page
+- [ ] **PROJ-03**: A quote saved from a project is linked to that project (`quotes.project_id`)
+- [ ] **PROJ-04**: When a linked quote is marked Accepted, its project is automatically set to `signed` — idempotent, escalation-only (un-accepting or rejecting a quote never auto-demotes a project)
+- [ ] **PROJ-05**: Status changes record provenance: `signed_at` timestamp and whether the change was automatic or manual (manual overrides are never overwritten by automation)
+
+### Dashboard Metrics
+
+- [ ] **DASH-01**: User sees project counts split by status (X potential, Y signed) on the Dashboard
+- [ ] **DASH-02**: User sees pipeline contract value (potential) and signed contract value in EUR, computed as EUR/BH × MGH × period months per project — using one authoritative quote per project (latest accepted quote for signed projects, latest quote of any status for potential projects)
+- [ ] **DASH-03**: User sees average EUR/BH rate and average margin % across projects
+- [ ] **DASH-04**: User sees fleet utilization: MSNs committed to signed projects vs available fleet, with a utilization % headline KPI
+- [ ] **DASH-05**: User sees pipeline value broken down by client and by aircraft type
+- [ ] **DASH-06**: User sees a trend chart of pipeline/signed value by month (driven by `signed_at`/created timestamps)
+- [ ] **DASH-07**: Dashboard is read-only and company-wide (all users' projects visible to everyone); all monetary aggregation happens in SQL with NUMERIC precision
+
+## v1.0 Requirements (shipped)
 
 ### Authentication
 
@@ -48,7 +73,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **QUOT-03**: User can view list of saved quotes with search and filter (by client, date, MSN)
 - [x] **QUOT-04**: User can view full detail of a saved quote including all component breakdowns
 - [x] **QUOT-05**: User can set quote status: Draft, Sent, Accepted, Rejected
-- [ ] **QUOT-06**: User can export a quote as PDF with professional formatting
+- [ ] **QUOT-06**: User can export a quote as PDF with professional formatting *(carried over — still pending)*
 
 ### UI / UX
 
@@ -58,9 +83,14 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UI-04**: Dashboard shows summary stats: total quotes, quotes by status, recent activity
 - [x] **UI-05**: Application matches AeroVista visual style (Tailwind, Zustand, component patterns)
 
-## v2 Requirements
+## Future Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
+
+### Dashboard Enhancements
+
+- **DASH-08**: Time-bounded fleet utilization (lease period overlap — an MSN signed Jan–Mar is free in Apr)
+- **DASH-09**: Weighted pipeline forecasting (requires multi-state funnel; low value with two states)
 
 ### Actuals Comparison
 
@@ -80,19 +110,23 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Advanced Auth
 
-- **AUTH-05**: Azure AD / SSO integration for enterprise login
 - **AUTH-06**: Role-based access control with granular permissions
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
+| Multi-stage CRM pipeline (lead → qualified → proposal → won) | This is a pricing tool, not a CRM; two states (potential/signed) is the explicit requirement; quote statuses already provide granularity |
+| Editing status/metrics on the Dashboard | Dashboard is read-only by decision; all mutation lives in Calculation — two mutation surfaces cause sync bugs |
+| Real-time / live-updating dashboard | On-load query is sufficient for a small internal team; websockets/polling is overkill |
+| Auto-reverting project status when a quote un-accepts | Aggressive bidirectional automation fights manual overrides; downgrades are manual |
 | Fuel cost calculation | Fuel is the lessee's cost, not the lessor's — does not belong in ACMI pricing |
 | Real-time aircraft tracking | Not relevant to pricing; belongs in operations tools |
 | Mobile app | Web-first; mobile deferred indefinitely |
 | Multi-currency support | All ACMI contracts in EUR for this market |
 | Self-service signup | Controlled company access only |
 | Component-level tracking (engines, APU, LG) | v1 uses aircraft-level costs from Excel; component tracking is AeroVista's domain |
+| AI forecasting / deal scoring | No win/loss history to train on; ship descriptive metrics first |
 
 ## Traceability
 
@@ -100,42 +134,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Complete |
-| AUTH-02 | Phase 1 | Complete |
-| AUTH-03 | Phase 1 | Complete |
-| AUTH-04 | Phase 1 | Complete |
-| UI-01 | Phase 1 | Complete |
-| UI-05 | Phase 1 | Complete |
-| ACFT-01 | Phase 2 | Complete |
-| ACFT-02 | Phase 2 | Complete |
-| ACFT-03 | Phase 2 | Complete |
-| ACFT-04 | Phase 2 | Complete |
-| PRIC-01 | Phase 3 | Complete |
-| PRIC-02 | Phase 3 | Complete |
-| PRIC-03 | Phase 3 | Complete |
-| PRIC-04 | Phase 3 | Complete |
-| PRIC-05 | Phase 3 | Complete |
-| PRIC-06 | Phase 3 | Complete |
-| CONF-01 | Phase 3 | Complete |
-| CONF-02 | Phase 3 | Complete |
-| CONF-03 | Phase 3 | Complete |
-| QUOT-01 | Phase 4 | Complete |
-| QUOT-02 | Phase 4 | Complete |
-| QUOT-03 | Phase 4 | Complete |
-| QUOT-04 | Phase 4 | Complete |
-| QUOT-05 | Phase 4 | Complete |
-| QUOT-06 | Phase 4 | Pending |
-| SENS-01 | Phase 4 | Complete |
-| SENS-02 | Phase 4 | Complete |
-| UI-02 | Phase 5 | Complete |
-| UI-03 | Phase 5 | Complete |
-| UI-04 | Phase 5 | Complete |
+| NAV-01 | — | Pending |
+| NAV-02 | — | Pending |
+| PROJ-01 | — | Pending |
+| PROJ-02 | — | Pending |
+| PROJ-03 | — | Pending |
+| PROJ-04 | — | Pending |
+| PROJ-05 | — | Pending |
+| DASH-01 | — | Pending |
+| DASH-02 | — | Pending |
+| DASH-03 | — | Pending |
+| DASH-04 | — | Pending |
+| DASH-05 | — | Pending |
+| DASH-06 | — | Pending |
+| DASH-07 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 30 total
-- Mapped to phases: 30
-- Unmapped: 0
+- v2.0 requirements: 14 total
+- Mapped to phases: 0
+- Unmapped: 14 ⚠️ (filled during roadmap creation)
 
 ---
-*Requirements defined: 2026-03-04*
-*Last updated: 2026-03-04 after roadmap creation — all requirements mapped*
+*Requirements defined: 2026-06-05 for milestone v2.0*
+*v1.0 requirements (30) shipped 2026-03-10; QUOT-06 (PDF export) still pending*

@@ -2,118 +2,101 @@
 
 ## Overview
 
-Five phases that follow the dependency chain of the product itself. Authentication gates access to everything, so it ships first. Aircraft master data feeds the pricing engine, so it ships second. The pricing engine is the core product and the highest-risk phase — it ships third, after the Excel workbook audit is complete. Quote persistence transforms the calculator into an auditable quoting tool and ships fourth. Polish and production readiness close the milestone. Each phase delivers a coherent, verifiable capability. Nothing is built before its dependency exists.
+**Current milestone: v2.0 — Dashboard & Project Pipeline.** This milestone separates the pricing workspace from reporting. The existing Dashboard becomes "Calculation" (the pricing workspace), pricing projects gain a potential/signed lifecycle managed inside Calculation, quotes link to projects so an accepted quote auto-signs its project, and a new read-only company-wide Dashboard surfaces pipeline metrics.
+
+The structure follows a strict dependency chain established by research: the schema (`pricing_projects.status` + provenance, `quotes.project_id`) must exist before any behavior can attach to it, the backend behavior must be correct before the UI consumes it, the route rename must be isolated to avoid partial-broken navigation, and the metrics Dashboard is built last because it is the read-only consumer of everything beneath it. Each phase delivers an independently verifiable capability.
+
+## v1.0 (shipped)
+
+Milestone v1.0 — Core Pricing Tool — shipped 2026-03-10. Five phases, all complete:
+
+- [x] **Phase 1: Foundation and Authentication** — Secure access, project scaffold, database schema foundation (completed 2026-03-05)
+- [x] **Phase 2: Aircraft Master Data** — Aircraft records with cost parameters feeding the pricing engine (completed 2026-03-05)
+- [x] **Phase 3: Pricing Engine** — Formula-accurate EUR/BH calculation across all seven ACMI cost components (completed 2026-03-10)
+- [x] **Phase 4: Quote Persistence and History** — Save, retrieve, and manage pricing quotes as auditable records (completed 2026-03-10)
+- [x] **Phase 5: Polish and Production Readiness** — Admin controls, UI completeness, deployment configuration (completed 2026-03-10)
+
+Carried-over requirement: QUOT-06 (PDF export) remains pending and is not scheduled in v2.0.
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Integer phases (6, 7, 8): Planned milestone work for v2.0
+- Decimal phases (6.1, 6.2): Urgent insertions (marked with INSERTED)
 
-- [x] **Phase 1: Foundation and Authentication** - Secure access, project scaffold, and database schema foundation
-- [x] **Phase 2: Aircraft Master Data** - Aircraft records with cost parameters that feed the pricing engine
-- [ ] **Phase 3: Pricing Engine** - Formula-accurate EUR/BH calculation across all seven ACMI cost components
-- [x] **Phase 4: Quote Persistence and History** - Save, retrieve, and manage pricing quotes as auditable records (completed 2026-03-10)
-- [x] **Phase 5: Polish and Production Readiness** - Admin controls, UI completeness, and deployment configuration (completed 2026-03-10)
+- [ ] **Phase 6: Project Schema Foundation** - Status + provenance columns on projects and the quote→project FK that every v2.0 feature depends on
+- [ ] **Phase 7: Project Status Backend & Auto-Sign** - Quotes linked to projects; an accepted quote atomically signs its project, escalation-only
+- [ ] **Phase 8: Route Rename (Dashboard → Calculation)** - Pricing workspace moves to /calculation; /dashboard freed and login lands there
+- [ ] **Phase 9: Calculation-Page Status Control** - Users set and see project status (potential/signed) with provenance inside the Calculation page
+- [ ] **Phase 10: Dashboard Metrics Page** - Read-only company-wide Dashboard with pipeline, contract value, margins, fleet utilization, and breakdowns
 
 ## Phase Details
 
-### Phase 1: Foundation and Authentication
-**Goal**: Users can securely access the application and the project foundation is correct before any data is written
-**Depends on**: Nothing (first phase)
-**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, UI-01, UI-05
+### Phase 6: Project Schema Foundation
+**Goal**: The database can represent project lifecycle state and quote-to-project ownership, so all subsequent v2.0 behavior has a place to live
+**Depends on**: Phase 5 (v1.0 shipped schema)
+**Requirements**: PROJ-01, PROJ-05
 **Success Criteria** (what must be TRUE):
-  1. User can log in with company email and password and is taken to the application
-  2. User remains logged in after refreshing the browser (JWT persists across sessions)
-  3. User can log out from any page and is immediately redirected to the login screen
-  4. Admin can create a new user account without that user self-registering
-  5. Application sidebar navigation renders with all five pages (Dashboard, Pricing, Quotes, Aircraft, Admin) and matches AeroVista visual style
-**Plans**: 4 plans
+  1. Every existing and new pricing project has a `status` of `potential` or `signed`, with new projects defaulting to `potential`
+  2. Projects can record provenance: a `signed_at` timestamp and a `status_source` (automatic vs manual) distinguishing quote-driven changes from manual overrides
+  3. Every quote can be linked to a project via `quotes.project_id`; existing quotes remain valid with a null linkage and no existing quote or project is broken by the migration
+  4. The migrations are idempotent and re-runnable, following the established pattern of migrations 001–007
+**Plans**: TBD
 
-Plans:
-- [x] 01-01-PLAN.md — FastAPI scaffold, asyncpg DB layer, users table migration, pytest Wave 0
-- [x] 01-02-PLAN.md — FastAPI auth backend (login, logout, /auth/me, admin user CRUD, 8 tests green)
-- [x] 01-03-PLAN.md — Next.js project, login page, middleware, auth Server Actions, session helper
-- [x] 01-04-PLAN.md — App shell: collapsible sidebar, 5 nav pages, top bar, logout, human verify checkpoint
-
-### Phase 2: Aircraft Master Data
-**Goal**: Aircraft records with MSN, registration, and cost parameters exist in the database and are browsable by users
-**Depends on**: Phase 1
-**Requirements**: ACFT-01, ACFT-02, ACFT-03, ACFT-04
+### Phase 7: Project Status Backend & Auto-Sign
+**Goal**: When a sales user accepts a quote, that quote's project becomes signed automatically and atomically — without ever overwriting a manual decision
+**Depends on**: Phase 6
+**Requirements**: PROJ-03, PROJ-04
 **Success Criteria** (what must be TRUE):
-  1. Aircraft records imported from Excel appear in the system with MSN, type, registration, and all cost parameters
-  2. User can search the aircraft list by MSN or registration and find the correct record
-  3. User can click an aircraft record and see all associated cost data on a detail page
-  4. Admin can update aircraft cost parameters and the changes are reflected immediately
-**Plans**: 3 plans
+  1. A quote saved from a project is persisted with its `project_id`, so the quote is attributable to exactly one project through the save flow
+  2. Marking a linked quote as Accepted sets its project to `signed` in the same database transaction, and re-accepting the same quote is idempotent (no error, no duplicate side effect)
+  3. Auto-sign is escalation-only: un-accepting or rejecting a quote never auto-demotes a project back to potential
+  4. Auto-sign never fires when the project status was set manually (the manual-override guard is respected), and the change is stamped as automatic in provenance
+**Plans**: TBD
 
-Plans:
-- [x] 02-01-PLAN.md — DB schema (aircraft, rates, EPR tables), AircraftRepository, Pydantic schemas, Excel seed script, Wave 0 test stubs
-- [x] 02-02-PLAN.md — Aircraft API router (list, detail, update), EUR conversion service, 9 tests green
-- [x] 02-03-PLAN.md — Frontend aircraft list with search, detail page with cost sections, admin edit, human verify
-
-### Phase 3: Pricing Engine
-**Goal**: Users can enter ACMI pricing inputs and receive an accurate EUR/BH cost breakdown that exactly matches the Excel workbook
-**Depends on**: Phase 2
-**Requirements**: PRIC-01, PRIC-02, PRIC-03, PRIC-04, PRIC-05, PRIC-06, CONF-01, CONF-02, CONF-03
+### Phase 8: Route Rename (Dashboard → Calculation)
+**Goal**: The pricing workspace lives at `/calculation` and the `/dashboard` URL is freed for the new metrics page, with navigation intact everywhere
+**Depends on**: Phase 5 (independent of Phases 6–7; must complete before Phase 10)
+**Requirements**: NAV-01, NAV-02
 **Success Criteria** (what must be TRUE):
-  1. User can enter MGH, Cycle Ratio, Environment, Period, and select an MSN to trigger a calculation
-  2. Calculation results display a per-BH cost breakdown for all seven components: Aircraft, Crew, Maintenance, Insurance, DOC, Other COGS, Overhead
-  3. User can enter a margin percentage and see the final EUR/BH rate update accordingly
-  4. Calculation results update in real-time as the user changes any input field
-  5. Calculation output matches the Excel workbook exactly when verified with the same inputs (using test fixtures derived from workbook audit)
-  6. Admin can view and update base rates and pricing parameters via the admin page without redeploying the application
-**Plans**: 5 plans
+  1. The sidebar shows the pricing workspace as "Calculation" served at `/calculation`, and every navigation entry point reaches it correctly (Sidebar, BottomTabBar, QuoteHeader)
+  2. All route protection and viewer allowlists in middleware reference `/calculation`, so both standard users and viewers can reach the workspace without 403s or redirect loops
+  3. After login, the user lands on `/dashboard`; the root page redirect and the Azure SSO callback both target the Dashboard
+  4. A request to the old `/dashboard` workspace bookmark does not 404 — it resolves to the new location via a configured redirect
+**Plans**: TBD
 
-Plans:
-- [x] 03-01-PLAN.md — DB migration (pricing_config, crew_config, projects, MSN inputs), repositories, Pydantic schemas, seed script, mock DB handlers
-- [x] 03-02-PLAN.md — TDD pricing calculation engine: 7 ACMI components, EPR interpolation, crew/lease type matrix, Excel-verified fixtures
-- [ ] 03-03-PLAN.md — Pricing API router: calculate endpoint, config CRUD (versioned), crew config CRUD, project management
-- [ ] 03-04-PLAN.md — Dashboard Summary page with per-MSN input grid, pricing Zustand store, Server Actions, sidebar updates (P&L + Crew)
-- [ ] 03-05-PLAN.md — P&L financial statement page, MSN switcher, margin input, Crew config page, human verify checkpoint
-
-### Phase 4: Quote Persistence and History
-**Goal**: Users can save a completed pricing calculation as a named quote and retrieve it later exactly as it was generated
-**Depends on**: Phase 3
-**Requirements**: QUOT-01, QUOT-02, QUOT-03, QUOT-04, QUOT-05, QUOT-06, SENS-01, SENS-02
+### Phase 9: Calculation-Page Status Control
+**Goal**: A user can read and change a project's pipeline status directly in the Calculation page, and can tell whether a signed status came from a quote or from a manual decision
+**Depends on**: Phase 7 (status backend), Phase 8 (Calculation URL stable)
+**Requirements**: PROJ-02
 **Success Criteria** (what must be TRUE):
-  1. User can save a pricing result as a named quote with a client name, and the saved quote displays identically when reopened regardless of subsequent pricing configuration changes
-  2. User can view the quote list filtered and sorted by client name, date, or MSN and find any previously saved quote
-  3. User can open a saved quote and see the full component-level cost breakdown exactly as it was at the time of saving
-  4. User can change a quote's status (Draft, Sent, Accepted, Rejected) from the quote detail or list view
-  5. User can export a quote as a PDF with professional formatting suitable for client delivery
-  6. User can vary a single input and see a comparison table showing how the EUR/BH rate changes across that input range
-**Plans**: 4 plans
+  1. The Calculation page shows the current project status as a badge (potential or signed)
+  2. The user can toggle the status (potential ↔ signed) from the Calculation page, and the change persists and is reflected on reload
+  3. A manual status change is recorded as a manual override, so subsequent quote acceptances do not silently overwrite it
+  4. The UI distinguishes provenance to the user (e.g. "Signed — auto from accepted quote" vs "Signed — set manually")
+**Plans**: TBD
 
-Plans:
-- [ ] 04-01-PLAN.md — Quote backend data layer: migration 004 (quotes, snapshots, sequences), QuoteRepository, Pydantic schemas, DecimalEncoder, mock DB, test stubs
-- [ ] 04-02-PLAN.md — Sensitivity analysis: Recharts install, /sensitivity page with parameter picker, line chart, comparison table, sidebar nav
-- [ ] 04-03-PLAN.md — Quote API router: save, list, detail, status update, PDF skeleton (BLOCKED), integration tests
-- [ ] 04-04-PLAN.md — Frontend quotes: Server Actions, store loadFromQuote/loadFromSnapshot, SaveQuoteDialog, quote list, quote detail with fork behavior, human verify
-
-### Phase 5: Polish and Production Readiness
-**Goal**: The application is complete, professionally finished, and deployable to a production environment
-**Depends on**: Phase 4
-**Requirements**: UI-02, UI-03, UI-04
+### Phase 10: Dashboard Metrics Page
+**Goal**: Any user can open the Dashboard and read accurate, company-wide pipeline metrics across all projects, split by potential vs signed
+**Depends on**: Phases 6, 7, 8, 9 (needs linked/signed data and the freed `/dashboard` URL)
+**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DASH-07
 **Success Criteria** (what must be TRUE):
-  1. All data tables are sortable and responsive, and detail panes open without full page navigations
-  2. User can toggle between dark and light mode from any page, and the preference persists across sessions
-  3. ~~Dashboard displays meaningful summary statistics: total quotes, quotes by status, and recent activity feed~~ (UI-04 DROPPED by user)
-**Plans**: 2 plans
-
-Plans:
-- [x] 05-01-PLAN.md — Dark/light/system theme: next-themes + Tailwind v4 @custom-variant, ThemeProvider, ThemeToggle, convert all 38 files to theme-aware classes
-- [ ] 05-02-PLAN.md — Sortable/responsive tables (AircraftTable, QuoteList), deployment config (Dockerfile, railway.json, vercel.json), human verify checkpoint
+  1. The Dashboard shows project counts split by status (X potential, Y signed) across all users' projects — it is read-only and company-wide
+  2. The Dashboard shows pipeline contract value (potential) and signed contract value in EUR, computed as EUR/BH × MGH × period months using one authoritative quote per project (latest accepted for signed, latest of any non-rejected status for potential), so revenue is never double-counted
+  3. The Dashboard shows average EUR/BH rate and average margin % across projects, with all monetary aggregation performed in SQL at NUMERIC precision (no money re-summed in JS)
+  4. The Dashboard shows fleet utilization — distinct MSNs committed to signed projects vs available fleet from the aircraft master — with a utilization % headline KPI where committed never exceeds fleet size
+  5. The Dashboard shows pipeline/signed value broken down by client and by aircraft type, plus a trend chart of value by month driven by `signed_at`/created timestamps
+**Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
+v2.0 phases execute in numeric order: 6 -> 7 -> 8 -> 9 -> 10. Phase 8 (route rename) is independent of Phases 6–7 and may run in parallel, but must complete before Phase 10.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Authentication | 4/4 | Complete | 2026-03-05 |
-| 2. Aircraft Master Data | 3/3 | Complete    | 2026-03-05 |
-| 3. Pricing Engine | 4/5 | In Progress|  |
-| 4. Quote Persistence and History | 4/4 | Complete   | 2026-03-10 |
-| 5. Polish and Production Readiness | 2/2 | Complete   | 2026-03-10 |
+| 6. Project Schema Foundation | 0/0 | Not started | - |
+| 7. Project Status Backend & Auto-Sign | 0/0 | Not started | - |
+| 8. Route Rename (Dashboard → Calculation) | 0/0 | Not started | - |
+| 9. Calculation-Page Status Control | 0/0 | Not started | - |
+| 10. Dashboard Metrics Page | 0/0 | Not started | - |

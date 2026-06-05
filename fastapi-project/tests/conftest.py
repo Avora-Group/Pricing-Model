@@ -1013,6 +1013,10 @@ class MockConnection:
         new_row["id"] = max_id + 1
         new_row.setdefault("status", "draft")
         new_row.setdefault("created_at", now)
+        # Forward-compat with migration 009: real create_quote INSERT is not
+        # modified this phase (wiring is Phase 7), so default project_id to None
+        # to mirror the real nullable column and let tests assert on it.
+        new_row.setdefault("project_id", None)
 
         rows.append(new_row)
 

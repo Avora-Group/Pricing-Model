@@ -76,6 +76,26 @@ async def test_create_quote(async_client, test_admin_user):
     assert data["status"] == "draft"
 
 
+@pytest.mark.asyncio
+async def test_quote_project_id_nullable(async_client, test_admin_user):
+    """PROJ-03 foundation: a quote created without a project_id is valid.
+
+    Migration 009 adds a nullable quotes.project_id FK. The save-flow wiring
+    that populates it lands in Phase 7, so a quote created through the existing
+    POST /quotes/ path carries no project linkage (project_id None/absent) and
+    must still create successfully -- proving a project-less quote stays valid.
+    """
+    cookies = await _login(async_client, "admin@test.com", "adminpass123")
+    payload = _make_quote_payload()
+    response = await async_client.post("/quotes/", json=payload, cookies=cookies)
+    assert response.status_code == 201, (
+        f"Expected 201, got {response.status_code}: {response.text}"
+    )
+    data = response.json()
+    # Null linkage is valid: the key is either absent or explicitly None.
+    assert data.get("project_id") in (None,)
+
+
 # ---- QUOT-02: Immutability ----
 
 

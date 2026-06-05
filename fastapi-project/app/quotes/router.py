@@ -94,6 +94,7 @@ async def save_quote(
         crew_config_snapshot=body.crew_config_snapshot,
         costs_config_snapshot=body.costs_config_snapshot,
         dashboard_state=body.dashboard_state,
+        project_id=body.project_id,
     )
 
     # Create per-MSN snapshots

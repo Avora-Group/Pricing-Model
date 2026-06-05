@@ -8,7 +8,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 # ---- Pricing Inputs ----
@@ -177,6 +177,23 @@ class CreateProjectRequest(BaseModel):
     """Create a new pricing project."""
 
     name: str | None = None
+
+
+PROJECT_STATUSES = ("potential", "signed", "active")
+
+
+class UpdateProjectStatusRequest(BaseModel):
+    """Manually set a project's pipeline status."""
+
+    status: str
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in PROJECT_STATUSES:
+            raise ValueError(f"status must be one of {PROJECT_STATUSES}")
+        return v
 
 
 class AddMsnInputRequest(BaseModel):

@@ -26,6 +26,7 @@ class SaveQuoteRequest(BaseModel):
     """Request body for saving a new quote."""
     client_name: str
     client_code: str
+    project_id: int | None = None
     dashboard_state: dict
     pricing_config_snapshot: dict
     crew_config_snapshot: dict

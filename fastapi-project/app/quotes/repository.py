@@ -48,6 +48,7 @@ class QuoteRepository(BaseRepository):
         crew_config_snapshot: dict,
         costs_config_snapshot: dict,
         dashboard_state: dict,
+        project_id: int | None = None,
     ) -> dict:
         """Insert a new quote with JSONB snapshots. Returns the created row."""
         return await self.fetch_one(
@@ -56,10 +57,10 @@ class QuoteRepository(BaseRepository):
                 exchange_rate, margin_percent, total_eur_per_bh,
                 msn_list, period_start, period_end,
                 pricing_config_snapshot, crew_config_snapshot,
-                costs_config_snapshot, dashboard_state
+                costs_config_snapshot, dashboard_state, project_id
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb
+                $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15
             ) RETURNING *""",
             quote_number, client_name, client_code, created_by,
             exchange_rate, margin_percent, total_eur_per_bh,
@@ -68,6 +69,7 @@ class QuoteRepository(BaseRepository):
             crew_config_snapshot,
             costs_config_snapshot,
             dashboard_state,
+            project_id,
         )
 
     async def create_msn_snapshot(

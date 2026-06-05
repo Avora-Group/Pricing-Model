@@ -10,6 +10,7 @@ Endpoints:
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import asyncpg
@@ -27,6 +28,7 @@ from app.pricing.schemas import (
     CreateProjectRequest,
     MsnInputResponse,
     ProjectResponse,
+    UpdateProjectStatusRequest,
 )
 
 
@@ -133,6 +135,43 @@ async def get_project(
         status=project.get("status", "potential"),
         status_source=project.get("status_source", "manual"),
         signed_at=project.get("signed_at"),
+        msn_inputs=[MsnInputResponse(**mi) for mi in msn_inputs],
+    )
+
+
+@router.patch("/projects/{project_id}/status", response_model=ProjectResponse)
+async def update_project_status(
+    project_id: int,
+    body: UpdateProjectStatusRequest,
+    current_user: dict = Depends(get_current_user),
+    db: asyncpg.Connection = Depends(get_db),
+):
+    """Manually set a project's pipeline status (potential / signed / active).
+
+    Stamps status_source='manual'. signed_at is set on the first transition
+    to 'signed' and preserved afterwards.
+    """
+    project_repo = ProjectRepository(db)
+    project = await project_repo.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    fields: dict = {"status": body.status, "status_source": "manual"}
+    if body.status == "signed" and not project.get("signed_at"):
+        fields["signed_at"] = datetime.now(timezone.utc)
+
+    updated = await project_repo.update_project(project_id, **fields)
+    msn_inputs = await project_repo.get_msn_inputs(project_id)
+
+    return ProjectResponse(
+        id=updated["id"],
+        name=updated.get("name"),
+        exchange_rate=updated.get("exchange_rate", Decimal("0.85")),
+        margin_percent=updated.get("margin_percent", Decimal("0")),
+        config_version_id=updated.get("config_version_id"),
+        status=updated.get("status", "potential"),
+        status_source=updated.get("status_source", "manual"),
+        signed_at=updated.get("signed_at"),
         msn_inputs=[MsnInputResponse(**mi) for mi in msn_inputs],
     )
 

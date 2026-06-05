@@ -8,22 +8,38 @@ A web application for generating ACMI (Aircraft, Crew, Maintenance, Insurance) l
 
 Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
 
+## Current Milestone: v2.0 Dashboard & Project Pipeline
+
+**Goal:** Separate the pricing workspace from reporting — rename the current Dashboard to "Calculation" and build a real Dashboard showing metrics across current projects, split by potential vs signed.
+
+**Target features:**
+- Rename the current Dashboard tab to "Calculation" — all pricing inputs/outputs live there
+- Project status (potential/signed) on pricing projects, managed inside the Calculation page
+- Quotes linked to projects; an accepted quote auto-marks its project as signed (manual override possible)
+- New Dashboard with metrics: project counts & pipeline, revenue & contract value (EUR/BH × MGH × period), fleet utilization (committed vs available MSNs), margins & average rates
+
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Aircraft/MSN master data management — v1.0
+- ✓ ACMI pricing engine (formula-based, translated from Excel workbook) — v1.0
+- ✓ Pricing inputs: MGH, Cycle Ratio, Environment, Period, MSN — v1.0
+- ✓ Per-BH cost breakdown: Aircraft, Crew, Maintenance, Insurance, DOC, Other COGS, Overhead — v1.0
+- ✓ Margin input (percentage) producing final EUR/BH rate — v1.0
+- ✓ Quote saving and retrieval (history) — v1.0
+- ✓ Team authentication (login + Azure SSO with email allowlist) — v1.0
+- ✓ AeroVista-style UI: sidebar navigation, detail panes, dark/light mode — v1.0
 
 ### Active
 
-- [ ] Aircraft/MSN master data management
-- [ ] ACMI pricing engine (formula-based, translated from existing Excel workbook)
-- [ ] Pricing inputs: MGH, Cycle Ratio, Environment, Period, MSN
-- [ ] Per-BH cost breakdown: Aircraft, Crew, Maintenance, Insurance, DOC, Other COGS, Overhead
-- [ ] Margin input (percentage) producing final EUR/BH rate
-- [ ] Quote saving and retrieval (history)
-- [ ] Team authentication (login required)
-- [ ] AeroVista-style UI: sidebar navigation, detail panes, dark/light mode
+- [ ] Current Dashboard renamed to Calculation (pricing workspace)
+- [ ] Project status lifecycle: potential/signed, set inside Calculation
+- [ ] Quote→project linkage; accepted quote auto-signs project (manual override allowed)
+- [ ] Dashboard: project counts and pipeline overview (potential vs signed)
+- [ ] Dashboard: revenue and contract value metrics (EUR/BH × MGH × period months)
+- [ ] Dashboard: fleet utilization — MSNs committed to signed projects vs available
+- [ ] Dashboard: margin and average EUR/BH rate metrics
 
 ### Out of Scope
 
@@ -55,10 +71,13 @@ Accurate, repeatable ACMI pricing quotes that the sales team can generate, save,
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Match AeroVista stack exactly | Team familiarity, proven architecture, consistent codebase | — Pending |
-| Raw SQL over ORM | Performance, full query control, matches existing pattern | — Pending |
-| v1 = pricing + save only | Prove value before adding actuals comparison | — Pending |
-| EUR as pricing currency | Standard for ACMI contracts in this market | — Pending |
+| Match AeroVista stack exactly | Team familiarity, proven architecture, consistent codebase | ✓ Good |
+| Raw SQL over ORM | Performance, full query control, matches existing pattern | ✓ Good |
+| v1 = pricing + save only | Prove value before adding actuals comparison | ✓ Good |
+| EUR as pricing currency | Standard for ACMI contracts in this market | ✓ Good |
+| v2.0: project status lives on pricing_projects, auto-updated by accepted quotes | Single source of truth for pipeline state with quote-driven automation + manual override | — Pending |
+| v2.0: status managed inside Calculation page, Dashboard is read-only metrics | Keep the workspace and reporting concerns separate | — Pending |
+| v2.0: contract value = EUR/BH × MGH × period months | Full projected contract value per project for pipeline metrics | — Pending |
 
 ---
-*Last updated: 2026-03-04 after initialization*
+*Last updated: 2026-06-05 after starting milestone v2.0*

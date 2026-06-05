@@ -1,36 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: completed
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-03-10T11:18:03.518Z"
-last_activity: 2026-03-10 — Completed 05-02-PLAN.md (Table sorting, mobile responsiveness, deployment configs)
+milestone: v2.0
+milestone_name: Dashboard & Project Pipeline
+status: defining-requirements
+stopped_at: Milestone started
+last_updated: "2026-06-05"
+last_activity: 2026-06-05 — Milestone v2.0 started (Dashboard & Project Pipeline)
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 18
-  completed_plans: 17
-  percent: 94
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-04)
+See: .planning/PROJECT.md (updated 2026-06-05)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 5 complete — Polish and Production Readiness (2/2 plans done). All 18 plans across 5 phases executed.
+**Current focus:** Milestone v2.0 — rename Dashboard to Calculation, build real Dashboard with project pipeline metrics (potential vs signed).
 
 ## Current Position
 
-Phase: 5 of 5 (Polish and Production Readiness)
-Plan: 2 of 2 in current phase
-Status: Phase 5 Complete — All Phases Done
-Last activity: 2026-03-10 — Completed 05-02-PLAN.md (Table sorting, mobile responsiveness, deployment configs)
-
-Progress: [█████████░] 94% (Phases 1-5 complete, 17/18 plans)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-05 — Milestone v2.0 started
 
 ## Performance Metrics
 

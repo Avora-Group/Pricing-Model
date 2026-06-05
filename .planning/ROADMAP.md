@@ -24,7 +24,7 @@ Carried-over requirement: QUOT-06 (PDF export) remains pending and is not schedu
 - Integer phases (6, 7, 8): Planned milestone work for v2.0
 - Decimal phases (6.1, 6.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 6: Project Schema Foundation** - Status + provenance columns on projects and the quote→project FK that every v2.0 feature depends on
+- [x] **Phase 6: Project Schema Foundation** - Status + provenance columns on projects and the quote→project FK that every v2.0 feature depends on (completed 2026-06-05)
 - [ ] **Phase 7: Project Status Backend & Auto-Sign** - Quotes linked to projects; an accepted quote atomically signs its project, escalation-only
 - [ ] **Phase 8: Route Rename (Dashboard → Calculation)** - Pricing workspace moves to /calculation; /dashboard freed and login lands there
 - [ ] **Phase 9: Calculation-Page Status Control** - Users set and see project status (potential/signed) with provenance inside the Calculation page
@@ -97,7 +97,7 @@ v2.0 phases execute in numeric order: 6 -> 7 -> 8 -> 9 -> 10. Phase 8 (route ren
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. Project Schema Foundation | 0/0 | Not started | - |
+| 6. Project Schema Foundation | 2/2 | Complete   | 2026-06-05 |
 | 7. Project Status Backend & Auto-Sign | 0/0 | Not started | - |
 | 8. Route Rename (Dashboard → Calculation) | 0/0 | Not started | - |
 | 9. Calculation-Page Status Control | 0/0 | Not started | - |

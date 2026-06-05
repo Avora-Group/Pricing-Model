@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Dashboard & Project Pipeline
 status: in-progress
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-06-05T15:54:58.692Z"
-last_activity: 2026-06-05 — Completed Phase 6 Plan 01 (migration 008 + ProjectResponse fields)
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-06-05T15:59:13.359Z"
+last_activity: 2026-06-05 — Completed Phase 6 Plan 02 (migration 009 + quotes.project_id FK)
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,19 +24,19 @@ See: .planning/PROJECT.md (updated 2026-06-05)
 
 ## Current Position
 
-Phase: Phase 6 — Project Schema Foundation (in progress)
-Plan: 06-01 complete (1/2); next 06-02
-Status: Plan 06-01 executed — status/provenance schema + ProjectResponse fields shipped
-Last activity: 2026-06-05 — Completed Phase 6 Plan 01 (migration 008 + ProjectResponse fields)
+Phase: Phase 6 — Project Schema Foundation (complete)
+Plan: 06-02 complete (2/2) — phase done; next Phase 7
+Status: Phase 6 complete — quotes.project_id FK landed (migration 009); ready for Phase 7 wiring
+Last activity: 2026-06-05 — Completed Phase 6 Plan 02 (migration 009 + quotes.project_id FK)
 
 v2.0 phases (execute 6 -> 7 -> 8 -> 9 -> 10; Phase 8 independent of 6-7, must precede 10):
-- [ ] Phase 6: Project Schema Foundation — PROJ-01, PROJ-05
+- [x] Phase 6: Project Schema Foundation — PROJ-01, PROJ-05, PROJ-03 (foundation column)
 - [ ] Phase 7: Project Status Backend & Auto-Sign — PROJ-03, PROJ-04
 - [ ] Phase 8: Route Rename (Dashboard → Calculation) — NAV-01, NAV-02
 - [ ] Phase 9: Calculation-Page Status Control — PROJ-02
 - [ ] Phase 10: Dashboard Metrics Page — DASH-01..07
 
-Next: `/gsd:plan-phase 6`
+Next: `/gsd:plan-phase 7`
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Next: `/gsd:plan-phase 6`
 | Phase 05 P01 | 8min | 2 tasks | 42 files |
 | Phase 05 P02 | 5min | 3 tasks | 7 files |
 | Phase 06 P01 | 5min | 3 tasks | 5 files |
+| Phase 06 P02 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,7 @@ Carried v1.0 decisions still relevant:
 - [Phase 04]: Fork behavior: loadFromQuote sets projectId=null so saving creates a new quote, preserving original immutability
 - [Phase 05]: next-themes handles theme persistence; SensitivityChart.tsx is the proven recharts + dark-mode pattern to reuse
 - [Phase 06-01]: Project provenance modeled as status_source ('automatic'|'manual'), not a boolean override, so Phase 7 auto-sign guard (WHERE status_source <> 'manual') is directly expressible
+- [Phase 06]: [Phase 06-02]: quotes.project_id is a nullable FK with NO ACTION on delete — column lands in foundation Phase 6, save-flow wiring deferred to Phase 7 (PROJ-03)
 
 ### Pending Todos
 
@@ -111,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-05T15:54:23.711Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-06-05T15:58:39.538Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None

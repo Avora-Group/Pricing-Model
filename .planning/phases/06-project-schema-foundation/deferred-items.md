@@ -24,3 +24,10 @@ to mint a session via the Azure flow (or a test-only auth override) so the API-l
 project tests can run again. Until then, the status/provenance assertions added in
 06-01 to `test_create_project`/`test_list_projects`/`test_get_project_detail` are
 present and correct but cannot execute past the login gate.
+
+**Plan 06-02 addendum:** The new test `tests/test_quotes.py::test_quote_project_id_nullable`
+(PROJ-03 foundation — proves a null-`project_id` quote is valid) mirrors the existing
+`test_create_quote` and is blocked by the same `/auth/login` 404. Full-suite count went
+from baseline 38 failed / 83 passed to 39 failed / 83 passed — the single delta is this
+new test, failing only at the login gate, never reaching its `project_id` assertion. No
+previously-passing test regressed. This test will pass once the auth helper is restored.

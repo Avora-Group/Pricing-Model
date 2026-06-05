@@ -41,7 +41,9 @@ Carried-over requirement: QUOT-06 (PDF export) remains pending and is not schedu
   2. Projects can record provenance: a `signed_at` timestamp and a `status_source` (automatic vs manual) distinguishing quote-driven changes from manual overrides
   3. Every quote can be linked to a project via `quotes.project_id`; existing quotes remain valid with a null linkage and no existing quote or project is broken by the migration
   4. The migrations are idempotent and re-runnable, following the established pattern of migrations 001–007
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 06-01-PLAN.md — pricing_projects status + provenance columns (migration 008) + ProjectResponse exposure (PROJ-01, PROJ-05)
+- [ ] 06-02-PLAN.md — nullable quotes.project_id FK (migration 009), foundation for project linkage (PROJ-03)
 
 ### Phase 7: Project Status Backend & Auto-Sign
 **Goal**: When a sales user accepts a quote, that quote's project becomes signed automatically and atomically — without ever overwriting a manual decision

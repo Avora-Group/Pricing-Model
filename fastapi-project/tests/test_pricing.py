@@ -194,6 +194,9 @@ async def test_create_project(
     assert data["name"] == "Test Project"
     assert "id" in data
     assert data["config_version_id"] is not None
+    assert data["status"] == "potential"
+    assert data["status_source"] == "manual"
+    assert data["signed_at"] is None
 
 
 async def test_list_projects(
@@ -215,6 +218,9 @@ async def test_list_projects(
     assert isinstance(data, list)
     assert len(data) >= 1
     assert data[0]["name"] == "My Project"
+    assert "status" in data[0]
+    assert "status_source" in data[0]
+    assert "signed_at" in data[0]
 
 
 async def test_get_project_detail(
@@ -240,6 +246,35 @@ async def test_get_project_detail(
     assert data["name"] == "Detail Test"
     assert "msn_inputs" in data
     assert isinstance(data["msn_inputs"], list)
+    assert data["status"] == "potential"
+    assert data["status_source"] == "manual"
+    assert data["signed_at"] is None
+
+
+async def test_project_status_update(mock_db):
+    """ProjectRepository.update_project round-trips status/provenance (PROJ-05)."""
+    from datetime import datetime, timezone
+
+    from app.pricing.repository import ProjectRepository
+
+    repo = ProjectRepository(mock_db)
+
+    # Seed a potential project via the repository create path.
+    created = await repo.create_project(created_by=1, name="Status Test")
+    assert created["status"] == "potential"
+    assert created["status_source"] == "manual"
+    assert created["signed_at"] is None
+
+    signed_ts = datetime.now(timezone.utc)
+    updated = await repo.update_project(
+        created["id"],
+        status="signed",
+        status_source="automatic",
+        signed_at=signed_ts,
+    )
+    assert updated["status"] == "signed"
+    assert updated["status_source"] == "automatic"
+    assert updated["signed_at"] is not None
 
 
 # ---- MSN Input Endpoints ----

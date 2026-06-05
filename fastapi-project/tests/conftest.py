@@ -777,6 +777,9 @@ class MockConnection:
         new_row.setdefault("config_version_id", None)
         new_row.setdefault("crew_config_a320_id", None)
         new_row.setdefault("crew_config_a321_id", None)
+        new_row.setdefault("status", "potential")
+        new_row.setdefault("status_source", "manual")
+        new_row.setdefault("signed_at", None)
         new_row.setdefault("created_at", now)
         new_row.setdefault("updated_at", now)
 

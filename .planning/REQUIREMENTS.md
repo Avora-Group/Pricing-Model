@@ -14,11 +14,11 @@ Milestone v2.0 — Dashboard & Project Pipeline. Each maps to roadmap phases.
 
 ### Project Pipeline
 
-- [ ] **PROJ-01**: Every pricing project has a status of `potential` or `signed` (new projects default to `potential`)
+- [x] **PROJ-01**: Every pricing project has a status of `potential` or `signed` (new projects default to `potential`)
 - [ ] **PROJ-02**: User can manually set a project's status (potential ↔ signed) from the Calculation page
 - [ ] **PROJ-03**: A quote saved from a project is linked to that project (`quotes.project_id`)
 - [ ] **PROJ-04**: When a linked quote is marked Accepted, its project is automatically set to `signed` — idempotent, escalation-only (un-accepting or rejecting a quote never auto-demotes a project)
-- [ ] **PROJ-05**: Status changes record provenance: `signed_at` timestamp and whether the change was automatic or manual (manual overrides are never overwritten by automation)
+- [x] **PROJ-05**: Status changes record provenance: `signed_at` timestamp and whether the change was automatic or manual (manual overrides are never overwritten by automation)
 
 ### Dashboard Metrics
 
@@ -136,11 +136,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | NAV-01 | Phase 8 | Pending |
 | NAV-02 | Phase 8 | Pending |
-| PROJ-01 | Phase 6 | Pending |
+| PROJ-01 | Phase 6 | Complete |
 | PROJ-02 | Phase 9 | Pending |
 | PROJ-03 | Phase 7 | Pending |
 | PROJ-04 | Phase 7 | Pending |
-| PROJ-05 | Phase 6 | Pending |
+| PROJ-05 | Phase 6 | Complete |
 | DASH-01 | Phase 10 | Pending |
 | DASH-02 | Phase 10 | Pending |
 | DASH-03 | Phase 10 | Pending |

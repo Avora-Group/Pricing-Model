@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Dashboard & Project Pipeline
-status: roadmap-ready
-stopped_at: Roadmap created (phases 6-10)
-last_updated: "2026-06-05"
-last_activity: 2026-06-05 — Roadmap created for v2.0 (phases 6-10), 14/14 requirements mapped
+status: in-progress
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-06-05T15:54:58.692Z"
+last_activity: 2026-06-05 — Completed Phase 6 Plan 01 (migration 008 + ProjectResponse fields)
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-05)
 
 ## Current Position
 
-Phase: Phase 6 — Project Schema Foundation (next to plan)
-Plan: —
-Status: Roadmap ready — awaiting phase planning
-Last activity: 2026-06-05 — Roadmap created for v2.0 (phases 6-10)
+Phase: Phase 6 — Project Schema Foundation (in progress)
+Plan: 06-01 complete (1/2); next 06-02
+Status: Plan 06-01 executed — status/provenance schema + ProjectResponse fields shipped
+Last activity: 2026-06-05 — Completed Phase 6 Plan 01 (migration 008 + ProjectResponse fields)
 
 v2.0 phases (execute 6 -> 7 -> 8 -> 9 -> 10; Phase 8 independent of 6-7, must precede 10):
 - [ ] Phase 6: Project Schema Foundation — PROJ-01, PROJ-05
@@ -74,6 +73,7 @@ Next: `/gsd:plan-phase 6`
 | Phase 04 P04 | 5min | 3 tasks | 11 files |
 | Phase 05 P01 | 8min | 2 tasks | 42 files |
 | Phase 05 P02 | 5min | 3 tasks | 7 files |
+| Phase 06 P01 | 5min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -98,6 +98,7 @@ Carried v1.0 decisions still relevant:
 - [Phase 04-01]: DecimalEncoder converts Decimal to string (not float) in JSONB to preserve precision
 - [Phase 04]: Fork behavior: loadFromQuote sets projectId=null so saving creates a new quote, preserving original immutability
 - [Phase 05]: next-themes handles theme persistence; SensitivityChart.tsx is the proven recharts + dark-mode pattern to reuse
+- [Phase 06-01]: Project provenance modeled as status_source ('automatic'|'manual'), not a boolean override, so Phase 7 auto-sign guard (WHERE status_source <> 'manual') is directly expressible
 
 ### Pending Todos
 
@@ -106,9 +107,10 @@ None yet.
 ### Blockers/Concerns
 
 - [Phase 10]: Three product decisions gate the metrics aggregation SQL — (a) authoritative-quote rule for potential projects, (b) company-wide scope, (c) period_months source (live project_msn_inputs vs quote snapshot). Decisions (a) and (b) are now made (see Decisions above); confirm period_months source during Phase 10 planning.
+- Test suite: _login() helper POSTs to removed /auth/login (Azure SSO migration) — all API-level tests 404 before assertions; pre-existing, logged in deferred-items.md. Needs a maintenance task to re-enable API tests.
 
 ## Session Continuity
 
-Last session: 2026-06-05
-Stopped at: Roadmap created for v2.0 (phases 6-10)
+Last session: 2026-06-05T15:54:23.711Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None

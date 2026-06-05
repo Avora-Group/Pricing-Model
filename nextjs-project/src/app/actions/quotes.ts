@@ -9,6 +9,7 @@ const API_URL = process.env.API_URL ?? 'http://localhost:8000'
 export interface SaveQuotePayload {
   client_name: string
   client_code: string
+  project_id?: number | null
   dashboard_state: Record<string, unknown>
   pricing_config_snapshot: Record<string, unknown>
   crew_config_snapshot: Record<string, unknown>

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const protectedRoutes = ['/dashboard', '/pricing', '/quotes', '/aircraft', '/admin']
+const protectedRoutes = ['/dashboard', '/calculation', '/pricing', '/quotes', '/aircraft', '/admin']
 const publicRoutes = ['/login', '/api/auth/login/azure', '/api/auth/callback/azure']
-const viewerAllowedRoutes = ['/dashboard', '/quotes']
+const viewerAllowedRoutes = ['/dashboard', '/calculation', '/quotes']
 
 function getRoleFromToken(token: string): string | null {
   try {

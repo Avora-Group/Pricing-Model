@@ -73,6 +73,9 @@ export interface ProjectData {
   exchange_rate: string
   margin_percent: string
   config_version_id: number | null
+  status?: string
+  status_source?: string
+  signed_at?: string | null
   msn_inputs: MsnInputData[]
 }
 
@@ -384,6 +387,31 @@ export async function deleteMsnInputAction(
     if (!res.ok) {
       const data = await res.json().catch(() => ({ detail: 'Failed to delete MSN input' }))
       return { error: data.detail ?? 'Failed to delete MSN input' }
+    }
+
+    return res.json()
+  } catch {
+    return { error: 'Network error -- could not reach API' }
+  }
+}
+
+export async function updateProjectStatusAction(
+  projectId: number,
+  status: 'potential' | 'signed' | 'active'
+): Promise<ProjectData | { error: string }> {
+  const token = await getToken()
+  if (!token) return { error: 'Not authenticated' }
+
+  try {
+    const res = await fetch(`${API_URL}/pricing/projects/${projectId}/status`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ status }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ detail: 'Failed to update status' }))
+      return { error: data.detail ?? 'Failed to update status' }
     }
 
     return res.json()

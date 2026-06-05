@@ -6,6 +6,7 @@ import { usePricingStore } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { saveQuoteAction } from '@/app/actions/quotes'
+import { createProjectAction } from '@/app/actions/pricing'
 
 interface SaveQuoteDialogProps {
   isOpen: boolean
@@ -36,6 +37,19 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
       const pricingState = usePricingStore.getState()
       const crewState = useCrewConfigStore.getState()
       const costsState = useCostsConfigStore.getState()
+
+      // Ensure the working session has a backing project so the quote is
+      // attributable on the Dashboard (status starts as 'potential')
+      let projectId = pricingState.projectId
+      if (!projectId) {
+        const projectName =
+          pricingState.projectName.trim() || clientName.trim()
+        const created = await createProjectAction(projectName)
+        if (!('error' in created)) {
+          projectId = created.id
+          usePricingStore.getState().setProjectId(created.id)
+        }
+      }
 
       // Build dashboard_state from pricing store
       const dashboard_state = {
@@ -97,6 +111,7 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
       const result = await saveQuoteAction({
         client_name: clientName.trim(),
         client_code: clientCode,
+        project_id: projectId ?? null,
         dashboard_state,
         pricing_config_snapshot,
         crew_config_snapshot,

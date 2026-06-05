@@ -13,25 +13,27 @@ import {
   Users,
   DollarSign,
   BarChart3,
+  Calculator,
   X,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 const primaryTabs = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/pnl', label: 'P&L', icon: TrendingUp },
+  { href: '/calculation', label: 'Calculation', icon: Calculator },
   { href: '/quotes', label: 'Quotes', icon: FileText },
   { href: '/admin', label: 'Admin', icon: Settings },
 ]
 
 const moreItems = [
+  { href: '/pnl', label: 'P&L', icon: TrendingUp },
   { href: '/aircraft', label: 'Aircraft', icon: Plane },
   { href: '/crew', label: 'Crew', icon: Users },
   { href: '/costs', label: 'Costs', icon: DollarSign },
   { href: '/sensitivity', label: 'Sensitivity', icon: BarChart3 },
 ]
 
-const viewerAllowedHrefs = new Set(['/dashboard', '/quotes'])
+const viewerAllowedHrefs = new Set(['/dashboard', '/calculation', '/quotes'])
 
 interface BottomTabBarProps {
   userRole: string

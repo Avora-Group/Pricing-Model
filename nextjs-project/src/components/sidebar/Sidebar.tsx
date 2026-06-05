@@ -13,12 +13,14 @@ import {
   ChevronLeft,
   DollarSign,
   BarChart3,
+  Calculator,
 } from 'lucide-react'
 import { useSidebarStore } from '@/stores/sidebar-store'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/calculation', label: 'Calculation', icon: Calculator },
   { href: '/pnl', label: 'P&L', icon: TrendingUp },
   { href: '/aircraft', label: 'Aircraft', icon: Plane },
   { href: '/crew', label: 'Crew', icon: Users },
@@ -28,7 +30,7 @@ const navItems = [
   { href: '/admin', label: 'Admin', icon: Settings },
 ]
 
-const viewerAllowedHrefs = new Set(['/dashboard', '/quotes'])
+const viewerAllowedHrefs = new Set(['/dashboard', '/calculation', '/quotes'])
 
 interface SidebarProps {
   userRole?: string

@@ -2,10 +2,13 @@ import { SensitivityView } from '@/components/sensitivity/SensitivityView'
 
 export default function SensitivityPage() {
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-        Sensitivity Analysis
-      </h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="av-page-title">Sensitivity Analysis</h1>
+        <p className="av-page-sub">
+          Sweep a single parameter around a saved project to see the impact on cost and profit
+        </p>
+      </div>
       <SensitivityView />
     </div>
   )

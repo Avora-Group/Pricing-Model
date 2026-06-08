@@ -40,7 +40,7 @@ export function SensitivityChart({ data, paramLabel }: SensitivityChartProps) {
   const tooltipColor = isDark ? '#F3F4F6' : '#111827'
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+    <div className="av-panel p-4">
       <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
         Cost/BH vs {paramLabel}
       </h3>

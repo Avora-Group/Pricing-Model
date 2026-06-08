@@ -4,14 +4,13 @@ export interface SensitivityParam {
   key: string
   label: string
   unit: string
+  defaultInterval: number
 }
 
 export const SENSITIVITY_PARAMS: SensitivityParam[] = [
-  { key: 'mgh', label: 'Monthly Guaranteed Hours', unit: 'BH' },
-  { key: 'exchangeRate', label: 'USD/EUR Exchange Rate', unit: '' },
-  { key: 'marginPercent', label: 'Margin %', unit: '%' },
-  { key: 'cycleRatio', label: 'Cycle Ratio', unit: '' },
-  { key: 'crewSets', label: 'Crew Sets', unit: 'sets' },
+  { key: 'mgh', label: 'MGH', unit: 'BH', defaultInterval: 10 },
+  { key: 'cycleRatio', label: 'Cycle Ratio', unit: '', defaultInterval: 0.25 },
+  { key: 'acmiRate', label: 'ACMI Rate', unit: '€/BH', defaultInterval: 100 },
 ]
 
 interface ParameterPickerProps {

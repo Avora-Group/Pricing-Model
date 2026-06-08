@@ -54,6 +54,52 @@ export function reconstructMsnInput(snap: QuoteMsnSnapshot): MsnInput {
   }
 }
 
+export interface QuoteEngineInputs {
+  msnInputs: MsnInput[]
+  crew: CrewStoreData
+  costs: CostsStoreData
+  exRate: number
+}
+
+/**
+ * Reconstruct the pricing-engine inputs (MSN inputs + crew/costs config +
+ * exchange rate) from a saved quote, WITHOUT touching any global store.
+ * Returns null when the quote lacks the crew/costs snapshots needed to compute.
+ */
+export function reconstructEngineInputs(
+  quote: QuoteDetailResponse,
+): QuoteEngineInputs | null {
+  const crewSnap = quote.crew_config_snapshot as Record<string, unknown> | null
+  const costsSnap = quote.costs_config_snapshot as Record<string, unknown> | null
+  const dashboardState = (quote.dashboard_state ?? {}) as Record<string, string>
+  const exRate = parseFloat(dashboardState.exchangeRate ?? quote.exchange_rate ?? '0.85')
+
+  const payroll = (crewSnap?.payroll as unknown[]) ?? []
+  if (!crewSnap || !costsSnap || payroll.length < 7) return null
+
+  return {
+    msnInputs: (quote.msn_snapshots ?? []).map(reconstructMsnInput),
+    crew: {
+      payroll: crewSnap.payroll as CrewStoreData['payroll'],
+      otherCost: crewSnap.otherCost as CrewStoreData['otherCost'],
+      training: crewSnap.training as CrewStoreData['training'],
+      averageAC: crewSnap.averageAC as number,
+      fdDays: crewSnap.fdDays as number,
+      nfdDays: crewSnap.nfdDays as number,
+    },
+    costs: {
+      maintPersonnel: costsSnap.maintPersonnel as CostsStoreData['maintPersonnel'],
+      maintCosts: costsSnap.maintCosts as CostsStoreData['maintCosts'],
+      insurance: costsSnap.insurance as CostsStoreData['insurance'],
+      doc: costsSnap.doc as CostsStoreData['doc'],
+      otherCogs: costsSnap.otherCogs as CostsStoreData['otherCogs'],
+      overhead: costsSnap.overhead as CostsStoreData['overhead'],
+      avgAc: costsSnap.avgAc as number,
+    },
+    exRate,
+  }
+}
+
 /** Count whole calendar months spanned by a YYYY-MM[-DD] range (min 1). */
 function monthsCount(start: string, end: string): number {
   if (!start || !end) return 1

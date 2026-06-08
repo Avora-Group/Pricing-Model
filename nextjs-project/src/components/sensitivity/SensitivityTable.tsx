@@ -13,8 +13,8 @@ export function SensitivityTable({ data, paramLabel, paramUnit }: SensitivityTab
     v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+    <div className="av-panel p-4">
+      <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-4">
         Comparison Table
       </h3>
       <div className="overflow-x-auto">

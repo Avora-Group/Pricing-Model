@@ -83,17 +83,10 @@ async def get_dashboard_metrics(
     db: asyncpg.Connection = Depends(get_db),
 ):
     """Company-wide dashboard: projects with financials, quote pipeline stats."""
-    # ---- Project counts by status ----
-    status_rows = await db.fetch(
-        "SELECT status, COUNT(*) AS count FROM pricing_projects GROUP BY status"
-    )
-    project_counts = {row["status"]: row["count"] for row in status_rows}
-
     # ---- Projects (company-wide) ----
     project_rows = await db.fetch(
         """
-        SELECT p.id, p.name, p.status, p.status_source, p.signed_at,
-               p.created_at, p.margin_percent,
+        SELECT p.id, p.name, p.created_at, p.margin_percent,
                u.email AS created_by_email
         FROM pricing_projects p
         LEFT JOIN users u ON u.id = p.created_by
@@ -101,7 +94,8 @@ async def get_dashboard_metrics(
         """
     )
 
-    # Authoritative quote per project: prefer signed/active deals, then newest
+    # Authoritative quote per project: the most advanced deal, then newest.
+    # A project's status on the dashboard IS this quote's status.
     quote_rows = await db.fetch(
         """
         SELECT DISTINCT ON (project_id)
@@ -110,11 +104,23 @@ async def get_dashboard_metrics(
         FROM quotes
         WHERE project_id IS NOT NULL
         ORDER BY project_id,
-                 (status IN ('signed', 'active', 'accepted')) DESC,
+                 CASE status
+                   WHEN 'active' THEN 0
+                   WHEN 'signed' THEN 1
+                   WHEN 'accepted' THEN 1
+                   WHEN 'sent' THEN 2
+                   WHEN 'draft' THEN 3
+                   WHEN 'rejected' THEN 4
+                   ELSE 5
+                 END,
                  created_at DESC
         """
     )
     latest_quote_by_project = {row["project_id"]: row for row in quote_rows}
+
+    # Only deals worth tracking appear in the list: active, sent, signed.
+    LISTED_STATUSES = {"sent", "signed", "active"}
+    project_counts = {"sent": 0, "signed": 0, "active": 0}
 
     # Per-MSN snapshots for each authoritative quote (financials + utilization)
     quote_ids = [row["id"] for row in quote_rows]
@@ -136,7 +142,13 @@ async def get_dashboard_metrics(
     projects = []
     for p in project_rows:
         quote = latest_quote_by_project.get(p["id"])
-        snapshots = snapshots_by_quote.get(quote["id"], []) if quote else []
+        if quote is None:
+            continue
+        status = "signed" if quote["status"] == "accepted" else quote["status"]
+        if status not in LISTED_STATUSES:
+            continue  # hide draft / rejected
+        project_counts[status] += 1
+        snapshots = snapshots_by_quote.get(quote["id"], [])
 
         # Financial rollup from the authoritative quote's MSN snapshots.
         # Older quotes leave the monthly_cost/monthly_revenue columns NULL but
@@ -208,7 +220,7 @@ async def get_dashboard_metrics(
         ) if msns else None
 
         # Project €/BH: the quote's headline rate, else MGH-weighted MSN average
-        eur_per_bh = quote["total_eur_per_bh"] if quote else None
+        eur_per_bh = quote["total_eur_per_bh"]
         if eur_per_bh is None and rate_weight > 0:
             eur_per_bh = rate_weighted_sum / rate_weight
 
@@ -216,12 +228,8 @@ async def get_dashboard_metrics(
             {
                 "id": p["id"],
                 # Project identity on the dashboard is the client from the quote
-                "name": (quote["client_name"] if quote else None)
-                or p["name"]
-                or "Untitled Project",
-                "status": p["status"],
-                "status_source": p["status_source"],
-                "signed_at": p["signed_at"].isoformat() if p["signed_at"] else None,
+                "name": quote["client_name"] or p["name"] or "Untitled Project",
+                "status": status,
                 "created_at": p["created_at"].isoformat() if p["created_at"] else None,
                 "created_by": p["created_by_email"],
                 "msn_count": len(msns),
@@ -275,9 +283,9 @@ async def get_dashboard_metrics(
     return {
         "projects": projects,
         "project_counts": {
-            "potential": project_counts.get("potential", 0),
-            "signed": project_counts.get("signed", 0),
-            "active": project_counts.get("active", 0),
+            "sent": project_counts["sent"],
+            "signed": project_counts["signed"],
+            "active": project_counts["active"],
             "total": sum(project_counts.values()),
         },
         "quote_counts": quote_counts,

@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
-import { updateProjectStatusAction } from '@/app/actions/pricing'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
 import { thBase, tdBase, tdNum, borderRow } from '@/components/ui/table-styles'
 
@@ -34,8 +32,6 @@ interface DashboardProject {
   id: number
   name: string
   status: string
-  status_source: string
-  signed_at: string | null
   created_at: string | null
   created_by: string | null
   msn_count: number
@@ -55,7 +51,7 @@ interface DashboardProject {
 export interface DashboardData {
   projects: DashboardProject[]
   project_counts: {
-    potential: number
+    sent: number
     signed: number
     active: number
     total: number
@@ -76,22 +72,10 @@ export interface DashboardData {
 
 // ---- Formatting ----
 
-const PROJECT_STATUSES = ['potential', 'signed', 'active'] as const
-type ProjectStatus = (typeof PROJECT_STATUSES)[number]
-
 const STATUS_DOT: Record<string, string> = {
-  potential: 'bg-amber-400 dark:bg-amber-500',
+  sent: 'bg-blue-500 dark:bg-blue-400',
   signed: 'bg-indigo-500 dark:bg-indigo-400',
   active: 'bg-emerald-500 dark:bg-emerald-400',
-}
-
-const STATUS_PILL: Record<string, string> = {
-  potential:
-    'bg-amber-50 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  signed:
-    'bg-indigo-50 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
-  active:
-    'bg-emerald-50 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
 }
 
 function eur(value: string | null | undefined, digits = 0): string {
@@ -165,9 +149,9 @@ function SummaryStrip({ data }: { data: DashboardData }) {
             Projects · {project_counts.total}
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-1">
-            <CountEntry count={project_counts.potential} label="potential" dot={STATUS_DOT.potential} />
-            <CountEntry count={project_counts.signed} label="signed" dot={STATUS_DOT.signed} />
             <CountEntry count={project_counts.active} label="active" dot={STATUS_DOT.active} />
+            <CountEntry count={project_counts.signed} label="signed" dot={STATUS_DOT.signed} />
+            <CountEntry count={project_counts.sent} label="sent" dot={STATUS_DOT.sent} />
           </div>
         </div>
         {/* Quotes */}
@@ -209,63 +193,6 @@ function SummaryStrip({ data }: { data: DashboardData }) {
         </div>
       </div>
     </div>
-  )
-}
-
-// ---- Project status control ----
-
-function StatusControl({
-  project,
-  disabled,
-  onChanged,
-}: {
-  project: DashboardProject
-  disabled: boolean
-  onChanged: () => void
-}) {
-  const [updating, setUpdating] = useState(false)
-
-  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const next = e.target.value as ProjectStatus
-    if (next === project.status) return
-    setUpdating(true)
-    const result = await updateProjectStatusAction(project.id, next)
-    setUpdating(false)
-    if (!('error' in result)) onChanged()
-  }
-
-  if (disabled) {
-    return (
-      <span
-        className={`inline-flex px-2 py-0.5 rounded text-xs font-medium capitalize ${
-          STATUS_PILL[project.status] ?? STATUS_PILL.potential
-        }`}
-      >
-        {project.status}
-      </span>
-    )
-  }
-
-  return (
-    <select
-      value={project.status}
-      onChange={handleChange}
-      onClick={(e) => e.stopPropagation()}
-      disabled={updating}
-      className={`text-xs font-medium capitalize rounded px-1.5 py-1 border-0 cursor-pointer focus:ring-2 focus:ring-indigo-400 focus:outline-none disabled:opacity-50 ${
-        STATUS_PILL[project.status] ?? STATUS_PILL.potential
-      }`}
-    >
-      {PROJECT_STATUSES.map((s) => (
-        <option
-          key={s}
-          value={s}
-          className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-        >
-          {s}
-        </option>
-      ))}
-    </select>
   )
 }
 
@@ -385,14 +312,7 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
 
 // ---- Main ----
 
-export function DashboardMetrics({
-  data,
-  isViewer,
-}: {
-  data: DashboardData
-  isViewer: boolean
-}) {
-  const router = useRouter()
+export function DashboardMetrics({ data }: { data: DashboardData }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
 
   const toggle = (id: number) => {
@@ -439,19 +359,14 @@ export function DashboardMetrics({
                 </tr>
               </thead>
               <tbody>
-                {data.projects.map((p) => {
-                  const isOpen = expanded.has(p.id)
-                  return (
-                    <ProjectRows
-                      key={p.id}
-                      p={p}
-                      isOpen={isOpen}
-                      isViewer={isViewer}
-                      onToggle={() => toggle(p.id)}
-                      onStatusChanged={() => router.refresh()}
-                    />
-                  )
-                })}
+                {data.projects.map((p) => (
+                  <ProjectRows
+                    key={p.id}
+                    p={p}
+                    isOpen={expanded.has(p.id)}
+                    onToggle={() => toggle(p.id)}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
@@ -464,15 +379,11 @@ export function DashboardMetrics({
 function ProjectRows({
   p,
   isOpen,
-  isViewer,
   onToggle,
-  onStatusChanged,
 }: {
   p: DashboardProject
   isOpen: boolean
-  isViewer: boolean
   onToggle: () => void
-  onStatusChanged: () => void
 }) {
   return (
     <>
@@ -492,7 +403,7 @@ function ProjectRows({
           {p.name}
         </td>
         <td className={tdBase}>
-          <StatusControl project={p} disabled={isViewer} onChanged={onStatusChanged} />
+          <StatusBadge status={p.status} />
         </td>
         <td className={tdNum}>{p.msn_count}</td>
         <td className={tdNum}>{num(p.total_mgh)}</td>

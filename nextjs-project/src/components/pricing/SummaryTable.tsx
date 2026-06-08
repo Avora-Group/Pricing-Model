@@ -184,34 +184,37 @@ function computeMsnCosts(
     tFh += fh * df
     tFc += fc * df
 
-    // Aircraft: fixed (dryLease, maintReservesFixed) + variable * df
-    tAircraft += dryLease + maintReservesFixed + maintReservesVariable * df
+    // All costs prorate by the day fraction for partial months (same as the
+    // P&L engine): a project starting on the 22nd of a 30-day month bears 9/30.
+    // Aircraft: fixed (dryLease, maintReservesFixed) + variable, all * df
+    tAircraft += (dryLease + maintReservesFixed + maintReservesVariable) * df
 
-    // Crew: fixed (salaries, uniform, training) + per diems prorated
-    tCrew += crewFixed
+    // Crew: fixed salaries/uniform/training * df + per diems (crew day fraction)
+    tCrew += crewFixed * df
       + pilotPerDiem_perDiem * cdf + pilotPerDiem_bhBonus * df
       + cabinCrewPerDiem * cdf
       + crew.accomTravelCPerMonth * df
 
-    // Maintenance: fixed (line, base, salary, training, cCheck) + variable prorated
-    tMaint += maintFixed
+    // Maintenance: fixed (line, base, salary, training, cCheck) + variable, all * df
+    tMaint += maintFixed * df
       + totalBh * costs.sparePartsRatePerBh * df + costs.tiresWheelsCost * df
       + costs.maintPerDiemVal * df
 
-    // Insurance: fixed (not prorated)
-    tInsurance += insurance
+    // Insurance: fixed, prorated by days
+    tInsurance += insurance * df
 
-    // DOC: fuel/handling/navigation/airport prorated, technical/otherFixed fixed
+    // DOC: all prorated by days
     tDoc += (costs.fuelVal + costs.handlingVal + costs.navigationVal + costs.airportChargesVal) * df
-      + costs.technicalVal + costs.otherFixedVal
+      + (costs.technicalVal + costs.otherFixedVal) * df
 
     // Commissions: BH-proportional with season
     const calMonth = months[m].month
     const isSummer = calMonth >= 5 && calMonth <= 10
     tOtherCogs += (isSummer ? costs.commissionWinterRate : costs.commissionSummerRate) * monthBh
 
-    // Overhead: NOT prorated (MXC commission uses full-month BH, matching PnlTable)
-    tOverhead += _baseOverhead + costs.commissionMxcRate * totalBh
+    // Overhead: prorated by days. Scaling (_baseOverhead + MXC×fullBh) by df
+    // prorates fixed personnel and charges MXC on the prorated BH (= monthBh).
+    tOverhead += (_baseOverhead + costs.commissionMxcRate * totalBh) * df
   }
 
   const tAcmiCost = tAircraft + tCrew + tMaint + tInsurance + tDoc + tOtherCogs
@@ -642,7 +645,7 @@ export function SummaryTable() {
     { label: 'Condition', perMonth: isTotalView ? totalCondition : activeCondition, totalProject: isTotalView ? totalCondition : activeCondition },
     { label: 'MSN', perMonth: isTotalView ? `All (${numAc})` : String(activeMsn.msn), totalProject: isTotalView ? `All (${numAc})` : String(activeMsn.msn) },
     { label: '# of AC', perMonth: isTotalView ? String(numAc) : '1', totalProject: isTotalView ? String(numAc) : '1' },
-    { label: 'MGH', perMonth: fmt(isTotalView ? totalMgh : activeMsn.mgh, 0), totalProject: fmt(isTotalView ? totalMgh * totalProjectDuration : activeMsn.mgh * activeMsn.duration, 0) },
+    { label: 'MGH', perMonth: fmt(isTotalView ? totalMgh : activeMsn.mgh, 0), totalProject: fmt(dBhSold, 0) },
     { label: 'Cycle Ratio', perMonth: isTotalView ? '-' : activeMsn.cycleRatio.toFixed(1), totalProject: isTotalView ? '-' : activeMsn.cycleRatio.toFixed(1) },
     { label: 'Duration', perMonth: isTotalView ? String(totalProjectDuration) : String(activeMsn.duration), totalProject: isTotalView ? String(totalProjectDuration) : String(activeMsn.duration) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },

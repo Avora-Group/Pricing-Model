@@ -272,7 +272,7 @@ export function PnlTable() {
   // -- Empty state --
   if (!hasData && msnInputs.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
+      <div className="av-panel p-8 text-center">
         <p className="text-gray-400 dark:text-gray-500 text-sm">
           Configure MSNs on the Dashboard to see P&L calculations
         </p>
@@ -282,7 +282,7 @@ export function PnlTable() {
 
   if (!hasData) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
+      <div className="av-panel p-8 text-center">
         <p className="text-gray-400 dark:text-gray-500 text-sm">
           Select an MSN or Total Project to view P&L
         </p>
@@ -469,7 +469,7 @@ export function PnlTable() {
   const dataColWidth = 'min-w-[100px]'
 
   return (
-    <div className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
+    <div className={`av-panel overflow-hidden transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
       {/* MSN header */}
       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{headerLabel}</h2>

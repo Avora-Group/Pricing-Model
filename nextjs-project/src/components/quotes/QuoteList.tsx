@@ -120,117 +120,97 @@ export function QuoteList({ initialQuotes, isAdmin = false, isViewer = false }: 
     }
   }
 
+  const inputCls =
+    'bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg text-sm text-[var(--text-primary)] focus:border-[var(--av-accent)] focus:outline-none'
+
   return (
     <div className="space-y-4">
       {/* Search and filters */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
-          />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search quotes..."
-            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-400 focus:outline-none"
+            placeholder="Search client or quote no."
+            className={`${inputCls} w-full pl-9 pr-3 py-2 placeholder-[var(--text-muted)]`}
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => handleStatusFilterChange(e.target.value)}
-          className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
+          className={`${inputCls} px-3 py-2`}
         >
-          <option value="">All Statuses</option>
+          <option value="">All statuses</option>
           {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </option>
+            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
         </select>
       </div>
 
-      {/* Status error toast */}
       {statusError && (
-        <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-md p-2 text-sm text-red-700 dark:text-red-200">
+        <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-lg p-2 text-sm text-red-700 dark:text-red-200">
           {statusError}
         </div>
       )}
 
-      {/* Table */}
       {quotes.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-          <p className="text-sm">
-            No quotes found. Create a pricing calculation on the Dashboard and
-            save it as a quote.
-          </p>
+        <div className="av-panel text-center py-12 text-[var(--text-tertiary)] text-sm">
+          No quotes found. Build a pricing calculation and save it as a quote.
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
-          <table className="min-w-[500px] w-full text-sm">
+        <div className="av-panel overflow-x-auto">
+          <table className="min-w-[560px] w-full border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400">
-                <th onClick={() => handleSort('quote_number')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Quote #{sortIndicator('quote_number')}</th>
-                <th onClick={() => handleSort('client_name')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Client{sortIndicator('client_name')}</th>
-                <th onClick={() => handleSort('status')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Status{sortIndicator('status')}</th>
-                <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Rate</th>
-                <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">MSNs</th>
-                <th onClick={() => handleSort('created_at')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Created{sortIndicator('created_at')}</th>
-                {!isViewer && (
-                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Actions</th>
-                )}
+              <tr>
+                <th onClick={() => handleSort('quote_number')} className="av-th cursor-pointer select-none">Quote{sortIndicator('quote_number')}</th>
+                <th onClick={() => handleSort('client_name')} className="av-th cursor-pointer select-none">Client{sortIndicator('client_name')}</th>
+                <th onClick={() => handleSort('status')} className="av-th cursor-pointer select-none">Status{sortIndicator('status')}</th>
+                <th className="av-th text-right hidden sm:table-cell">USD/EUR</th>
+                <th className="av-th hidden sm:table-cell">MSN</th>
+                <th onClick={() => handleSort('created_at')} className="av-th text-right cursor-pointer select-none">Created{sortIndicator('created_at')}</th>
+                {!isViewer && <th className="av-th hidden sm:table-cell">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {sortedQuotes.map((q) => (
-                <tr
-                  key={q.id}
-                  className="border-b border-gray-200 dark:border-gray-800 last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/quotes/${q.id}`}
-                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-600 dark:text-indigo-300 font-medium"
-                    >
+                <tr key={q.id} className="last:[&>td]:border-b-0 hover:bg-[var(--bg-secondary)] transition-colors">
+                  <td className="av-td">
+                    <Link href={`/quotes/${q.id}`} className="av-num font-semibold text-[var(--av-accent-ink)] hover:underline">
                       {q.quote_number}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">{q.client_name}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={q.status} />
+                  <td className="av-td font-medium text-[var(--text-primary)]">{q.client_name}</td>
+                  <td className="av-td"><StatusBadge status={q.status} /></td>
+                  <td className="av-td av-num text-right text-[var(--text-secondary)] hidden sm:table-cell">
+                    {q.exchange_rate ? parseFloat(q.exchange_rate).toFixed(4) : '—'}
                   </td>
-                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-mono hidden sm:table-cell">
-                    {q.exchange_rate ? `${parseFloat(q.exchange_rate).toFixed(4)}` : '-'}
+                  <td className="av-td hidden sm:table-cell">
+                    {q.msn_list?.length ? (
+                      <span className="flex flex-wrap gap-1">
+                        {q.msn_list.slice(0, 4).map((m) => <span key={m} className="av-msn">{m}</span>)}
+                        {q.msn_list.length > 4 && <span className="text-[var(--text-muted)] text-[11px] self-center">+{q.msn_list.length - 4}</span>}
+                      </span>
+                    ) : '—'}
                   </td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 hidden sm:table-cell">
-                    {q.msn_list?.length
-                      ? q.msn_list.join(', ')
-                      : '-'}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                    {formatDate(q.created_at)}
-                  </td>
+                  <td className="av-td av-num text-right text-[var(--text-muted)] whitespace-nowrap">{formatDate(q.created_at)}</td>
                   {!isViewer && (
-                    <td className="px-4 py-3 hidden sm:table-cell">
+                    <td className="av-td hidden sm:table-cell">
                       <div className="flex items-center gap-2">
                         <select
                           value={q.status}
                           onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
-                          className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:border-indigo-400 focus:outline-none"
+                          className="bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded px-2 py-1 text-xs text-[var(--text-secondary)] focus:border-[var(--av-accent)] focus:outline-none"
                         >
-                          {STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {s.charAt(0).toUpperCase() + s.slice(1)}
-                            </option>
-                          ))}
+                          {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                         </select>
                         {isAdmin && (
                           <button
                             onClick={() => handleDelete(q.id, q.quote_number)}
                             disabled={deletingId === q.id}
                             title="Delete quote"
-                            className="p-1 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                            className="p-1 rounded text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -242,9 +222,7 @@ export function QuoteList({ initialQuotes, isAdmin = false, isViewer = false }: 
               ))}
             </tbody>
           </table>
-
-          {/* Footer with total */}
-          <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-400 dark:text-gray-500">
+          <div className="px-4 py-2 border-t border-[var(--border-primary)] text-xs text-[var(--text-muted)]">
             Showing {quotes.length} of {total} quotes
           </div>
         </div>

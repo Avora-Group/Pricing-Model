@@ -109,6 +109,16 @@ body {
 .av-dot-sent{ background: oklch(0.62 0.13 245); }
 .av-dot-completed{ background: oklch(0.55 0.07 200); }
 
+/* panels + tables (shared across Dashboard, Calculation, P&L, Quotes) */
+.av-panel { border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-primary); box-shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.05); overflow: hidden; }
+.av-panel-h { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-primary); }
+.av-panel-h h2 { font-size: 13px; font-weight: 600; }
+.av-panel-h .av-hint { font-size: 11px; color: var(--text-muted); }
+.av-th { text-align: left; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; padding: 9px 14px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-primary); white-space: nowrap; }
+.av-td { padding: 10px 14px; border-bottom: 1px solid var(--border-primary); font-size: 12.5px; }
+.av-page-title { font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+.av-page-sub { color: var(--text-tertiary); font-size: 12.5px; margin-top: 2px; }
+
 /* dark sidebar rail */
 .av-rail { background: var(--av-rail); color: var(--av-rail-ink); }
 .av-rail-bd { border-color: var(--av-rail-line) !important; }

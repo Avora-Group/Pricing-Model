@@ -327,7 +327,7 @@ export function SummaryTable() {
 
   if (msnInputs.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-center">
+      <div className="av-panel p-4 text-center">
         <p className="text-xs text-gray-400 dark:text-gray-500">
           Add an aircraft to see the pricing summary.
         </p>
@@ -512,7 +512,7 @@ export function SummaryTable() {
   // ── Active MSN (Per Month column) — uses season filter ──
   if (perMsnData.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-center">
+      <div className="av-panel p-4 text-center">
         <p className="text-xs text-gray-400 dark:text-gray-500">Calculating...</p>
       </div>
     )
@@ -671,7 +671,7 @@ export function SummaryTable() {
   ]
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+    <div className="av-panel overflow-hidden">
       {/* MSN Selector — only shown when multiple aircraft */}
       {numAc > 1 && (
         <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-100/40 dark:bg-gray-800/40 border-b border-gray-300 dark:border-gray-700">

@@ -58,7 +58,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
       )}
 
       {/* Project header and global inputs */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3">
+      <div className="av-panel p-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[160px]">
             <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
@@ -156,7 +156,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
 
         {/* Right: MSN Inputs */}
         <div className="flex-1 min-w-0">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3">
+          <div className="av-panel p-3">
             {/* Header + Add Aircraft */}
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xs font-semibold text-gray-900 dark:text-gray-100">

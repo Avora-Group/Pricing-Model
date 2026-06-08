@@ -48,10 +48,8 @@ export default async function CalculationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Calculation</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          Configure MSN inputs and view pricing summary
-        </p>
+        <h1 className="av-page-title">Calculation</h1>
+        <p className="av-page-sub">Configure per-MSN inputs and read the live ACMI cost build-up</p>
       </div>
       <DashboardSummary aircraftList={aircraftList} isViewer={isViewer} />
     </div>

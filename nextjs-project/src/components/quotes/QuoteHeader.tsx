@@ -31,17 +31,17 @@ export function QuoteHeader({ quoteNumber, clientName, status, createdAt }: Quot
   return (
     <>
       {/* Quote header card */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-        <div className="flex items-start justify-between">
+      <div className="av-panel p-4">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              <h1 className="av-num text-xl font-semibold text-[var(--text-primary)]">
                 {quoteNumber}
               </h1>
               <StatusBadge status={status} />
             </div>
-            <p className="text-gray-700 dark:text-gray-300">{clientName}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-[var(--text-secondary)]">{clientName}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               Created {formatDate(createdAt)}
             </p>
           </div>

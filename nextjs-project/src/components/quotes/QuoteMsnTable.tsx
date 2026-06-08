@@ -27,21 +27,17 @@ export function QuoteMsnTable({ msnSnapshots, msnSummaries }: QuoteMsnTableProps
   const totalAcmiRatePerBh = totals.totalBh > 0 ? totals.totalRevenue / totals.totalBh : 0
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          MSN Breakdown
-        </h2>
-      </div>
+    <div className="av-panel">
+      <div className="av-panel-h"><h2>MSN breakdown</h2></div>
       <div className="overflow-x-auto">
-      <table className="w-full text-sm min-w-[500px]">
+      <table className="w-full min-w-[500px] border-collapse">
         <thead>
-          <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400">
-            <th className="text-left px-4 py-2 font-medium">MSN</th>
-            <th className="text-left px-4 py-2 font-medium">Type</th>
-            <th className="text-right px-4 py-2 font-medium">ACMI Rate/BH</th>
-            <th className="text-right px-4 py-2 font-medium">ACMI Cost/BH</th>
-            <th className="text-right px-4 py-2 font-medium">Net Profit</th>
+          <tr>
+            <th className="av-th">MSN</th>
+            <th className="av-th">Type</th>
+            <th className="av-th text-right">ACMI rate/BH</th>
+            <th className="av-th text-right">ACMI cost/BH</th>
+            <th className="av-th text-right">Net profit</th>
           </tr>
         </thead>
         <tbody>
@@ -50,62 +46,22 @@ export function QuoteMsnTable({ msnSnapshots, msnSummaries }: QuoteMsnTableProps
             if (!summary) return null
 
             return (
-              <tr
-                key={snap.id}
-                className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-              >
-                <td className="px-4 py-2 text-gray-800 dark:text-gray-200 font-medium">
-                  {snap.msn}
-                </td>
-                <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                  {snap.aircraft_type}
-                </td>
-                <td className="px-4 py-2 text-right text-indigo-600 dark:text-indigo-300 font-mono font-medium">
-                  {fmtDec(summary.acmiRatePerBh)}
-                </td>
-                <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200 font-mono">
-                  {fmtNum(summary.acmiCostPerBh)}
-                </td>
-                <td className="px-4 py-2 text-right font-mono">
-                  <span
-                    className={
-                      summary.netProfit >= 0
-                        ? 'text-green-400'
-                        : 'text-red-400'
-                    }
-                  >
-                    {fmtNum(summary.netProfit)}
-                  </span>
-                </td>
+              <tr key={snap.id} className="hover:bg-[var(--bg-secondary)]">
+                <td className="av-td"><span className="av-msn">{snap.msn}</span></td>
+                <td className="av-td text-[var(--text-secondary)]">{snap.aircraft_type}</td>
+                <td className="av-td av-num text-right font-medium text-[var(--av-accent-ink)]">{fmtDec(summary.acmiRatePerBh)}</td>
+                <td className="av-td av-num text-right text-[var(--text-secondary)]">{fmtNum(summary.acmiCostPerBh)}</td>
+                <td className={`av-td av-num text-right ${summary.netProfit >= 0 ? 'av-pos' : 'av-neg'}`}>{fmtNum(summary.netProfit)}</td>
               </tr>
             )
           })}
-          {/* Total row when more than 1 aircraft */}
           {msnSummaries.length > 1 && (
-            <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100/40 dark:bg-gray-800/40">
-              <td className="px-4 py-2 text-gray-900 dark:text-gray-100 font-semibold">
-                Total
-              </td>
-              <td className="px-4 py-2 text-gray-500 dark:text-gray-400">
-                {msnSummaries.length} A/C
-              </td>
-              <td className="px-4 py-2 text-right text-indigo-600 dark:text-indigo-300 font-mono font-semibold">
-                {fmtDec(totalAcmiRatePerBh)}
-              </td>
-              <td className="px-4 py-2 text-right text-gray-900 dark:text-gray-100 font-mono font-semibold">
-                {fmtNum(totalAcmiCostPerBh)}
-              </td>
-              <td className="px-4 py-2 text-right font-mono font-semibold">
-                <span
-                  className={
-                    totals.netProfit >= 0
-                      ? 'text-green-400'
-                      : 'text-red-400'
-                  }
-                >
-                  {fmtNum(totals.netProfit)}
-                </span>
-              </td>
+            <tr className="bg-[var(--bg-secondary)] [&>td]:border-t-2 [&>td]:border-[var(--border-secondary)]">
+              <td className="av-td font-semibold">Total</td>
+              <td className="av-td text-[var(--text-muted)]">{msnSummaries.length} A/C</td>
+              <td className="av-td av-num text-right font-semibold text-[var(--av-accent-ink)]">{fmtDec(totalAcmiRatePerBh)}</td>
+              <td className="av-td av-num text-right font-semibold">{fmtNum(totalAcmiCostPerBh)}</td>
+              <td className={`av-td av-num text-right font-semibold ${totals.netProfit >= 0 ? 'av-pos' : 'av-neg'}`}>{fmtNum(totals.netProfit)}</td>
             </tr>
           )}
         </tbody>

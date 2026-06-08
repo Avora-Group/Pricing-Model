@@ -10,9 +10,9 @@ export function PnlView() {
 
   if (msnInputs.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
-        <p className="text-gray-400 dark:text-gray-500 text-sm">
-          Configure MSNs on the Dashboard to see P&L calculations
+      <div className="av-panel p-8 text-center">
+        <p className="text-[var(--text-tertiary)] text-sm">
+          Configure MSNs on the Calculation page to see P&amp;L calculations
         </p>
       </div>
     )

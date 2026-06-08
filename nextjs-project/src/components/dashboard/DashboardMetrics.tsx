@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Calculator, TrendingUp } from 'lucide-react'
+import { ChevronRight, Calculator, TrendingUp, List, CalendarDays } from 'lucide-react'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
+import { FleetCalendar, type CalendarSegment } from './FleetCalendar'
 
 // ---- Types (mirror the dashboard payload) ----
 
@@ -55,6 +56,7 @@ export interface DashboardData {
     draft: number; sent: number; signed: number; active: number; completed: number; rejected: number; total: number
   }
   averages: { eur_per_bh: string | null; margin_percent: string | null }
+  calendar: CalendarSegment[]
 }
 
 // ---- Formatting ----
@@ -269,16 +271,37 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
       return next
     })
 
+  const [view, setView] = useState<'list' | 'calendar'>('list')
+
+  const SwitchBtn = ({ v, icon: Icon, label }: { v: 'list' | 'calendar'; icon: typeof List; label: string }) => (
+    <button
+      onClick={() => setView(v)}
+      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+        view === v
+          ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm border border-[var(--border-secondary)]'
+          : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+      }`}
+    >
+      <Icon size={13} /> {label}
+    </button>
+  )
+
   return (
     <div className="space-y-4">
       <Ribbon data={data} />
 
       <div className="border border-[var(--border-primary)] rounded-xl bg-[var(--bg-primary)] overflow-hidden shadow-sm">
-        <div className="px-4 py-3 border-b border-[var(--border-primary)] flex items-baseline justify-between">
-          <h2 className="text-[13px] font-semibold">Projects</h2>
-          <span className="text-[11px] text-[var(--text-muted)]">click a row for revenue, utilization and profit detail</span>
+        <div className="px-4 py-2.5 border-b border-[var(--border-primary)] flex items-center justify-between">
+          <h2 className="text-[13px] font-semibold">{view === 'list' ? 'Projects' : 'Fleet calendar'}</h2>
+          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-tertiary)]">
+            <SwitchBtn v="list" icon={List} label="List" />
+            <SwitchBtn v="calendar" icon={CalendarDays} label="Calendar" />
+          </div>
         </div>
-        {data.projects.length === 0 ? (
+
+        {view === 'calendar' ? (
+          <FleetCalendar segments={data.calendar} />
+        ) : data.projects.length === 0 ? (
           <div className="px-4 py-12 text-center text-[13px] text-[var(--text-tertiary)]">
             No projects yet. Save a quote from the Calculation page — its client becomes a project here.
           </div>

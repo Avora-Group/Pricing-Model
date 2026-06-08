@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { DashboardMetrics, type DashboardData } from '@/components/dashboard/DashboardMetrics'
+import type { CalendarSegment } from '@/components/dashboard/FleetCalendar'
 import { computeQuoteFinancials } from '@/lib/quote-financials'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
 
@@ -10,6 +11,7 @@ const EMPTY: DashboardData = {
   project_counts: { sent: 0, signed: 0, active: 0, total: 0 },
   quote_counts: { draft: 0, sent: 0, signed: 0, active: 0, completed: 0, rejected: 0, total: 0 },
   averages: { eur_per_bh: null, margin_percent: null },
+  calendar: [],
 }
 
 interface ProjectIdentity {
@@ -101,6 +103,27 @@ async function buildDashboard(token: string): Promise<DashboardData> {
     if (profit !== null) sumProfit += profit
   }
 
+  // Fleet calendar: one segment per MSN per project, by month span
+  const calendar: CalendarSegment[] = []
+  envelope.projects.forEach((p, i) => {
+    const quote = quotes[i]
+    if (!quote) return
+    for (const snap of quote.msn_snapshots ?? []) {
+      const mi = (snap.msn_input ?? {}) as Record<string, unknown>
+      const start = String(mi.periodStart ?? mi.period_start ?? '').slice(0, 7)
+      const end = String(mi.periodEnd ?? mi.period_end ?? '').slice(0, 7)
+      if (!/^\d{4}-\d{2}$/.test(start) || !/^\d{4}-\d{2}$/.test(end)) continue
+      calendar.push({
+        msn: snap.msn,
+        aircraftType: snap.aircraft_type ?? null,
+        client: p.name,
+        status: p.status,
+        start,
+        end,
+      })
+    }
+  })
+
   return {
     projects,
     project_counts: envelope.project_counts,
@@ -109,6 +132,7 @@ async function buildDashboard(token: string): Promise<DashboardData> {
       eur_per_bh: rateWeight > 0 ? String(rateWeightSum / rateWeight) : null,
       margin_percent: sumRev > 0 ? String((sumProfit / sumRev) * 100) : null,
     },
+    calendar,
   }
 }
 
@@ -120,10 +144,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          Project pipeline and portfolio overview
-        </p>
+        <h1 className="av-page-title">Dashboard</h1>
+        <p className="av-page-sub">Project pipeline and portfolio overview</p>
       </div>
       <DashboardMetrics data={data} />
     </div>

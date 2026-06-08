@@ -42,7 +42,7 @@ export function SensitivityChart({ data, paramLabel }: SensitivityChartProps) {
   return (
     <div className="av-panel p-4">
       <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-        Cost/BH vs {paramLabel}
+        Net profit vs {paramLabel}
       </h3>
       <ResponsiveContainer width="100%" height={350}>
         <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -55,7 +55,9 @@ export function SensitivityChart({ data, paramLabel }: SensitivityChartProps) {
           <YAxis
             stroke={axisStroke}
             tick={{ fill: tickFill, fontSize: 12 }}
-            tickFormatter={(value: number) => `\u20AC${value.toFixed(2)}`}
+            tickFormatter={(value: number) =>
+              `\u20AC${new Intl.NumberFormat('en-GB', { notation: 'compact', maximumFractionDigits: 1 }).format(value)}`
+            }
           />
           <Tooltip
             contentStyle={{
@@ -65,13 +67,17 @@ export function SensitivityChart({ data, paramLabel }: SensitivityChartProps) {
               color: tooltipColor,
             }}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: any) => [`\u20AC${Number(value).toFixed(2)}`, 'Cost/BH']}
+            formatter={(value: any) => [
+              `\u20AC${new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(Number(value))}`,
+              'Net profit',
+            ]}
             labelFormatter={(label) => `Step: ${String(label)}`}
           />
+          <ReferenceLine y={0} stroke={axisStroke} strokeWidth={1} />
           <ReferenceLine x="Base" stroke="#6366F1" strokeDasharray="3 3" />
           <Line
             type="monotone"
-            dataKey="eurPerBh"
+            dataKey="netProfit"
             stroke="#818CF8"
             strokeWidth={2}
             dot={{ fill: '#818CF8', r: 4 }}

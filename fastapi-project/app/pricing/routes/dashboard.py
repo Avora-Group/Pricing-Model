@@ -94,7 +94,7 @@ async def get_dashboard_metrics(
         """
         SELECT DISTINCT ON (q.client_code)
                q.id, q.client_code, q.quote_number, q.client_name, q.status,
-               q.total_eur_per_bh, q.margin_percent, q.created_at,
+               q.total_eur_per_bh, q.margin_percent, q.exchange_rate, q.created_at,
                u.email AS created_by_email
         FROM quotes q
         LEFT JOIN users u ON u.id = q.created_by
@@ -144,43 +144,58 @@ async def get_dashboard_metrics(
         snapshots = snapshots_by_quote.get(quote["id"], [])
 
         # Financial rollup from the authoritative quote's MSN snapshots.
-        # Older quotes leave the monthly_cost/monthly_revenue columns NULL but
-        # carry the values in the monthly_pnl / breakdown JSONB, so fall back.
+        # Revenue is the ACMI rate charged to the client (acmiRate x MGH +
+        # excess), matching pnl-engine.ts -- NOT the cost-plus monthly_revenue,
+        # which equals cost whenever margin is 0. Cost is the engine-computed
+        # monthly cost stored on the snapshot (column, else monthly_pnl JSONB).
+        exchange_rate = _dec(quote["exchange_rate"]) or Decimal("1")
         monthly_revenue = Decimal("0")
         monthly_cost = Decimal("0")
         period_months = 0
-        rate_weighted_sum = Decimal("0")  # sum(rate * mgh) for MGH-weighted €/BH
+        rate_weighted_sum = Decimal("0")  # sum(acmi_rate * mgh) for €/BH
         rate_weight = Decimal("0")
         msns = []
         has_financials = False
         for snap in snapshots:
             msn_input = _as_dict(snap["msn_input"])
-            breakdown = _as_dict(snap["breakdown"])
             pnl = _as_dict(snap["monthly_pnl"])
 
-            rev = snap["monthly_revenue"]
-            if rev is None:
-                rev = _dec(_input_get(pnl, "monthlyRevenue", "monthly_revenue"))
+            mgh = _dec(_input_get(msn_input, "mgh")) or Decimal("0")
+            excess_bh = _dec(_input_get(msn_input, "excessBh", "excess_bh")) or Decimal("0")
+            rate_to_eur = (
+                exchange_rate
+                if _input_get(msn_input, "rateCurrency", "rate_currency") == "usd"
+                else Decimal("1")
+            )
+            acmi_rate = (
+                _dec(_input_get(msn_input, "acmiRate", "acmi_rate")) or Decimal("0")
+            ) * rate_to_eur
+            excess_rate = (
+                _dec(_input_get(msn_input, "excessHourRate", "excess_hour_rate"))
+                or Decimal("0")
+            ) * rate_to_eur
+
+            # Revenue from the ACMI rate quoted to the client
+            rev = acmi_rate * mgh + excess_bh * excess_rate
+
+            # Cost as computed by the pricing engine at quote time
             cost = snap["monthly_cost"]
             if cost is None:
                 cost = _dec(_input_get(pnl, "monthlyCost", "monthly_cost"))
-            profit = _dec(_input_get(pnl, "monthlyPnl", "monthly_pnl"))
-            if profit is None and rev is not None and cost is not None:
-                profit = rev - cost
 
-            if rev is not None or cost is not None:
+            if (rev and rev != 0) or cost is not None:
                 has_financials = True
-            monthly_revenue += rev or Decimal("0")
+            profit = rev - cost if cost is not None else None
+
+            monthly_revenue += rev
             monthly_cost += cost or Decimal("0")
 
             snap_period = _period_months(msn_input)
             if snap_period:
                 period_months = max(period_months, snap_period)
 
-            mgh = _dec(_input_get(msn_input, "mgh"))
-            rate = _dec(_input_get(breakdown, "finalRatePerBh", "revenuePerBh"))
-            if rate is not None and mgh:
-                rate_weighted_sum += rate * mgh
+            if acmi_rate and mgh:
+                rate_weighted_sum += acmi_rate * mgh
                 rate_weight += mgh
 
             msns.append(
@@ -196,7 +211,7 @@ async def get_dashboard_metrics(
                     ),
                     "environment": _input_get(msn_input, "environment"),
                     "lease_type": _input_get(msn_input, "leaseType", "lease_type"),
-                    "eur_per_bh": _s(rate),
+                    "eur_per_bh": _s(acmi_rate if acmi_rate else None),
                     "period_months": _s(Decimal(snap_period)) if snap_period else None,
                     "monthly_revenue": _s(rev),
                     "monthly_cost": _s(cost),
@@ -212,10 +227,8 @@ async def get_dashboard_metrics(
             (_dec(m["mgh"]) or Decimal("0")) for m in msns
         ) if msns else None
 
-        # Project €/BH: the quote's headline rate, else MGH-weighted MSN average
-        eur_per_bh = quote["total_eur_per_bh"]
-        if eur_per_bh is None and rate_weight > 0:
-            eur_per_bh = rate_weighted_sum / rate_weight
+        # Project €/BH: MGH-weighted average ACMI rate across the MSNs
+        eur_per_bh = rate_weighted_sum / rate_weight if rate_weight > 0 else None
 
         projects.append(
             {

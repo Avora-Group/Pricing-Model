@@ -17,6 +17,7 @@ interface MsnMetrics {
   crew_sets: string | null
   environment: string | null
   lease_type: string | null
+  eur_per_bh: string | null
   period_months: string | null
   monthly_revenue: string | null
   monthly_cost: string | null
@@ -325,6 +326,7 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
                 <th className={`${thBase} text-right`}>Crew sets</th>
                 <th className={`${thBase} text-left`}>Env</th>
                 <th className={`${thBase} text-left`}>Lease</th>
+                <th className={`${thBase} text-right`}>€/BH</th>
                 <th className={`${thBase} text-right`}>Mo. revenue</th>
                 <th className={`${thBase} text-right`}>Mo. profit</th>
               </tr>
@@ -347,6 +349,7 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
                   <td className={`${tdBase} text-gray-700 dark:text-gray-300 capitalize`}>
                     {m.lease_type ?? '—'}
                   </td>
+                  <td className={tdNum}>{num(m.eur_per_bh)}</td>
                   <td className={tdNum}>{eur(m.monthly_revenue)}</td>
                   <td className={`${tdNum} ${profitClass(m.monthly_profit)}`}>
                     {eur(m.monthly_profit)}

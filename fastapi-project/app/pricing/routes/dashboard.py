@@ -40,10 +40,40 @@ def _dec(value) -> Decimal | None:
 
 
 def _input_get(msn_input: dict, *keys):
-    """Read a value from the msn_input JSONB trying camelCase and snake_case."""
+    """Read a value from a JSONB dict trying camelCase and snake_case."""
     for key in keys:
         if key in msn_input and msn_input[key] not in (None, ""):
             return msn_input[key]
+    return None
+
+
+def _as_dict(value) -> dict:
+    """Coerce a JSONB column (dict or str) to a dict."""
+    if value is None:
+        return {}
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except ValueError:
+            return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _period_months(msn_input: dict) -> int | None:
+    """Derive contract length: explicit periodMonths, else periodStart->periodEnd."""
+    explicit = _dec(_input_get(msn_input, "periodMonths", "period_months"))
+    if explicit:
+        return int(explicit)
+    start = _input_get(msn_input, "periodStart", "period_start")
+    end = _input_get(msn_input, "periodEnd", "period_end")
+    if start and end:
+        try:
+            sy, sm = (int(x) for x in str(start).split("-")[:2])
+            ey, em = (int(x) for x in str(end).split("-")[:2])
+            months = (ey - sy) * 12 + (em - sm)
+            return months if months > 0 else None
+        except (ValueError, IndexError):
+            return None
     return None
 
 
@@ -93,7 +123,7 @@ async def get_dashboard_metrics(
         snapshot_rows = await db.fetch(
             """
             SELECT quote_id, msn, aircraft_type, msn_input,
-                   monthly_cost, monthly_revenue
+                   breakdown, monthly_pnl, monthly_cost, monthly_revenue
             FROM quote_msn_snapshots
             WHERE quote_id = ANY($1::int[])
             ORDER BY quote_id, msn
@@ -108,36 +138,51 @@ async def get_dashboard_metrics(
         quote = latest_quote_by_project.get(p["id"])
         snapshots = snapshots_by_quote.get(quote["id"], []) if quote else []
 
-        # Financial rollup from the authoritative quote's MSN snapshots
+        # Financial rollup from the authoritative quote's MSN snapshots.
+        # Older quotes leave the monthly_cost/monthly_revenue columns NULL but
+        # carry the values in the monthly_pnl / breakdown JSONB, so fall back.
         monthly_revenue = Decimal("0")
         monthly_cost = Decimal("0")
         period_months = 0
+        rate_weighted_sum = Decimal("0")  # sum(rate * mgh) for MGH-weighted €/BH
+        rate_weight = Decimal("0")
         msns = []
         has_financials = False
         for snap in snapshots:
-            msn_input = snap["msn_input"] or {}
-            if isinstance(msn_input, str):  # asyncpg may return JSONB as str
-                try:
-                    msn_input = json.loads(msn_input)
-                except ValueError:
-                    msn_input = {}
+            msn_input = _as_dict(snap["msn_input"])
+            breakdown = _as_dict(snap["breakdown"])
+            pnl = _as_dict(snap["monthly_pnl"])
 
             rev = snap["monthly_revenue"]
+            if rev is None:
+                rev = _dec(_input_get(pnl, "monthlyRevenue", "monthly_revenue"))
             cost = snap["monthly_cost"]
+            if cost is None:
+                cost = _dec(_input_get(pnl, "monthlyCost", "monthly_cost"))
+            profit = _dec(_input_get(pnl, "monthlyPnl", "monthly_pnl"))
+            if profit is None and rev is not None and cost is not None:
+                profit = rev - cost
+
             if rev is not None or cost is not None:
                 has_financials = True
             monthly_revenue += rev or Decimal("0")
             monthly_cost += cost or Decimal("0")
 
-            snap_period = _dec(_input_get(msn_input, "periodMonths", "period_months"))
+            snap_period = _period_months(msn_input)
             if snap_period:
-                period_months = max(period_months, int(snap_period))
+                period_months = max(period_months, snap_period)
+
+            mgh = _dec(_input_get(msn_input, "mgh"))
+            rate = _dec(_input_get(breakdown, "finalRatePerBh", "revenuePerBh"))
+            if rate is not None and mgh:
+                rate_weighted_sum += rate * mgh
+                rate_weight += mgh
 
             msns.append(
                 {
                     "msn": snap["msn"],
                     "aircraft_type": snap["aircraft_type"],
-                    "mgh": _s(_dec(_input_get(msn_input, "mgh"))),
+                    "mgh": _s(mgh),
                     "cycle_ratio": _s(
                         _dec(_input_get(msn_input, "cycleRatio", "cycle_ratio"))
                     ),
@@ -146,12 +191,11 @@ async def get_dashboard_metrics(
                     ),
                     "environment": _input_get(msn_input, "environment"),
                     "lease_type": _input_get(msn_input, "leaseType", "lease_type"),
-                    "period_months": _s(snap_period),
+                    "eur_per_bh": _s(rate),
+                    "period_months": _s(Decimal(snap_period)) if snap_period else None,
                     "monthly_revenue": _s(rev),
                     "monthly_cost": _s(cost),
-                    "monthly_profit": _s(
-                        (rev - cost) if rev is not None and cost is not None else None
-                    ),
+                    "monthly_profit": _s(profit),
                 }
             )
 
@@ -162,6 +206,11 @@ async def get_dashboard_metrics(
         total_mgh = sum(
             (_dec(m["mgh"]) or Decimal("0")) for m in msns
         ) if msns else None
+
+        # Project €/BH: the quote's headline rate, else MGH-weighted MSN average
+        eur_per_bh = quote["total_eur_per_bh"] if quote else None
+        if eur_per_bh is None and rate_weight > 0:
+            eur_per_bh = rate_weighted_sum / rate_weight
 
         projects.append(
             {
@@ -186,7 +235,7 @@ async def get_dashboard_metrics(
                 "margin_percent": _s(
                     (quote["margin_percent"] if quote else None) or p["margin_percent"]
                 ),
-                "eur_per_bh": _s(quote["total_eur_per_bh"]) if quote else None,
+                "eur_per_bh": _s(eur_per_bh),
                 "quote": (
                     {
                         "quote_number": quote["quote_number"],

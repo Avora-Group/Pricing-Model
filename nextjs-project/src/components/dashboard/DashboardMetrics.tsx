@@ -4,9 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronRight, Calculator, TrendingUp } from 'lucide-react'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
-import { thBase, tdBase, tdNum, borderRow } from '@/components/ui/table-styles'
 
-// ---- Types (mirror /pricing/dashboard response) ----
+// ---- Types (mirror the dashboard payload) ----
 
 interface MsnMetrics {
   msn: number
@@ -51,242 +50,168 @@ interface DashboardProject {
 
 export interface DashboardData {
   projects: DashboardProject[]
-  project_counts: {
-    sent: number
-    signed: number
-    active: number
-    completed: number
-    total: number
-  }
+  project_counts: { sent: number; signed: number; active: number; completed: number; total: number }
   quote_counts: {
-    draft: number
-    sent: number
-    signed: number
-    active: number
-    completed: number
-    rejected: number
-    total: number
+    draft: number; sent: number; signed: number; active: number; completed: number; rejected: number; total: number
   }
-  averages: {
-    eur_per_bh: string | null
-    margin_percent: string | null
-  }
+  averages: { eur_per_bh: string | null; margin_percent: string | null }
 }
 
 // ---- Formatting ----
 
-const STATUS_DOT: Record<string, string> = {
-  sent: 'bg-blue-500 dark:bg-blue-400',
-  signed: 'bg-indigo-500 dark:bg-indigo-400',
-  active: 'bg-emerald-500 dark:bg-emerald-400',
-  completed: 'bg-teal-500 dark:bg-teal-400',
-}
+const n = (v: string | null | undefined) =>
+  v === null || v === undefined || v === '' ? null : Number(v)
 
-function eur(value: string | null | undefined, digits = 0): string {
-  if (value === null || value === undefined || value === '') return '—'
-  const num = Number(value)
-  if (isNaN(num)) return '—'
-  return `${new Intl.NumberFormat('en-GB', { maximumFractionDigits: digits }).format(num)} €`
+function eur(v: string | null | undefined, digits = 0): string {
+  const x = n(v)
+  if (x === null || isNaN(x)) return '—'
+  return `${new Intl.NumberFormat('en-GB', { maximumFractionDigits: digits }).format(x)} €`
 }
-
-function num(value: string | null | undefined, digits = 0): string {
-  if (value === null || value === undefined || value === '') return '—'
-  const n = Number(value)
-  if (isNaN(n)) return '—'
-  return new Intl.NumberFormat('en-GB', { maximumFractionDigits: digits }).format(n)
+function eurM(v: number): string {
+  return `€${(v / 1_000_000).toLocaleString('en-GB', { maximumFractionDigits: 2 })}M`
 }
-
-function profitClass(value: string | null | undefined): string {
-  if (value === null || value === undefined || value === '') return ''
-  const n = Number(value)
-  if (isNaN(n) || n === 0) return ''
-  return n > 0
-    ? 'text-emerald-700 dark:text-emerald-400'
-    : 'text-red-600 dark:text-red-400'
+function num(v: string | null | undefined, digits = 0): string {
+  const x = n(v)
+  if (x === null || isNaN(x)) return '—'
+  return new Intl.NumberFormat('en-GB', { maximumFractionDigits: digits }).format(x)
 }
-
-function shortDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
+function profitClass(v: string | null | undefined): string {
+  const x = n(v)
+  if (x === null || isNaN(x) || x === 0) return ''
+  return x > 0 ? 'av-pos' : 'av-neg'
+}
+function signed(v: string | null | undefined, digits = 0): string {
+  const x = n(v)
+  if (x === null || isNaN(x)) return '—'
+  const s = eur(v, digits)
+  return x > 0 ? `+${s}` : s
+}
+function shortDate(d: string | null): string {
+  if (!d) return '—'
   try {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
+    return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   } catch {
-    return dateStr
+    return d
   }
 }
 
-// ---- Summary strip ----
+const COMMITTED = new Set(['active', 'signed', 'completed'])
 
-function CountEntry({
-  count,
-  label,
-  dot,
-}: {
-  count: number
-  label: string
-  dot?: string
-}) {
-  return (
-    <div className="flex items-baseline gap-1.5 min-w-0">
-      {dot && <span className={`w-2 h-2 rounded-full self-center shrink-0 ${dot}`} />}
-      <span className="text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-        {count}
-      </span>
-      <span className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
-        {label}
-      </span>
+// ---- Ribbon ----
+
+function Ribbon({ data }: { data: DashboardData }) {
+  const { project_counts, averages, projects } = data
+  let signedValue = 0
+  let pipelineValue = 0
+  let committedMsn = 0
+  for (const p of projects) {
+    const rev = n(p.total_revenue) ?? 0
+    if (COMMITTED.has(p.status)) {
+      signedValue += rev
+      committedMsn += p.msn_count
+    } else if (p.status === 'sent') {
+      pipelineValue += rev
+    }
+  }
+
+  const Chip = ({ count, label, dot }: { count: number; label: string; dot: string }) => (
+    <div className="flex items-baseline gap-1.5">
+      <span className={`w-2 h-2 rounded-full self-center shrink-0 ${dot}`} />
+      <span className="text-lg font-semibold tabular-nums">{count}</span>
+      <span className="text-[10px] uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</span>
     </div>
   )
-}
 
-function SummaryStrip({ data }: { data: DashboardData }) {
-  const { project_counts, quote_counts, averages } = data
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-      <div className="flex flex-wrap items-stretch divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-800">
-        {/* Projects */}
-        <div className="px-4 py-3 flex-1 min-w-[240px]">
-          <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">
-            Projects · {project_counts.total}
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1">
-            <CountEntry count={project_counts.active} label="active" dot={STATUS_DOT.active} />
-            <CountEntry count={project_counts.signed} label="signed" dot={STATUS_DOT.signed} />
-            <CountEntry count={project_counts.sent} label="sent" dot={STATUS_DOT.sent} />
-            <CountEntry count={project_counts.completed} label="completed" dot={STATUS_DOT.completed} />
-          </div>
+    <div className="flex flex-wrap border border-[var(--border-primary)] rounded-xl bg-[var(--bg-primary)] overflow-hidden shadow-sm">
+      <div className="px-[18px] py-3.5 flex-1 min-w-[260px] border-r border-[var(--border-primary)]">
+        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-2">
+          Pipeline · {project_counts.total} projects
         </div>
-        {/* Quotes */}
-        <div className="px-4 py-3 flex-[1.4] min-w-[300px]">
-          <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">
-            Quotes · {quote_counts.total}
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1">
-            <CountEntry count={quote_counts.draft} label="draft" />
-            <CountEntry count={quote_counts.sent} label="sent" />
-            <CountEntry count={quote_counts.signed} label="signed" />
-            <CountEntry count={quote_counts.active} label="active" />
-            <CountEntry count={quote_counts.completed} label="completed" />
-            <CountEntry count={quote_counts.rejected} label="rejected" />
-          </div>
+        <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+          <Chip count={project_counts.active} label="active" dot="av-dot-active" />
+          <Chip count={project_counts.signed} label="signed" dot="av-dot-signed" />
+          <Chip count={project_counts.sent} label="sent" dot="av-dot-sent" />
+          <Chip count={project_counts.completed} label="done" dot="av-dot-completed" />
         </div>
-        {/* Averages */}
-        <div className="px-4 py-3 min-w-[200px]">
-          <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">
-            Fleet averages
-          </div>
-          <div className="flex gap-5">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-semibold tabular-nums font-mono text-gray-900 dark:text-gray-100">
-                {num(averages.eur_per_bh)}
-              </span>
-              <span className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                €/BH
-              </span>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-semibold tabular-nums font-mono text-gray-900 dark:text-gray-100">
-                {num(averages.margin_percent, 1)}
-              </span>
-              <span className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                % margin
-              </span>
-            </div>
-          </div>
+      </div>
+      <div className="px-[18px] py-3.5 flex-1 min-w-[180px] border-r border-[var(--border-primary)]">
+        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Signed contract value</div>
+        <div className="text-[22px] font-semibold tracking-tight">{eurM(signedValue)}</div>
+        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{eurM(pipelineValue)} in pipeline</div>
+      </div>
+      <div className="px-[18px] py-3.5 flex-1 min-w-[160px] border-r border-[var(--border-primary)]">
+        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Avg rate</div>
+        <div className="text-[22px] font-semibold tracking-tight av-num">
+          {num(averages.eur_per_bh)}<span className="text-xs text-[var(--text-muted)] font-medium ml-1">€/BH</span>
         </div>
+        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{num(averages.margin_percent, 1)}% blended margin</div>
+      </div>
+      <div className="px-[18px] py-3.5 min-w-[150px]">
+        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Fleet committed</div>
+        <div className="text-[22px] font-semibold tracking-tight av-num">{committedMsn}<span className="text-xs text-[var(--text-muted)] font-medium ml-1">MSN</span></div>
+        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">on signed & active deals</div>
       </div>
     </div>
   )
 }
 
-// ---- Expanded project detail ----
+// ---- Expanded detail ----
 
-function Metric({
-  label,
-  value,
-  valueClass = '',
-}: {
-  label: string
-  value: string
-  valueClass?: string
-}) {
+function Metric({ label, value, cls = '' }: { label: string; value: string; cls?: string }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
-        {label}
-      </div>
-      <div className={`text-sm font-mono tabular-nums mt-0.5 text-gray-900 dark:text-gray-100 ${valueClass}`}>
-        {value}
-      </div>
+      <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</div>
+      <div className={`av-num text-sm font-semibold mt-0.5 ${cls}`}>{value}</div>
     </div>
   )
 }
+
+const thCls = 'text-left text-[10px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-semibold px-3.5 py-2'
+const tdCls = 'px-3.5 py-2.5 text-[12.5px]'
 
 function ProjectDetail({ p }: { p: DashboardProject }) {
   return (
-    <div className="px-10 py-4 space-y-4">
-      {/* Financials */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-6 gap-y-3">
+    <div className="px-4 pb-[18px] pl-10 pt-4 space-y-4">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-6 gap-y-3.5">
         <Metric label="Mo. revenue" value={eur(p.monthly_revenue)} />
         <Metric label="Mo. cost" value={eur(p.monthly_cost)} />
-        <Metric
-          label="Mo. profit"
-          value={eur(p.monthly_profit)}
-          valueClass={profitClass(p.monthly_profit)}
-        />
+        <Metric label="Mo. profit" value={signed(p.monthly_profit)} cls={profitClass(p.monthly_profit)} />
         <Metric label="Period" value={p.period_months ? `${p.period_months} mo` : '—'} />
         <Metric label="Total revenue" value={eur(p.total_revenue)} />
-        <Metric
-          label="Total profit"
-          value={eur(p.total_profit)}
-          valueClass={profitClass(p.total_profit)}
-        />
+        <Metric label="Total profit" value={signed(p.total_profit)} cls={profitClass(p.total_profit)} />
       </div>
 
-      {/* Per-MSN utilization */}
       {p.msns.length > 0 && (
-        <div className="border border-gray-200 dark:border-gray-800 rounded-md overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-900/60">
-              <tr className={borderRow}>
-                <th className={`${thBase} text-left`}>MSN</th>
-                <th className={`${thBase} text-left`}>Type</th>
-                <th className={`${thBase} text-right`}>MGH</th>
-                <th className={`${thBase} text-right`}>FH:FC</th>
-                <th className={`${thBase} text-right`}>Crew sets</th>
-                <th className={`${thBase} text-left`}>Env</th>
-                <th className={`${thBase} text-left`}>Lease</th>
-                <th className={`${thBase} text-right`}>€/BH</th>
-                <th className={`${thBase} text-right`}>Mo. revenue</th>
-                <th className={`${thBase} text-right`}>Mo. profit</th>
+        <div className="border border-[var(--border-primary)] rounded-lg overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)]">
+                <th className={thCls}>MSN</th>
+                <th className={thCls}>Type</th>
+                <th className={`${thCls} text-right`}>MGH</th>
+                <th className={`${thCls} text-right`}>FH:FC</th>
+                <th className={`${thCls} text-right`}>Crew</th>
+                <th className={thCls}>Env</th>
+                <th className={thCls}>Lease</th>
+                <th className={`${thCls} text-right`}>€/BH</th>
+                <th className={`${thCls} text-right`}>Mo. revenue</th>
+                <th className={`${thCls} text-right`}>Mo. profit</th>
               </tr>
             </thead>
             <tbody>
               {p.msns.map((m) => (
-                <tr key={m.msn} className={borderRow}>
-                  <td className={`${tdBase} font-mono text-gray-900 dark:text-gray-100`}>
-                    {m.msn}
-                  </td>
-                  <td className={`${tdBase} text-gray-700 dark:text-gray-300`}>
-                    {m.aircraft_type}
-                  </td>
-                  <td className={tdNum}>{num(m.mgh)}</td>
-                  <td className={tdNum}>{num(m.cycle_ratio, 2)}</td>
-                  <td className={tdNum}>{num(m.crew_sets, 1)}</td>
-                  <td className={`${tdBase} text-gray-700 dark:text-gray-300 capitalize`}>
-                    {m.environment ?? '—'}
-                  </td>
-                  <td className={`${tdBase} text-gray-700 dark:text-gray-300 capitalize`}>
-                    {m.lease_type ?? '—'}
-                  </td>
-                  <td className={tdNum}>{num(m.eur_per_bh)}</td>
-                  <td className={tdNum}>{eur(m.monthly_revenue)}</td>
-                  <td className={`${tdNum} ${profitClass(m.monthly_profit)}`}>
-                    {eur(m.monthly_profit)}
-                  </td>
+                <tr key={m.msn} className="border-b border-[var(--border-primary)] last:border-0">
+                  <td className={tdCls}><span className="av-msn">{m.msn}</span></td>
+                  <td className={`${tdCls} text-[var(--text-secondary)]`}>{m.aircraft_type}</td>
+                  <td className={`${tdCls} av-num text-right`}>{num(m.mgh)}</td>
+                  <td className={`${tdCls} av-num text-right`}>{num(m.cycle_ratio, 2)}</td>
+                  <td className={`${tdCls} av-num text-right`}>{num(m.crew_sets, 1)}</td>
+                  <td className={`${tdCls} text-[var(--text-secondary)] capitalize`}>{m.environment ?? '—'}</td>
+                  <td className={`${tdCls} text-[var(--text-secondary)] capitalize`}>{m.lease_type ?? '—'}</td>
+                  <td className={`${tdCls} av-num text-right`}>{num(m.eur_per_bh)}</td>
+                  <td className={`${tdCls} av-num text-right`}>{eur(m.monthly_revenue)}</td>
+                  <td className={`${tdCls} av-num text-right ${profitClass(m.monthly_profit)}`}>{signed(m.monthly_profit)}</td>
                 </tr>
               ))}
             </tbody>
@@ -294,37 +219,23 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
         </div>
       )}
 
-      {/* Source quote + navigation */}
       {p.quote ? (
-        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span>
-            Quote{' '}
-            <span className="font-mono text-gray-700 dark:text-gray-300">
-              {p.quote.quote_number}
-            </span>
-          </span>
+        <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--text-muted)]">
+          <span>Quote <span className="av-num text-[var(--text-secondary)]">{p.quote.quote_number}</span></span>
           <StatusBadge status={p.quote.status} />
           <span>{shortDate(p.quote.created_at)}</span>
           {p.created_by && <span>by {p.created_by}</span>}
           <div className="flex items-center gap-2 ml-auto">
-            <Link
-              href={`/quotes/${p.id}?go=calculation`}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <Calculator size={13} />
-              Calculation
+            <Link href={`/quotes/${p.id}?go=calculation`} className="flex items-center gap-1.5 px-2.5 py-1 text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-tertiary)] transition-colors">
+              <Calculator size={13} /> Calculation
             </Link>
-            <Link
-              href={`/quotes/${p.id}?go=pnl`}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <TrendingUp size={13} />
-              P&amp;L
+            <Link href={`/quotes/${p.id}?go=pnl`} className="flex items-center gap-1.5 px-2.5 py-1 text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-tertiary)] transition-colors">
+              <TrendingUp size={13} /> P&amp;L
             </Link>
           </div>
         </div>
       ) : (
-        <div className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="text-[11px] text-[var(--text-muted)]">
           No quote linked yet — metrics appear once a quote is saved for this project.
         </div>
       )}
@@ -336,59 +247,50 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
 
 export function DashboardMetrics({ data }: { data: DashboardData }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
-
-  const toggle = (id: number) => {
+  const toggle = (id: number) =>
     setExpanded((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
-  }
 
   return (
     <div className="space-y-4">
-      <SummaryStrip data={data} />
+      <Ribbon data={data} />
 
-      {/* Projects */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-800 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Projects</h2>
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            click a row for revenue, utilization and profit detail
-          </span>
+      <div className="border border-[var(--border-primary)] rounded-xl bg-[var(--bg-primary)] overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-[var(--border-primary)] flex items-baseline justify-between">
+          <h2 className="text-[13px] font-semibold">Projects</h2>
+          <span className="text-[11px] text-[var(--text-muted)]">click a row for revenue, utilization and profit detail</span>
         </div>
         {data.projects.length === 0 ? (
-          <div className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-            No projects yet. Save a quote from the Calculation page —{' '}
-            its client becomes a project here.
+          <div className="px-4 py-12 text-center text-[13px] text-[var(--text-tertiary)]">
+            No projects yet. Save a quote from the Calculation page — its client becomes a project here.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className={`${borderRow} bg-gray-50 dark:bg-gray-900/60`}>
-                  <th className={`${thBase} text-left w-8`} />
-                  <th className={`${thBase} text-left`}>Client</th>
-                  <th className={`${thBase} text-left`}>Status</th>
-                  <th className={`${thBase} text-right`}>MSNs</th>
-                  <th className={`${thBase} text-right`}>MGH</th>
-                  <th className={`${thBase} text-right`}>€/BH</th>
-                  <th className={`${thBase} text-right`}>Mo. revenue</th>
-                  <th className={`${thBase} text-right`}>Mo. profit</th>
-                  <th className={`${thBase} text-right`}>Total profit</th>
-                  <th className={`${thBase} text-right`}>Created</th>
+                <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)]">
+                  <th className={`${thCls} w-7`}></th>
+                  <th className={thCls}>Client</th>
+                  <th className={thCls}>Status</th>
+                  <th className={`${thCls} text-right`}>MSN</th>
+                  <th className={`${thCls} text-right`}>MGH</th>
+                  <th className={`${thCls} text-right`}>€/BH</th>
+                  <th className={`${thCls} text-right`}>Mo. revenue</th>
+                  <th className={`${thCls} text-right`}>Mo. profit</th>
+                  <th className={`${thCls} text-right`}>Total profit</th>
+                  <th className={`${thCls} text-right`}>Created</th>
                 </tr>
               </thead>
               <tbody>
-                {data.projects.map((p) => (
-                  <ProjectRows
-                    key={p.id}
-                    p={p}
-                    isOpen={expanded.has(p.id)}
-                    onToggle={() => toggle(p.id)}
-                  />
-                ))}
+                {data.projects.map((p) => {
+                  const open = expanded.has(p.id)
+                  return (
+                    <FragmentRow key={p.id} p={p} open={open} onToggle={() => toggle(p.id)} />
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -398,51 +300,31 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
   )
 }
 
-function ProjectRows({
-  p,
-  isOpen,
-  onToggle,
-}: {
-  p: DashboardProject
-  isOpen: boolean
-  onToggle: () => void
-}) {
+function FragmentRow({ p, open, onToggle }: { p: DashboardProject; open: boolean; onToggle: () => void }) {
   return (
     <>
       <tr
         onClick={onToggle}
-        className={`${borderRow} cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 ${
-          isOpen ? 'bg-gray-50 dark:bg-gray-800/40' : ''
-        }`}
+        className={`border-b border-[var(--border-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] ${open ? 'bg-[var(--bg-secondary)]' : ''}`}
       >
-        <td className={`${tdBase} text-gray-400`}>
-          <ChevronRight
-            size={14}
-            className={`transition-transform duration-150 ${isOpen ? 'rotate-90' : ''}`}
-          />
+        <td className={`${tdCls} text-[var(--text-muted)]`}>
+          <ChevronRight size={13} className={`transition-transform duration-150 ${open ? 'rotate-90' : ''}`} />
         </td>
-        <td className={`${tdBase} font-medium text-gray-900 dark:text-gray-100`}>
-          {p.name}
+        <td className={tdCls}>
+          <span className="font-semibold">{p.name}</span>
+          {p.quote && <span className="av-num block text-[10.5px] text-[var(--text-muted)] mt-px">{p.quote.quote_number}</span>}
         </td>
-        <td className={tdBase}>
-          <StatusBadge status={p.status} />
-        </td>
-        <td className={tdNum}>{p.msn_count}</td>
-        <td className={tdNum}>{num(p.total_mgh)}</td>
-        <td className={tdNum}>{num(p.eur_per_bh)}</td>
-        <td className={tdNum}>{eur(p.monthly_revenue)}</td>
-        <td className={`${tdNum} ${profitClass(p.monthly_profit)}`}>
-          {eur(p.monthly_profit)}
-        </td>
-        <td className={`${tdNum} ${profitClass(p.total_profit)}`}>
-          {eur(p.total_profit)}
-        </td>
-        <td className={`${tdNum} text-gray-500 dark:text-gray-400 whitespace-nowrap`}>
-          {shortDate(p.created_at)}
-        </td>
+        <td className={tdCls}><StatusBadge status={p.status} /></td>
+        <td className={`${tdCls} av-num text-right`}>{p.msn_count}</td>
+        <td className={`${tdCls} av-num text-right`}>{num(p.total_mgh)}</td>
+        <td className={`${tdCls} av-num text-right`}>{num(p.eur_per_bh)}</td>
+        <td className={`${tdCls} av-num text-right`}>{eur(p.monthly_revenue)}</td>
+        <td className={`${tdCls} av-num text-right ${profitClass(p.monthly_profit)}`}>{signed(p.monthly_profit)}</td>
+        <td className={`${tdCls} av-num text-right ${profitClass(p.total_profit)}`}>{signed(p.total_profit)}</td>
+        <td className={`${tdCls} av-num text-right text-[var(--text-muted)] whitespace-nowrap`}>{shortDate(p.created_at)}</td>
       </tr>
-      {isOpen && (
-        <tr className={`${borderRow} bg-gray-50/60 dark:bg-gray-950/40`}>
+      {open && (
+        <tr className="border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
           <td colSpan={10} className="p-0">
             <ProjectDetail p={p} />
           </td>

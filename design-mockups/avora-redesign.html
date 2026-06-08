@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Avora · ACMI Pricing — Redesign Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     AVORA FLIGHTDECK — design tokens
+     Product register: dense, document-grade, aviation-data first.
+     Numbers live in Geist Mono (tabular). MSN / BH / FH:FC are the
+     visual signature, set as instrument labels, never decoration.
+     ============================================================ */
+  :root[data-theme="light"]{
+    --paper: oklch(0.985 0.004 250);
+    --panel: oklch(1 0 0);
+    --panel-2: oklch(0.975 0.004 250);
+    --ink: oklch(0.24 0.012 260);
+    --ink-soft: oklch(0.46 0.012 260);
+    --ink-faint: oklch(0.62 0.01 260);
+    --line: oklch(0.91 0.006 260);
+    --line-strong: oklch(0.84 0.008 260);
+    --accent: oklch(0.52 0.15 248);
+    --accent-soft: oklch(0.95 0.03 248);
+    --accent-ink: oklch(0.42 0.16 248);
+    --pos: oklch(0.52 0.13 155);
+    --pos-soft: oklch(0.95 0.04 155);
+    --neg: oklch(0.55 0.18 25);
+    --neg-soft: oklch(0.95 0.05 25);
+    --rail: oklch(0.22 0.02 260);
+    --rail-ink: oklch(0.86 0.01 260);
+    --rail-line: oklch(0.32 0.02 260);
+    --shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.06), 0 4px 16px oklch(0.2 0.02 260 / 0.05);
+  }
+  :root[data-theme="dark"]{
+    --paper: oklch(0.18 0.012 260);
+    --panel: oklch(0.215 0.014 260);
+    --panel-2: oklch(0.25 0.014 260);
+    --ink: oklch(0.93 0.008 260);
+    --ink-soft: oklch(0.72 0.01 260);
+    --ink-faint: oklch(0.58 0.012 260);
+    --line: oklch(0.31 0.012 260);
+    --line-strong: oklch(0.4 0.014 260);
+    --accent: oklch(0.7 0.13 248);
+    --accent-soft: oklch(0.34 0.06 248);
+    --accent-ink: oklch(0.8 0.12 248);
+    --pos: oklch(0.74 0.14 155);
+    --pos-soft: oklch(0.32 0.05 155);
+    --neg: oklch(0.7 0.16 25);
+    --neg-soft: oklch(0.33 0.06 25);
+    --rail: oklch(0.145 0.012 260);
+    --rail-ink: oklch(0.74 0.01 260);
+    --rail-line: oklch(0.26 0.014 260);
+    --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px oklch(0 0 0 / 0.28);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    font-family:"Geist", system-ui, sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    font-size:13px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+  }
+  .mono{ font-family:"Geist Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+  .num{ font-family:"Geist Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+
+  /* ---------- Sidebar rail ---------- */
+  aside.rail{
+    width:204px; flex-shrink:0; background:var(--rail); color:var(--rail-ink);
+    display:flex; flex-direction:column; height:100vh; position:sticky; top:0;
+    border-right:1px solid var(--rail-line);
+  }
+  .brand{
+    padding:16px 18px 14px; border-bottom:1px solid var(--rail-line);
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand .logo{
+    width:26px; height:26px; border-radius:6px; background:var(--accent);
+    display:grid; place-items:center; color:#fff; font-weight:700; font-size:13px;
+    box-shadow:0 0 0 1px oklch(1 0 0 / 0.08) inset;
+  }
+  .brand .name{ font-weight:600; letter-spacing:.01em; color:#fff; font-size:13.5px; }
+  .brand .sub{ font-size:10px; color:var(--rail-ink); opacity:.6; letter-spacing:.08em; text-transform:uppercase; }
+  nav.rail-nav{ padding:10px 10px; display:flex; flex-direction:column; gap:1px; flex:1; }
+  .rail-sec{ font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--rail-ink); opacity:.45; padding:14px 10px 6px; }
+  .navlink{
+    display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:7px;
+    color:var(--rail-ink); cursor:pointer; font-size:12.5px; font-weight:500;
+    border:1px solid transparent;
+  }
+  .navlink svg{ width:15px; height:15px; opacity:.8; }
+  .navlink:hover{ background:oklch(1 0 0 / 0.05); color:#fff; }
+  .navlink.active{ background:oklch(1 0 0 / 0.08); color:#fff; border-color:var(--rail-line); }
+  .navlink.active svg{ color:var(--accent); opacity:1; }
+  .rail-foot{ padding:12px; border-top:1px solid var(--rail-line); display:flex; align-items:center; justify-content:space-between; }
+  .theme-toggle{ background:oklch(1 0 0 / 0.06); border:1px solid var(--rail-line); color:var(--rail-ink); border-radius:7px; padding:5px 9px; font-size:11px; cursor:pointer; font-family:inherit; display:flex; gap:6px; align-items:center; }
+  .theme-toggle:hover{ color:#fff; }
+  .who{ font-size:11px; color:var(--rail-ink); opacity:.6; }
+
+  /* ---------- Main ---------- */
+  main{ flex:1; min-width:0; height:100vh; overflow-y:auto; }
+  .topbar{
+    position:sticky; top:0; z-index:5; background:color-mix(in oklch, var(--paper) 88%, transparent);
+    backdrop-filter:saturate(1.4) blur(8px); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; padding:0 22px; height:52px;
+  }
+  .crumbs{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-faint); }
+  .crumbs b{ color:var(--ink); font-weight:600; }
+  .topbar .actions{ display:flex; gap:8px; }
+  .btn{ font-family:inherit; font-size:12px; font-weight:500; padding:6px 12px; border-radius:8px; border:1px solid var(--line-strong); background:var(--panel); color:var(--ink); cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .btn:hover{ border-color:var(--ink-faint); }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary:hover{ filter:brightness(1.06); }
+  .btn svg{ width:14px; height:14px; }
+
+  .screen{ display:none; padding:22px; max-width:1320px; }
+  .screen.active{ display:block; }
+  .page-h{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; }
+  .page-h h1{ font-size:21px; font-weight:600; letter-spacing:-.01em; }
+  .page-h p{ color:var(--ink-soft); font-size:12.5px; margin-top:2px; }
+
+  /* ---------- Instrument ribbon (stat strip) ---------- */
+  .ribbon{ display:flex; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:var(--shadow); overflow:hidden; }
+  .ribbon .cell{ padding:13px 18px; border-right:1px solid var(--line); flex:1; min-width:0; }
+  .ribbon .cell:last-child{ border-right:none; }
+  .ribbon .k{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:7px; }
+  .ribbon .v{ font-size:23px; font-weight:600; letter-spacing:-.01em; }
+  .ribbon .v .unit{ font-size:12px; color:var(--ink-faint); font-weight:500; margin-left:3px; }
+  .ribbon .sub{ font-size:11px; color:var(--ink-soft); margin-top:3px; }
+  .chips{ display:flex; gap:14px; flex-wrap:wrap; align-items:baseline; }
+  .chip{ display:flex; align-items:baseline; gap:6px; }
+  .chip .dot{ width:7px; height:7px; border-radius:50%; align-self:center; }
+  .chip .n{ font-size:18px; font-weight:600; }
+  .chip .l{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); }
+
+  .dot-active{ background:var(--pos); }
+  .dot-signed{ background:var(--accent); }
+  .dot-sent{ background:oklch(0.62 0.13 245); }
+  .dot-completed{ background:oklch(0.55 0.07 200); }
+
+  /* ---------- Status pills ---------- */
+  .pill{ display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; padding:3px 8px; border-radius:6px; }
+  .pill .pdot{ width:6px; height:6px; border-radius:50%; }
+  .pill.active{ background:var(--pos-soft); color:var(--pos); }
+  .pill.signed{ background:var(--accent-soft); color:var(--accent-ink); }
+  .pill.sent{ background:oklch(0.94 0.03 245); color:oklch(0.45 0.13 245); }
+  .pill.completed{ background:oklch(0.93 0.03 200); color:oklch(0.4 0.07 200); }
+  :root[data-theme="dark"] .pill.sent{ background:oklch(0.32 0.06 245); color:oklch(0.78 0.1 245); }
+  :root[data-theme="dark"] .pill.completed{ background:oklch(0.3 0.04 200); color:oklch(0.78 0.07 200); }
+  .pill.draft{ background:var(--panel-2); color:var(--ink-faint); border:1px solid var(--line); }
+
+  /* ---------- Panels & tables ---------- */
+  .panel{ border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:var(--shadow); overflow:hidden; margin-top:16px; }
+  .panel-h{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .panel-h h2{ font-size:13px; font-weight:600; }
+  .panel-h .hint{ font-size:11px; color:var(--ink-faint); }
+  table{ width:100%; border-collapse:collapse; }
+  thead th{ text-align:left; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; padding:9px 14px; background:var(--panel-2); border-bottom:1px solid var(--line); position:sticky; }
+  th.r,td.r{ text-align:right; }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--line); font-size:12.5px; }
+  tbody tr:last-child td{ border-bottom:none; }
+  .row-main{ cursor:pointer; }
+  .row-main:hover{ background:var(--panel-2); }
+  .row-main.open{ background:var(--panel-2); }
+  .caret{ width:12px; height:12px; color:var(--ink-faint); transition:transform .15s ease; display:inline-block; vertical-align:middle; }
+  .row-main.open .caret{ transform:rotate(90deg); }
+  .client{ font-weight:600; }
+  .qno{ font-family:"Geist Mono",monospace; font-size:10.5px; color:var(--ink-faint); display:block; margin-top:1px; }
+  .pos{ color:var(--pos); }
+  .neg{ color:var(--neg); }
+
+  /* MSN registration tag */
+  .msn-tag{ font-family:"Geist Mono",monospace; font-weight:600; font-size:11.5px; letter-spacing:.04em; padding:2px 7px; border-radius:5px; background:var(--panel-2); border:1px solid var(--line-strong); color:var(--ink); }
+
+  /* Expanded detail */
+  .detail{ background:color-mix(in oklch, var(--panel-2) 70%, var(--paper)); padding:0; }
+  .detail-inner{ padding:16px 16px 18px 40px; }
+  .metrics{ display:grid; grid-template-columns:repeat(6,1fr); gap:14px 20px; margin-bottom:14px; }
+  .metric .mk{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); }
+  .metric .mv{ font-family:"Geist Mono",monospace; font-size:14px; font-weight:600; margin-top:3px; }
+  .subtable{ border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+  .subtable thead th{ background:color-mix(in oklch,var(--panel) 60%, var(--paper)); }
+  .detail-actions{ display:flex; gap:8px; margin-top:14px; align-items:center; }
+  .detail-actions .src{ font-size:11px; color:var(--ink-faint); margin-right:auto; display:flex; align-items:center; gap:8px; }
+  .btn.sm{ padding:5px 10px; font-size:11.5px; }
+
+  /* ---------- Calculation grid ---------- */
+  .calc-toolbar{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel-2); }
+  .field{ display:flex; flex-direction:column; gap:4px; }
+  .field label{ font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); }
+  .field input,.field select{ font-family:inherit; font-size:12.5px; padding:6px 9px; border:1px solid var(--line-strong); border-radius:7px; background:var(--panel); color:var(--ink); }
+  .field.num input{ font-family:"Geist Mono",monospace; text-align:right; width:96px; }
+  .input-cell{ font-family:"Geist Mono",monospace; text-align:right; background:transparent; border:1px solid transparent; border-radius:5px; padding:4px 6px; width:78px; color:var(--ink); font-size:12px; }
+  .input-cell:hover{ border-color:var(--line-strong); }
+  .input-cell:focus{ outline:none; border-color:var(--accent); background:var(--panel); }
+  tfoot td{ padding:11px 14px; border-top:2px solid var(--line-strong); font-weight:600; background:var(--panel-2); }
+
+  /* summary KPI split */
+  .calc-split{ display:grid; grid-template-columns:1.6fr 1fr; gap:16px; }
+  @media(max-width:1100px){ .calc-split{ grid-template-columns:1fr; } .metrics{ grid-template-columns:repeat(3,1fr);} }
+  .kpi-list{ }
+  .kpi-list .kr{ display:flex; justify-content:space-between; padding:8px 16px; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .kpi-list .kr:last-child{ border-bottom:none; }
+  .kpi-list .kr .lab{ color:var(--ink-soft); }
+  .kpi-list .kr .val{ font-family:"Geist Mono",monospace; font-weight:500; }
+  .kpi-list .kr.big{ background:var(--panel-2); font-weight:600; }
+  .kpi-list .kr.big .val{ font-size:14px; }
+
+  /* ---------- P&L statement ---------- */
+  .pnl-wrap{ overflow-x:auto; }
+  table.pnl{ min-width:880px; }
+  table.pnl th, table.pnl td{ padding:6px 12px; font-size:12px; }
+  table.pnl tbody td{ border-bottom:1px solid color-mix(in oklch,var(--line) 70%, transparent); }
+  table.pnl .grp td{ background:var(--panel-2); font-weight:600; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); }
+  table.pnl .lab{ color:var(--ink-soft); }
+  table.pnl .tot td{ border-top:1px solid var(--line-strong); font-weight:600; background:color-mix(in oklch,var(--panel-2) 70%, var(--paper)); }
+  table.pnl .ebitda td{ border-top:2px solid var(--accent); background:var(--accent-soft); font-weight:700; }
+  table.pnl td.r,table.pnl th.r{ font-family:"Geist Mono",monospace; }
+  .partial{ font-size:9.5px; color:var(--accent-ink); background:var(--accent-soft); padding:1px 5px; border-radius:4px; margin-left:5px; vertical-align:middle; letter-spacing:.04em; }
+
+  /* quotes */
+  .qfilter{ display:flex; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); background:var(--panel-2); align-items:center; }
+  .search{ flex:1; max-width:300px; display:flex; align-items:center; gap:7px; border:1px solid var(--line-strong); border-radius:8px; padding:6px 10px; background:var(--panel); color:var(--ink-faint); }
+  .search input{ border:none; background:transparent; outline:none; font-family:inherit; font-size:12.5px; color:var(--ink); flex:1; }
+
+  .note{ font-size:11px; color:var(--ink-faint); margin-top:18px; padding:10px 14px; border:1px dashed var(--line-strong); border-radius:9px; }
+</style>
+</head>
+<body>
+
+<!-- ================= SIDEBAR ================= -->
+<aside class="rail">
+  <div class="brand">
+    <div class="logo">A</div>
+    <div>
+      <div class="name">Avora</div>
+      <div class="sub">ACMI Pricing</div>
+    </div>
+  </div>
+  <nav class="rail-nav">
+    <div class="rail-sec">Workspace</div>
+    <div class="navlink active" data-screen="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Dashboard
+    </div>
+    <div class="navlink" data-screen="calculation">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/></svg>
+      Calculation
+    </div>
+    <div class="navlink" data-screen="pnl">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+      P&amp;L
+    </div>
+    <div class="navlink" data-screen="quotes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      Quotes
+    </div>
+    <div class="rail-sec">Reference</div>
+    <div class="navlink" data-screen="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+      Aircraft
+    </div>
+    <div class="navlink" data-screen="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 12 0v2"/></svg>
+      Crew
+    </div>
+    <div class="navlink" data-screen="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Costs
+    </div>
+  </nav>
+  <div class="rail-foot">
+    <span class="who">A. Alpyspayev</span>
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <svg id="themeIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <span id="themeLabel">Light</span>
+    </button>
+  </div>
+</aside>
+
+<main>
+  <!-- ============ DASHBOARD ============ -->
+  <section class="screen active" id="screen-dashboard">
+    <div class="topbar">
+      <div class="crumbs"><b>Dashboard</b><span>·</span><span>Project pipeline</span></div>
+      <div class="actions">
+        <button class="btn">Export</button>
+        <button class="btn primary">+ New quote</button>
+      </div>
+    </div>
+    <div class="screen-pad" style="padding:22px; max-width:1320px;">
+      <div class="page-h">
+        <div><h1>Dashboard</h1><p>Company-wide pipeline · 8 active deals across 6 clients</p></div>
+      </div>
+
+      <!-- instrument ribbon -->
+      <div class="ribbon">
+        <div class="cell">
+          <div class="k">Pipeline · 9 projects</div>
+          <div class="chips">
+            <div class="chip"><span class="dot dot-active"></span><span class="n">3</span><span class="l">active</span></div>
+            <div class="chip"><span class="dot dot-signed"></span><span class="n">2</span><span class="l">signed</span></div>
+            <div class="chip"><span class="dot dot-sent"></span><span class="n">3</span><span class="l">sent</span></div>
+            <div class="chip"><span class="dot dot-completed"></span><span class="n">1</span><span class="l">done</span></div>
+          </div>
+        </div>
+        <div class="cell">
+          <div class="k">Signed contract value</div>
+          <div class="v">€48.2<span class="unit">M</span></div>
+          <div class="sub">€16.1M in pipeline (sent)</div>
+        </div>
+        <div class="cell">
+          <div class="k">Avg rate</div>
+          <div class="v num">2,873<span class="unit">€/BH</span></div>
+          <div class="sub">14.2% blended margin</div>
+        </div>
+        <div class="cell">
+          <div class="k">Fleet committed</div>
+          <div class="v num">11<span class="unit">/ 14 MSN</span></div>
+          <div class="sub">78.6% utilization</div>
+        </div>
+      </div>
+
+      <!-- projects -->
+      <div class="panel">
+        <div class="panel-h"><h2>Projects</h2><span class="hint">click a row for revenue, utilization and profit detail</span></div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:26px"></th><th>Client</th><th>Status</th>
+              <th class="r">MSN</th><th class="r">MGH</th><th class="r">€/BH</th>
+              <th class="r">Mo. revenue</th><th class="r">Mo. profit</th><th class="r">Total profit</th><th class="r">Created</th>
+            </tr>
+          </thead>
+          <tbody id="projBody">
+            <tr class="row-main open" onclick="toggleRow(this)">
+              <td><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></td>
+              <td><span class="client">Nile Air</span><span class="qno">NUA-003</span></td>
+              <td><span class="pill active"><span class="pdot" style="background:var(--pos)"></span>Active</span></td>
+              <td class="r num">3</td><td class="r num">1,110</td><td class="r num">2,940</td>
+              <td class="r num">3,263,400</td><td class="r num pos">+466,210</td><td class="r num pos">+5,594,520</td><td class="r num" style="color:var(--ink-faint)">12 Mar 2026</td>
+            </tr>
+            <tr class="detail"><td colspan="10">
+              <div class="detail-inner">
+                <div class="metrics">
+                  <div class="metric"><div class="mk">Mo. revenue</div><div class="mv">€3,263,400</div></div>
+                  <div class="metric"><div class="mk">Mo. cost</div><div class="mv">€2,797,190</div></div>
+                  <div class="metric"><div class="mk">Mo. profit</div><div class="mv pos">+€466,210</div></div>
+                  <div class="metric"><div class="mk">Period</div><div class="mv">12 mo</div></div>
+                  <div class="metric"><div class="mk">Total revenue</div><div class="mv">€39.16M</div></div>
+                  <div class="metric"><div class="mk">Total profit</div><div class="mv pos">+€5.59M</div></div>
+                </div>
+                <div class="subtable">
+                  <table>
+                    <thead><tr><th>MSN</th><th>Type</th><th class="r">MGH</th><th class="r">FH:FC</th><th class="r">Crew sets</th><th>Env</th><th>Lease</th><th class="r">€/BH</th><th class="r">Mo. revenue</th><th class="r">Mo. profit</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="msn-tag">3378</span></td><td>A320</td><td class="r num">370</td><td class="r num">1.20</td><td class="r num">5.0</td><td>Benign</td><td>Wet</td><td class="r num">2,940</td><td class="r num">1,087,800</td><td class="r num pos">+162,940</td></tr>
+                      <tr><td><span class="msn-tag">3461</span></td><td>A320</td><td class="r num">370</td><td class="r num">1.20</td><td class="r num">5.0</td><td>Benign</td><td>Wet</td><td class="r num">2,940</td><td class="r num">1,087,800</td><td class="r num pos">+159,270</td></tr>
+                      <tr><td><span class="msn-tag">3570</span></td><td>A321</td><td class="r num">370</td><td class="r num">1.20</td><td class="r num">5.0</td><td>Hot</td><td>Wet</td><td class="r num">2,940</td><td class="r num">1,087,800</td><td class="r num pos">+144,000</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="detail-actions">
+                  <span class="src">Quote <span class="mono">NUA-003</span> · <span class="pill active" style="padding:2px 6px">Active</span> · 12 Mar 2026 · by a.alim</span>
+                  <button class="btn sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/></svg> Calculation</button>
+                  <button class="btn sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg> P&amp;L</button>
+                </div>
+              </div>
+            </td></tr>
+
+            <tr class="row-main" onclick="toggleRow(this)">
+              <td><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></td>
+              <td><span class="client">flyadeal</span><span class="qno">FAD-001</span></td>
+              <td><span class="pill active"><span class="pdot" style="background:var(--pos)"></span>Active</span></td>
+              <td class="r num">2</td><td class="r num">740</td><td class="r num">3,010</td>
+              <td class="r num">2,227,400</td><td class="r num pos">+318,600</td><td class="r num pos">+3,823,200</td><td class="r num" style="color:var(--ink-faint)">28 Feb 2026</td>
+            </tr>
+            <tr class="detail"><td colspan="10"><div class="detail-inner"><div class="metrics"><div class="metric"><div class="mk">Mo. revenue</div><div class="mv">€2,227,400</div></div><div class="metric"><div class="mk">Mo. cost</div><div class="mv">€1,908,800</div></div><div class="metric"><div class="mk">Mo. profit</div><div class="mv pos">+€318,600</div></div><div class="metric"><div class="mk">Period</div><div class="mv">12 mo</div></div><div class="metric"><div class="mk">Total revenue</div><div class="mv">€26.73M</div></div><div class="metric"><div class="mk">Total profit</div><div class="mv pos">+€3.82M</div></div></div><div class="detail-actions"><span class="src">Quote <span class="mono">FAD-001</span> · <span class="pill active" style="padding:2px 6px">Active</span></span><button class="btn sm">Calculation</button><button class="btn sm">P&amp;L</button></div></div></td></tr>
+
+            <tr class="row-main" onclick="toggleRow(this)">
+              <td><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></td>
+              <td><span class="client">SalamAir</span><span class="qno">OMS-002</span></td>
+              <td><span class="pill signed"><span class="pdot" style="background:var(--accent)"></span>Signed</span></td>
+              <td class="r num">2</td><td class="r num">680</td><td class="r num">2,760</td>
+              <td class="r num">1,876,800</td><td class="r num pos">+201,400</td><td class="r num pos">+2,416,800</td><td class="r num" style="color:var(--ink-faint)">04 Mar 2026</td>
+            </tr>
+            <tr class="detail"><td colspan="10"><div class="detail-inner"><div class="metrics"><div class="metric"><div class="mk">Mo. revenue</div><div class="mv">€1,876,800</div></div><div class="metric"><div class="mk">Mo. cost</div><div class="mv">€1,675,400</div></div><div class="metric"><div class="mk">Mo. profit</div><div class="mv pos">+€201,400</div></div><div class="metric"><div class="mk">Period</div><div class="mv">12 mo</div></div><div class="metric"><div class="mk">Total revenue</div><div class="mv">€22.52M</div></div><div class="metric"><div class="mk">Total profit</div><div class="mv pos">+€2.42M</div></div></div><div class="detail-actions"><span class="src">Quote <span class="mono">OMS-002</span> · <span class="pill signed" style="padding:2px 6px">Signed</span></span><button class="btn sm">Calculation</button><button class="btn sm">P&amp;L</button></div></div></td></tr>
+
+            <tr class="row-main" onclick="toggleRow(this)">
+              <td><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></td>
+              <td><span class="client">Libyan Wings</span><span class="qno">LBT-002</span></td>
+              <td><span class="pill sent"><span class="pdot" style="background:oklch(0.62 0.13 245)"></span>Sent</span></td>
+              <td class="r num">3</td><td class="r num">699 <span class="partial">22 Jun–31 Aug</span></td><td class="r num">2,690</td>
+              <td class="r num">626,310</td><td class="r num neg">−53,130</td><td class="r num neg">−122,200</td><td class="r num" style="color:var(--ink-faint)">07 Jun 2026</td>
+            </tr>
+            <tr class="detail"><td colspan="10"><div class="detail-inner">
+              <div class="metrics"><div class="metric"><div class="mk">Mo. revenue</div><div class="mv">€626,310</div></div><div class="metric"><div class="mk">Mo. cost</div><div class="mv">€679,440</div></div><div class="metric"><div class="mk">Mo. profit</div><div class="mv neg">−€53,130</div></div><div class="metric"><div class="mk">Period</div><div class="mv">2.3 mo</div></div><div class="metric"><div class="mk">Total revenue</div><div class="mv">€1.44M</div></div><div class="metric"><div class="mk">Total profit</div><div class="mv neg">−€122,200</div></div></div>
+              <div class="subtable"><table><thead><tr><th>MSN</th><th>Type</th><th class="r">MGH</th><th class="r">FH:FC</th><th class="r">€/BH</th><th>Lease</th><th class="r">Mo. revenue</th><th class="r">Mo. profit</th></tr></thead><tbody>
+                <tr><td><span class="msn-tag">3055</span></td><td>A320</td><td class="r num">233</td><td class="r num">1.20</td><td class="r num">2,690</td><td>Wet</td><td class="r num">208,770</td><td class="r num pos">+12,659</td></tr>
+                <tr><td><span class="msn-tag">3461</span></td><td>A320</td><td class="r num">233</td><td class="r num">1.20</td><td class="r num">2,690</td><td>Wet</td><td class="r num">208,770</td><td class="r num neg">−11,338</td></tr>
+                <tr><td><span class="msn-tag">3570</span></td><td>A321</td><td class="r num">233</td><td class="r num">1.20</td><td class="r num">2,690</td><td>Wet</td><td class="r num">208,770</td><td class="r num neg">−54,450</td></tr>
+              </tbody></table></div>
+              <div class="detail-actions"><span class="src">Quote <span class="mono">LBT-002</span> · <span class="pill sent" style="padding:2px 6px">Sent</span> · partial-month proration applied</span><button class="btn sm">Calculation</button><button class="btn sm">P&amp;L</button></div>
+            </div></td></tr>
+
+            <tr class="row-main" onclick="toggleRow(this)">
+              <td><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></td>
+              <td><span class="client">FlyNAS</span><span class="qno">FN-001</span></td>
+              <td><span class="pill sent"><span class="pdot" style="background:oklch(0.62 0.13 245)"></span>Sent</span></td>
+              <td class="r num">4</td><td class="r num">1,480</td><td class="r num">2,873</td>
+              <td class="r num">4,252,040</td><td class="r num pos">+128,400</td><td class="r num pos">+1,540,800</td><td class="r num" style="color:var(--ink-faint)">05 Jun 2026</td>
+            </tr>
+            <tr class="detail"><td colspan="10"><div class="detail-inner"><div class="metrics"><div class="metric"><div class="mk">Mo. revenue</div><div class="mv">€4,252,040</div></div><div class="metric"><div class="mk">Mo. cost</div><div class="mv">€4,123,640</div></div><div class="metric"><div class="mk">Mo. profit</div><div class="mv pos">+€128,400</div></div><div class="metric"><div class="mk">Period</div><div class="mv">12 mo</div></div><div class="metric"><div class="mk">Total revenue</div><div class="mv">€51.02M</div></div><div class="metric"><div class="mk">Total profit</div><div class="mv pos">+€1.54M</div></div></div><div class="detail-actions"><span class="src">Quote <span class="mono">FN-001</span> · <span class="pill sent" style="padding:2px 6px">Sent</span></span><button class="btn sm">Calculation</button><button class="btn sm">P&amp;L</button></div></div></td></tr>
+
+            <tr class="row-main" onclick="toggleRow(this)">
+              <td><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></td>
+              <td><span class="client">Air Cairo</span><span class="qno">MSC-004</span></td>
+              <td><span class="pill completed"><span class="pdot" style="background:oklch(0.55 0.07 200)"></span>Completed</span></td>
+              <td class="r num">1</td><td class="r num">350</td><td class="r num">3,120</td>
+              <td class="r num">1,092,000</td><td class="r num pos">+97,300</td><td class="r num pos">+583,800</td><td class="r num" style="color:var(--ink-faint)">10 Jan 2026</td>
+            </tr>
+            <tr class="detail"><td colspan="10"><div class="detail-inner"><div class="metrics"><div class="metric"><div class="mk">Mo. revenue</div><div class="mv">€1,092,000</div></div><div class="metric"><div class="mk">Mo. cost</div><div class="mv">€994,700</div></div><div class="metric"><div class="mk">Mo. profit</div><div class="mv pos">+€97,300</div></div><div class="metric"><div class="mk">Period</div><div class="mv">6 mo</div></div><div class="metric"><div class="mk">Total revenue</div><div class="mv">€6.55M</div></div><div class="metric"><div class="mk">Total profit</div><div class="mv pos">+€0.58M</div></div></div><div class="detail-actions"><span class="src">Quote <span class="mono">MSC-004</span> · <span class="pill completed" style="padding:2px 6px">Completed</span></span><button class="btn sm">Calculation</button><button class="btn sm">P&amp;L</button></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">Mockup data. Quote-status card (draft / sent / signed / active / completed / rejected) lives in the ribbon's pipeline cell; per-MSN utilization and proration carry through every row.</div>
+    </div>
+  </section>
+
+  <!-- ============ CALCULATION ============ -->
+  <section class="screen" id="screen-calculation">
+    <div class="topbar">
+      <div class="crumbs"><b>Calculation</b><span>·</span><span>Libyan Wings — LBT-002 (working copy)</span></div>
+      <div class="actions"><button class="btn">Sensitivity</button><button class="btn primary">Save quote</button></div>
+    </div>
+    <div style="padding:22px; max-width:1320px;">
+      <div class="page-h"><div><h1>Calculation</h1><p>Configure per-MSN inputs and read the live ACMI cost build-up</p></div></div>
+
+      <div class="panel" style="margin-top:0">
+        <div class="calc-toolbar">
+          <div class="field" style="flex:1; min-width:180px"><label>Project / client</label><input value="Libyan Wings" /></div>
+          <div class="field"><label>Period start</label><input value="2026-06-22" /></div>
+          <div class="field"><label>Period end</label><input value="2026-08-31" /></div>
+          <div class="field num"><label>USD/EUR</label><input class="num" value="0.8500" /></div>
+          <div class="field num"><label>Margin %</label><input class="num" value="12.0" /></div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>MSN</th><th>Type</th><th>Env</th><th>Lease</th>
+            <th class="r">MGH</th><th class="r">Cycle</th><th class="r">Crew</th><th class="r">ACMI €/BH</th><th class="r">Cost €/BH</th><th class="r">Margin</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="msn-tag">3055</span></td><td>A320</td>
+              <td><select><option>Benign</option><option>Hot</option></select></td>
+              <td><select><option>Wet</option><option>Damp</option></select></td>
+              <td class="r"><input class="input-cell" value="233"></td>
+              <td class="r"><input class="input-cell" value="1.20"></td>
+              <td class="r"><input class="input-cell" value="5.0"></td>
+              <td class="r"><input class="input-cell" value="2,690"></td>
+              <td class="r num" style="color:var(--ink-soft)">2,634</td>
+              <td class="r num pos">+2.1%</td>
+              <td class="r" style="color:var(--ink-faint)">✕</td>
+            </tr>
+            <tr>
+              <td><span class="msn-tag">3461</span></td><td>A320</td>
+              <td><select><option>Benign</option></select></td><td><select><option>Wet</option></select></td>
+              <td class="r"><input class="input-cell" value="233"></td><td class="r"><input class="input-cell" value="1.20"></td>
+              <td class="r"><input class="input-cell" value="5.0"></td><td class="r"><input class="input-cell" value="2,690"></td>
+              <td class="r num" style="color:var(--ink-soft)">2,739</td><td class="r num neg">−1.8%</td><td class="r" style="color:var(--ink-faint)">✕</td>
+            </tr>
+            <tr>
+              <td><span class="msn-tag">3570</span></td><td>A321</td>
+              <td><select><option>Hot</option></select></td><td><select><option>Wet</option></select></td>
+              <td class="r"><input class="input-cell" value="233"></td><td class="r"><input class="input-cell" value="1.20"></td>
+              <td class="r"><input class="input-cell" value="5.0"></td><td class="r"><input class="input-cell" value="2,690"></td>
+              <td class="r num" style="color:var(--ink-soft)">2,945</td><td class="r num neg">−9.5%</td><td class="r" style="color:var(--ink-faint)">✕</td>
+            </tr>
+          </tbody>
+          <tfoot><tr><td colspan="4">Fleet · 3 MSN</td><td class="r num">699</td><td class="r num">1.20</td><td class="r num">15.0</td><td class="r num">2,690</td><td class="r num">2,773</td><td class="r num neg">−3.1%</td><td></td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="calc-split" style="margin-top:16px">
+        <div class="panel" style="margin-top:0">
+          <div class="panel-h"><h2>Cost build-up</h2><span class="hint">EUR / block hour · fleet blended</span></div>
+          <div class="kpi-list">
+            <div class="kr"><span class="lab">A · Aircraft</span><span class="val">528.26</span></div>
+            <div class="kr"><span class="lab">C · Crew</span><span class="val">576.35</span></div>
+            <div class="kr"><span class="lab">M · Maintenance</span><span class="val">288.18</span></div>
+            <div class="kr"><span class="lab">I · Insurance</span><span class="val">103.38</span></div>
+            <div class="kr"><span class="lab">DOC</span><span class="val">27.03</span></div>
+            <div class="kr"><span class="lab">Other COGS</span><span class="val">22.97</span></div>
+            <div class="kr"><span class="lab">Overhead</span><span class="val">40.54</span></div>
+            <div class="kr big"><span class="lab">Total cost / BH</span><span class="val">1,586.71</span></div>
+            <div class="kr big"><span class="lab">ACMI rate / BH</span><span class="val">2,690.00</span></div>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:0">
+          <div class="panel-h"><h2>Project summary</h2><span class="hint">22 Jun – 31 Aug · partial</span></div>
+          <div class="kpi-list">
+            <div class="kr"><span class="lab">Duration</span><span class="val">2.3 mo</span></div>
+            <div class="kr"><span class="lab">MGH <span style="color:var(--accent-ink)">(prorated)</span></span><span class="val">699</span></div>
+            <div class="kr"><span class="lab">BH sold</span><span class="val">699</span></div>
+            <div class="kr"><span class="lab">BH actual</span><span class="val">699</span></div>
+            <div class="kr"><span class="lab">FH / FC</span><span class="val">583 / 486</span></div>
+            <div class="kr big"><span class="lab">Total revenue</span><span class="val">1,440,510</span></div>
+            <div class="kr big"><span class="lab">Net profit</span><span class="val neg">−122,200</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="note">June counts as 9/30 — total MGH (699) equals BH sold, and every fixed / overhead line is prorated to match the P&amp;L statement.</div>
+    </div>
+  </section>
+
+  <!-- ============ P&L ============ -->
+  <section class="screen" id="screen-pnl">
+    <div class="topbar">
+      <div class="crumbs"><b>P&amp;L</b><span>·</span><span>Libyan Wings — LBT-002</span></div>
+      <div class="actions"><button class="btn">MSN: Fleet ▾</button><button class="btn">Export</button></div>
+    </div>
+    <div style="padding:22px; max-width:1320px;">
+      <div class="page-h"><div><h1>Profit &amp; Loss</h1><p>Monthly statement · 22 Jun – 31 Aug 2026 · fleet of 3</p></div></div>
+      <div class="panel" style="margin-top:0">
+        <div class="pnl-wrap">
+          <table class="pnl">
+            <thead><tr>
+              <th>Line</th>
+              <th class="r">Jun <span class="partial">9/30</span></th><th class="r">Jul</th><th class="r">Aug</th><th class="r">Total</th>
+            </tr></thead>
+            <tbody>
+              <tr class="grp"><td colspan="5">Revenue</td></tr>
+              <tr><td class="lab">Wet lease (ACMI)</td><td class="r">187,920</td><td class="r">626,310</td><td class="r">626,310</td><td class="r">1,440,540</td></tr>
+              <tr class="tot"><td>Total revenue</td><td class="r">187,920</td><td class="r">626,310</td><td class="r">626,310</td><td class="r">1,440,540</td></tr>
+
+              <tr class="grp"><td colspan="5">Variable cost</td></tr>
+              <tr><td class="lab">Maint. reserves (var)</td><td class="r">31,140</td><td class="r">103,800</td><td class="r">103,800</td><td class="r">238,740</td></tr>
+              <tr><td class="lab">Crew per diems</td><td class="r">9,840</td><td class="r">32,790</td><td class="r">32,790</td><td class="r">75,420</td></tr>
+              <tr><td class="lab">Spare parts / DOC</td><td class="r">14,520</td><td class="r">48,400</td><td class="r">48,400</td><td class="r">111,320</td></tr>
+              <tr class="tot"><td>Total variable</td><td class="r">55,500</td><td class="r">184,990</td><td class="r">184,990</td><td class="r">425,480</td></tr>
+
+              <tr class="grp"><td colspan="5">Fixed cost <span class="partial">prorated</span></td></tr>
+              <tr><td class="lab">Dry lease</td><td class="r">28,200</td><td class="r">94,000</td><td class="r">94,000</td><td class="r">216,200</td></tr>
+              <tr><td class="lab">Crew salaries</td><td class="r">34,650</td><td class="r">115,500</td><td class="r">115,500</td><td class="r">265,650</td></tr>
+              <tr><td class="lab">Line + base maint.</td><td class="r">21,000</td><td class="r">70,000</td><td class="r">70,000</td><td class="r">161,000</td></tr>
+              <tr><td class="lab">Insurance</td><td class="r">9,304</td><td class="r">31,013</td><td class="r">31,013</td><td class="r">71,330</td></tr>
+              <tr class="tot"><td>Total fixed</td><td class="r">93,154</td><td class="r">310,513</td><td class="r">310,513</td><td class="r">714,180</td></tr>
+
+              <tr class="grp"><td colspan="5">Overhead <span class="partial">prorated</span></td></tr>
+              <tr><td class="lab">Personnel + MXC</td><td class="r">10,701</td><td class="r">35,670</td><td class="r">35,670</td><td class="r">82,041</td></tr>
+              <tr><td class="lab">Admin / IT / other</td><td class="r">9,900</td><td class="r">33,000</td><td class="r">33,000</td><td class="r">75,900</td></tr>
+              <tr class="tot"><td>Total overhead</td><td class="r">20,601</td><td class="r">68,670</td><td class="r">68,670</td><td class="r">157,941</td></tr>
+
+              <tr class="ebitda"><td>EBITDA</td><td class="r neg">18,665</td><td class="r neg">−62,863</td><td class="r neg">−62,863</td><td class="r neg">−122,200</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="note">June fixed &amp; overhead are charged at 9/30 (e.g. line maintenance 22,000 × 9/30 = 6,600; personnel 20,970 × 9/30 + 42 × 105 BH = 10,701). EBITDA reconciles to the dashboard's net profit exactly.</div>
+    </div>
+  </section>
+
+  <!-- ============ QUOTES ============ -->
+  <section class="screen" id="screen-quotes">
+    <div class="topbar">
+      <div class="crumbs"><b>Quotes</b><span>·</span><span>42 saved</span></div>
+      <div class="actions"><button class="btn primary">+ New quote</button></div>
+    </div>
+    <div style="padding:22px; max-width:1320px;">
+      <div class="page-h"><div><h1>Quotes</h1><p>Saved pricing quotes · immutable snapshots</p></div></div>
+      <div class="panel" style="margin-top:0">
+        <div class="qfilter">
+          <div class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg><input placeholder="Search client or quote no."></div>
+          <button class="btn">All statuses ▾</button>
+          <button class="btn">Client ▾</button>
+        </div>
+        <table>
+          <thead><tr><th>Quote</th><th>Client</th><th>Status</th><th class="r">MSN</th><th class="r">€/BH</th><th class="r">Net profit</th><th class="r">Created</th><th></th></tr></thead>
+          <tbody>
+            <tr class="row-main" style="cursor:default"><td class="mono">NUA-003</td><td class="client">Nile Air</td><td><span class="pill active"><span class="pdot" style="background:var(--pos)"></span>Active</span></td><td class="r num">3</td><td class="r num">2,940</td><td class="r num pos">+5.59M</td><td class="r num" style="color:var(--ink-faint)">12 Mar</td><td class="r" style="color:var(--ink-faint)">›</td></tr>
+            <tr class="row-main" style="cursor:default"><td class="mono">FN-001</td><td class="client">FlyNAS</td><td><span class="pill sent"><span class="pdot" style="background:oklch(0.62 0.13 245)"></span>Sent</span></td><td class="r num">4</td><td class="r num">2,873</td><td class="r num pos">+1.54M</td><td class="r num" style="color:var(--ink-faint)">05 Jun</td><td class="r" style="color:var(--ink-faint)">›</td></tr>
+            <tr class="row-main" style="cursor:default"><td class="mono">LBT-002</td><td class="client">Libyan Wings</td><td><span class="pill sent"><span class="pdot" style="background:oklch(0.62 0.13 245)"></span>Sent</span></td><td class="r num">3</td><td class="r num">2,690</td><td class="r num neg">−122.2K</td><td class="r num" style="color:var(--ink-faint)">07 Jun</td><td class="r" style="color:var(--ink-faint)">›</td></tr>
+            <tr class="row-main" style="cursor:default"><td class="mono">OMS-002</td><td class="client">SalamAir</td><td><span class="pill signed"><span class="pdot" style="background:var(--accent)"></span>Signed</span></td><td class="r num">2</td><td class="r num">2,760</td><td class="r num pos">+2.42M</td><td class="r num" style="color:var(--ink-faint)">04 Mar</td><td class="r" style="color:var(--ink-faint)">›</td></tr>
+            <tr class="row-main" style="cursor:default"><td class="mono">MSC-004</td><td class="client">Air Cairo</td><td><span class="pill completed"><span class="pdot" style="background:oklch(0.55 0.07 200)"></span>Completed</span></td><td class="r num">1</td><td class="r num">3,120</td><td class="r num pos">+0.58M</td><td class="r num" style="color:var(--ink-faint)">10 Jan</td><td class="r" style="color:var(--ink-faint)">›</td></tr>
+            <tr class="row-main" style="cursor:default"><td class="mono">JZR-005</td><td class="client">Jazeera</td><td><span class="pill draft">Draft</span></td><td class="r num">2</td><td class="r num">—</td><td class="r num" style="color:var(--ink-faint)">—</td><td class="r num" style="color:var(--ink-faint)">06 Jun</td><td class="r" style="color:var(--ink-faint)">›</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- quote detail header preview -->
+      <div class="panel">
+        <div style="padding:16px 18px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap">
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px"><span style="font-size:18px; font-weight:600" class="mono">LBT-002</span><span class="pill sent"><span class="pdot" style="background:oklch(0.62 0.13 245)"></span>Sent</span></div>
+            <div style="color:var(--ink-soft)">Libyan Wings</div>
+            <div style="font-size:11px; color:var(--ink-faint); margin-top:2px">Created 07 Jun 2026 · 14:32</div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn">← Back to Quotes</button>
+            <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/></svg> Go to Calculation</button>
+            <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg> Go to P&amp;L</button>
+            <button class="btn primary">Fork &amp; Edit</button>
+          </div>
+        </div>
+      </div>
+      <div class="note">Quote detail header preview — the three navigation buttons (Calculation / P&amp;L / Fork) hydrate this quote's data, so any page you open shows these exact numbers.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+  function show(screen, el){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-'+screen).classList.add('active');
+    document.querySelectorAll('.navlink').forEach(n=>n.classList.remove('active'));
+    if(el) el.classList.add('active');
+    document.querySelector('main').scrollTo(0,0);
+  }
+  document.querySelectorAll('.navlink').forEach(n=>{
+    n.addEventListener('click',()=>{ if(n.dataset.screen) show(n.dataset.screen, n); });
+  });
+  function toggleRow(tr){
+    const det = tr.nextElementSibling;
+    const open = tr.classList.toggle('open');
+    det.style.display = open ? 'table-row' : 'none';
+  }
+  // init: collapse all detail rows except the first open one
+  document.querySelectorAll('.detail').forEach((d,i)=>{
+    const prev = d.previousElementSibling;
+    d.style.display = (prev && prev.classList.contains('open')) ? 'table-row' : 'none';
+  });
+  function toggleTheme(){
+    const r = document.documentElement;
+    const dark = r.getAttribute('data-theme')==='dark';
+    r.setAttribute('data-theme', dark?'light':'dark');
+    document.getElementById('themeLabel').textContent = dark?'Light':'Dark';
+  }
+</script>
+</body>
+</html>

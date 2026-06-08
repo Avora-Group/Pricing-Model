@@ -1,21 +1,26 @@
 'use client'
 
-const STATUS_STYLES: Record<string, string> = {
-  draft: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
-  sent: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
-  signed: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300',
-  active: 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300',
-  completed: 'bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300',
-  accepted: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300', // legacy alias of signed
-  rejected: 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300',
+// Maps a quote/project status to its pill modifier + legend dot color.
+const STATUS: Record<string, { cls: string; dot: string }> = {
+  draft: { cls: 'av-pill-draft', dot: 'transparent' },
+  sent: { cls: 'av-pill-sent', dot: 'oklch(0.62 0.13 245)' },
+  signed: { cls: 'av-pill-signed', dot: 'var(--av-accent)' },
+  active: { cls: 'av-pill-active', dot: 'var(--av-pos)' },
+  completed: { cls: 'av-pill-completed', dot: 'oklch(0.55 0.07 200)' },
+  accepted: { cls: 'av-pill-signed', dot: 'var(--av-accent)' }, // legacy alias of signed
+  rejected: { cls: 'av-pill-rejected', dot: 'var(--av-neg)' },
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const style = STATUS_STYLES[status.toLowerCase()] ?? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-  const label = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+  const key = status.toLowerCase()
+  const s = STATUS[key] ?? STATUS.draft
+  const label = key.charAt(0).toUpperCase() + key.slice(1)
 
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${style}`}>
+    <span className={`av-pill ${s.cls}`}>
+      {s.dot !== 'transparent' && (
+        <span className="av-pdot" style={{ background: s.dot }} />
+      )}
       {label}
     </span>
   )

@@ -38,3 +38,81 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
 }
+
+/* ============================================================
+   Avora Flightdeck — design system
+   Dense, document-grade, aviation-data first. Numbers in mono,
+   MSN / status as instrument labels. Shell + Dashboard; reusable.
+   ============================================================ */
+:root {
+  --av-accent: oklch(0.52 0.15 248);
+  --av-accent-soft: oklch(0.95 0.03 248);
+  --av-accent-ink: oklch(0.42 0.16 248);
+  --av-pos: oklch(0.52 0.13 155);
+  --av-neg: oklch(0.55 0.18 25);
+  --av-rail: oklch(0.22 0.02 260);
+  --av-rail-ink: oklch(0.86 0.01 260);
+  --av-rail-line: oklch(0.32 0.02 260);
+}
+.dark {
+  --av-accent: oklch(0.7 0.13 248);
+  --av-accent-soft: oklch(0.34 0.06 248);
+  --av-accent-ink: oklch(0.8 0.12 248);
+  --av-pos: oklch(0.74 0.14 155);
+  --av-neg: oklch(0.7 0.16 25);
+  --av-rail: oklch(0.145 0.012 260);
+  --av-rail-ink: oklch(0.74 0.01 260);
+  --av-rail-line: oklch(0.26 0.014 260);
+}
+
+/* tabular mono numerals — the aviation signature */
+.av-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.av-pos { color: var(--av-pos); }
+.av-neg { color: var(--av-neg); }
+.av-accent-bg { background: var(--av-accent); }
+
+/* MSN registration-plate tag */
+.av-msn {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+}
+
+/* status pill */
+.av-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
+  white-space: nowrap;
+}
+.av-pill .av-pdot { width: 6px; height: 6px; border-radius: 50%; }
+.av-pill-active    { background: oklch(0.95 0.04 155); color: oklch(0.45 0.12 155); }
+.av-pill-signed    { background: var(--av-accent-soft); color: var(--av-accent-ink); }
+.av-pill-sent      { background: oklch(0.94 0.03 245); color: oklch(0.45 0.13 245); }
+.av-pill-completed { background: oklch(0.93 0.03 200); color: oklch(0.4 0.07 200); }
+.av-pill-rejected  { background: oklch(0.95 0.05 25);  color: oklch(0.5 0.16 25); }
+.av-pill-draft     { background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border-primary); }
+.dark .av-pill-active    { background: oklch(0.32 0.05 155); color: oklch(0.8 0.13 155); }
+.dark .av-pill-sent      { background: oklch(0.32 0.06 245); color: oklch(0.8 0.1 245); }
+.dark .av-pill-completed { background: oklch(0.3 0.04 200);  color: oklch(0.8 0.07 200); }
+.dark .av-pill-rejected  { background: oklch(0.33 0.06 25);  color: oklch(0.8 0.14 25); }
+
+/* legend dots */
+.av-dot-active{ background: var(--av-pos); }
+.av-dot-signed{ background: var(--av-accent); }
+.av-dot-sent{ background: oklch(0.62 0.13 245); }
+.av-dot-completed{ background: oklch(0.55 0.07 200); }
+
+/* dark sidebar rail */
+.av-rail { background: var(--av-rail); color: var(--av-rail-ink); }
+.av-rail-bd { border-color: var(--av-rail-line) !important; }
+.av-rail-link { color: var(--av-rail-ink); border: 1px solid transparent; }
+.av-rail-link:hover { background: oklch(1 0 0 / 0.05); color: #fff; }
+.av-rail-link.active { background: oklch(1 0 0 / 0.08); color: #fff; border-color: var(--av-rail-line); }
+.av-rail-link.active .av-rail-ico { color: var(--av-accent); opacity: 1; }

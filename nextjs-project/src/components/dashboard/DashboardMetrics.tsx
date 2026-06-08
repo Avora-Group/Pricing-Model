@@ -95,24 +95,40 @@ function shortDate(d: string | null): string {
   }
 }
 
-const COMMITTED = new Set(['active', 'signed', 'completed'])
+// Signed contract value, average rate, and fleet committed reflect only
+// signed + active deals (not completed/sent).
+const COMMITTED = new Set(['active', 'signed'])
 
 // ---- Ribbon ----
 
 function Ribbon({ data }: { data: DashboardData }) {
-  const { project_counts, averages, projects } = data
+  const { project_counts, projects } = data
   let signedValue = 0
   let pipelineValue = 0
   let committedMsn = 0
+  let rateWeightSum = 0
+  let rateWeight = 0
+  let sumRev = 0
+  let sumProfit = 0
   for (const p of projects) {
     const rev = n(p.total_revenue) ?? 0
     if (COMMITTED.has(p.status)) {
       signedValue += rev
       committedMsn += p.msn_count
+      const rate = n(p.eur_per_bh)
+      const mgh = n(p.total_mgh)
+      if (rate && mgh) {
+        rateWeightSum += rate * mgh
+        rateWeight += mgh
+      }
+      sumRev += rev
+      sumProfit += n(p.total_profit) ?? 0
     } else if (p.status === 'sent') {
       pipelineValue += rev
     }
   }
+  const avgRate = rateWeight > 0 ? String(rateWeightSum / rateWeight) : null
+  const avgMargin = sumRev > 0 ? String((sumProfit / sumRev) * 100) : null
 
   const Chip = ({ count, label, dot }: { count: number; label: string; dot: string }) => (
     <div className="flex items-baseline gap-1.5">
@@ -141,11 +157,11 @@ function Ribbon({ data }: { data: DashboardData }) {
         <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{eurM(pipelineValue)} in pipeline</div>
       </div>
       <div className="px-[18px] py-3.5 flex-1 min-w-[160px] border-r border-[var(--border-primary)]">
-        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Avg rate</div>
+        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Avg rate · signed &amp; active</div>
         <div className="text-[22px] font-semibold tracking-tight av-num">
-          {num(averages.eur_per_bh)}<span className="text-xs text-[var(--text-muted)] font-medium ml-1">€/BH</span>
+          {num(avgRate)}<span className="text-xs text-[var(--text-muted)] font-medium ml-1">€/BH</span>
         </div>
-        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{num(averages.margin_percent, 1)}% blended margin</div>
+        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{num(avgMargin, 1)}% blended margin</div>
       </div>
       <div className="px-[18px] py-3.5 min-w-[150px]">
         <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Fleet committed</div>

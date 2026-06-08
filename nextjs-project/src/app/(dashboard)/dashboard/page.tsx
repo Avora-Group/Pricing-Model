@@ -7,7 +7,7 @@ const API_URL = process.env.API_URL ?? 'http://localhost:8000'
 
 const EMPTY: DashboardData = {
   projects: [],
-  project_counts: { sent: 0, signed: 0, active: 0, completed: 0, total: 0 },
+  project_counts: { sent: 0, signed: 0, active: 0, total: 0 },
   quote_counts: { draft: 0, sent: 0, signed: 0, active: 0, completed: 0, rejected: 0, total: 0 },
   averages: { eur_per_bh: null, margin_percent: null },
 }

@@ -50,7 +50,7 @@ interface DashboardProject {
 
 export interface DashboardData {
   projects: DashboardProject[]
-  project_counts: { sent: number; signed: number; active: number; completed: number; total: number }
+  project_counts: { sent: number; signed: number; active: number; total: number }
   quote_counts: {
     draft: number; sent: number; signed: number; active: number; completed: number; rejected: number; total: number
   }
@@ -148,7 +148,6 @@ function Ribbon({ data }: { data: DashboardData }) {
           <Chip count={project_counts.active} label="active" dot="av-dot-active" />
           <Chip count={project_counts.signed} label="signed" dot="av-dot-signed" />
           <Chip count={project_counts.sent} label="sent" dot="av-dot-sent" />
-          <Chip count={project_counts.completed} label="done" dot="av-dot-completed" />
         </div>
       </div>
       <div className="px-[18px] py-3.5 flex-1 min-w-[180px] border-r border-[var(--border-primary)]">

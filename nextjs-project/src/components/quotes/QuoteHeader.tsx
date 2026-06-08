@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Calculator, TrendingUp } from 'lucide-react'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
 
 interface QuoteHeaderProps {
@@ -45,7 +45,7 @@ export function QuoteHeader({ quoteNumber, clientName, status, createdAt }: Quot
               Created {formatDate(createdAt)}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => router.push('/quotes')}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -55,10 +55,24 @@ export function QuoteHeader({ quoteNumber, clientName, status, createdAt }: Quot
             </button>
             <button
               onClick={() => router.push('/calculation')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Calculator size={14} />
+              Go to Calculation
+            </button>
+            <button
+              onClick={() => router.push('/pnl')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              <TrendingUp size={14} />
+              Go to P&amp;L
+            </button>
+            <button
+              onClick={() => router.push('/calculation')}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-500 transition-colors"
             >
               <ExternalLink size={14} />
-              Fork and Edit in Calculation
+              Fork and Edit
             </button>
           </div>
         </div>

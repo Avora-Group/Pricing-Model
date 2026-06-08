@@ -344,34 +344,38 @@ export function computeMsnPnlSummary(
       commissions +
       0 /* delaysCancellations */
 
-    // Fixed costs (NOT prorated)
+    // Fixed costs (prorated by day fraction, same as variable)
     const totalFixed =
-      parseFloat(input.leaseRentEur || '0') +
-      maintReservesFixed +
-      pilotSalary +
-      cabinCrewSalary +
-      uniformPerMonth +
-      trainingPerMonth +
-      lineMaintenanceVal +
-      baseMaintenanceVal +
-      maintPersonnelSalaryVal +
-      trainningVal +
-      cCheckVal +
-      insuranceFixed +
-      technicalVal +
-      otherFixedVal
+      (parseFloat(input.leaseRentEur || '0') +
+        maintReservesFixed +
+        pilotSalary +
+        cabinCrewSalary +
+        uniformPerMonth +
+        trainingPerMonth +
+        lineMaintenanceVal +
+        baseMaintenanceVal +
+        maintPersonnelSalaryVal +
+        trainningVal +
+        cCheckVal +
+        insuranceFixed +
+        technicalVal +
+        otherFixedVal) *
+      df
 
-    // Overhead (NOT prorated)
+    // Overhead (prorated). The personnel line is fixed personnel + MXC
+    // commission on the month's BH; scaling the whole block by df prorates the
+    // fixed parts by days and charges MXC on the prorated BH (monthBh = full×df).
     const totalOverhead =
-      (overheadPerMonth[0] ?? 0) +
-      ((overheadPerMonth[1] ?? 0) + commissionMxcRate * totalBhPerMonth) +
-      (overheadPerMonth[2] ?? 0) +
-      (overheadPerMonth[3] ?? 0) +
-      (overheadPerMonth[4] ?? 0) +
-      (overheadPerMonth[5] ?? 0) +
-      (overheadPerMonth[6] ?? 0) +
-      (overheadPerMonth[7] ?? 0) +
-      (overheadPerMonth[8] ?? 0)
+      ((overheadPerMonth[0] ?? 0) +
+        ((overheadPerMonth[1] ?? 0) + commissionMxcRate * totalBhPerMonth) +
+        (overheadPerMonth[2] ?? 0) +
+        (overheadPerMonth[3] ?? 0) +
+        (overheadPerMonth[4] ?? 0) +
+        (overheadPerMonth[5] ?? 0) +
+        (overheadPerMonth[6] ?? 0) +
+        (overheadPerMonth[7] ?? 0) +
+        (overheadPerMonth[8] ?? 0)) *
+      df
 
     sumCost += totalVariable + totalFixed + totalOverhead
   }

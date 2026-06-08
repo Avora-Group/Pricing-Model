@@ -19,7 +19,7 @@ from app.db.database import get_db
 
 router = APIRouter()
 
-QUOTE_STATUSES = ("draft", "sent", "signed", "active", "rejected")
+QUOTE_STATUSES = ("draft", "sent", "signed", "active", "completed", "rejected")
 
 
 def _s(value) -> str | None:
@@ -100,21 +100,22 @@ async def get_dashboard_metrics(
         LEFT JOIN users u ON u.id = q.created_by
         ORDER BY q.client_code,
                  CASE q.status
-                   WHEN 'active' THEN 0
-                   WHEN 'signed' THEN 1
-                   WHEN 'accepted' THEN 1
-                   WHEN 'sent' THEN 2
-                   WHEN 'draft' THEN 3
-                   WHEN 'rejected' THEN 4
-                   ELSE 5
+                   WHEN 'completed' THEN 0
+                   WHEN 'active' THEN 1
+                   WHEN 'signed' THEN 2
+                   WHEN 'accepted' THEN 2
+                   WHEN 'sent' THEN 3
+                   WHEN 'draft' THEN 4
+                   WHEN 'rejected' THEN 5
+                   ELSE 6
                  END,
                  q.created_at DESC
         """
     )
 
-    # Only deals worth tracking appear in the list: active, sent, signed.
-    LISTED_STATUSES = {"sent", "signed", "active"}
-    project_counts = {"sent": 0, "signed": 0, "active": 0}
+    # Only deals worth tracking appear in the list.
+    LISTED_STATUSES = {"sent", "signed", "active", "completed"}
+    project_counts = {"sent": 0, "signed": 0, "active": 0, "completed": 0}
 
     # Per-MSN snapshots for each authoritative quote (financials + utilization)
     quote_ids = [row["id"] for row in quote_rows]
@@ -262,10 +263,10 @@ async def get_dashboard_metrics(
             }
         )
 
-    # Group by status (active, then signed, then sent), newest first within each
-    _rank = {"active": 0, "signed": 1, "sent": 2}
+    # Group by status, newest first within each
+    _rank = {"active": 0, "signed": 1, "sent": 2, "completed": 3}
     projects.sort(key=lambda x: (x["created_at"] or ""), reverse=True)
-    projects.sort(key=lambda x: _rank.get(x["status"], 3))
+    projects.sort(key=lambda x: _rank.get(x["status"], 4))
 
     # ---- Quote counts by status ('accepted' legacy rows count as signed) ----
     quote_status_rows = await db.fetch(
@@ -294,6 +295,7 @@ async def get_dashboard_metrics(
             "sent": project_counts["sent"],
             "signed": project_counts["signed"],
             "active": project_counts["active"],
+            "completed": project_counts["completed"],
             "total": sum(project_counts.values()),
         },
         "quote_counts": quote_counts,

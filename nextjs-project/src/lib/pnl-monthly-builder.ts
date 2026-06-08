@@ -175,48 +175,54 @@ export function buildMonthlyData(
     data['totalVariableCost'][m] = totalVar
     data['contributionI'][m] = monthRevenue - totalVar
 
-    // -- FIXED COST (NOT prorated) --
-    data['dryLease'][m] = cfg.leaseRentEur
-    data['maintReservesFixed'][m] = cfg.maintReservesFixedEur
-    data['maintReservesFixed_6yr'][m] = cfg.maintReservesFixed_6yr
-    data['maintReservesFixed_12yr'][m] = cfg.maintReservesFixed_12yr
-    data['maintReservesFixed_ldg'][m] = cfg.maintReservesFixed_ldg
+    // -- FIXED COST (prorated by day fraction, same as variable) --
+    // A partial month bears only its share of fixed costs: a project starting
+    // on the 22nd of a 30-day month pays 9/30 of each fixed line.
+    data['dryLease'][m] = cfg.leaseRentEur * df
+    data['maintReservesFixed'][m] = cfg.maintReservesFixedEur * df
+    data['maintReservesFixed_6yr'][m] = cfg.maintReservesFixed_6yr * df
+    data['maintReservesFixed_12yr'][m] = cfg.maintReservesFixed_12yr * df
+    data['maintReservesFixed_ldg'][m] = cfg.maintReservesFixed_ldg * df
 
-    data['pilotSalary'][m] = cfg.pilotSalary
-    data['pilotSalary_pilot'][m] = cfg.pilotSalary_pilot
-    data['pilotSalary_copilot'][m] = cfg.pilotSalary_copilot
-    data['cabinCrewSalary'][m] = cfg.cabinCrewSalary
-    data['cabinCrewSalary_cabinAtt'][m] = cfg.cabinCrewSalary_cabinAtt
-    data['cabinCrewSalary_seniorAtt'][m] = cfg.cabinCrewSalary_seniorAtt
-    data['staffUniformF'][m] = cfg.staffUniformF
-    data['trainingC'][m] = cfg.trainingC
+    data['pilotSalary'][m] = cfg.pilotSalary * df
+    data['pilotSalary_pilot'][m] = cfg.pilotSalary_pilot * df
+    data['pilotSalary_copilot'][m] = cfg.pilotSalary_copilot * df
+    data['cabinCrewSalary'][m] = cfg.cabinCrewSalary * df
+    data['cabinCrewSalary_cabinAtt'][m] = cfg.cabinCrewSalary_cabinAtt * df
+    data['cabinCrewSalary_seniorAtt'][m] = cfg.cabinCrewSalary_seniorAtt * df
+    data['staffUniformF'][m] = cfg.staffUniformF * df
+    data['trainingC'][m] = cfg.trainingC * df
 
-    data['lineMaintenance'][m] = cfg.lineMaintenance
-    data['lineMaintenance_internal'][m] = cfg.lineMaintenance_internal
-    data['lineMaintenance_3rdParty'][m] = cfg.lineMaintenance_3rdParty
-    data['baseMaintenance'][m] = cfg.baseMaintenance
-    data['maintPersonnelSalary'][m] = cfg.maintPersonnelSalary
-    data['trainningM'][m] = cfg.trainningM
-    data['maintCCheck'][m] = cfg.maintCCheck
+    data['lineMaintenance'][m] = cfg.lineMaintenance * df
+    data['lineMaintenance_internal'][m] = cfg.lineMaintenance_internal * df
+    data['lineMaintenance_3rdParty'][m] = cfg.lineMaintenance_3rdParty * df
+    data['baseMaintenance'][m] = cfg.baseMaintenance * df
+    data['maintPersonnelSalary'][m] = cfg.maintPersonnelSalary * df
+    data['trainningM'][m] = cfg.trainningM * df
+    data['maintCCheck'][m] = cfg.maintCCheck * df
 
-    data['insuranceFixed'][m] = cfg.insuranceFixed
-    data['technical'][m] = cfg.technical
-    data['otherFixed'][m] = cfg.otherFixed
+    data['insuranceFixed'][m] = cfg.insuranceFixed * df
+    data['technical'][m] = cfg.technical * df
+    data['otherFixed'][m] = cfg.otherFixed * df
 
     const totalFixed = FIXED_COST_KEYS.reduce((s, k) => s + data[k][m], 0)
     data['totalFixedCost'][m] = totalFixed
     data['contributionII'][m] = data['contributionI'][m] - totalFixed
 
-    // -- OVERHEAD (NOT prorated) --
-    data['personnelCostSS'][m] = cfg.personnelCostSS
-    data['personnelCost'][m] = cfg.personnelCost
-    data['travelExpenses'][m] = cfg.travelExpenses
-    data['legalExpenses'][m] = cfg.legalExpenses
-    data['licenseRegCost'][m] = cfg.licenseRegCost
-    data['adminCost'][m] = cfg.adminCost
-    data['itComms'][m] = cfg.itComms
-    data['adminGeneralExp'][m] = cfg.adminGeneralExp
-    data['sellingMarketingCost'][m] = cfg.sellingMarketingCost
+    // -- OVERHEAD (prorated by day fraction) --
+    // personnelCost = fixed personnel + MXC commission (rate x full-month BH).
+    // Scaling the whole line by df prorates the fixed part by days AND charges
+    // MXC on the prorated BH (monthBh = fullBh x df):
+    // 20,970 x 9/30 + 42 x 105 = 10,701.
+    data['personnelCostSS'][m] = cfg.personnelCostSS * df
+    data['personnelCost'][m] = cfg.personnelCost * df
+    data['travelExpenses'][m] = cfg.travelExpenses * df
+    data['legalExpenses'][m] = cfg.legalExpenses * df
+    data['licenseRegCost'][m] = cfg.licenseRegCost * df
+    data['adminCost'][m] = cfg.adminCost * df
+    data['itComms'][m] = cfg.itComms * df
+    data['adminGeneralExp'][m] = cfg.adminGeneralExp * df
+    data['sellingMarketingCost'][m] = cfg.sellingMarketingCost * df
 
     const totalOH = OVERHEAD_KEYS.reduce((s, k) => s + data[k][m], 0)
     data['totalOverhead'][m] = totalOH

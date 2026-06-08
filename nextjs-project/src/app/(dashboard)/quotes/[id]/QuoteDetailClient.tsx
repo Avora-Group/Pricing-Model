@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuoteHydration } from '@/components/quotes/hooks/useQuoteHydration'
 import { QuoteHeader } from '@/components/quotes/QuoteHeader'
 import { QuoteMetrics } from '@/components/quotes/QuoteMetrics'
@@ -13,6 +15,25 @@ interface QuoteDetailClientProps {
 
 export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
   const { loaded, msnSummaries } = useQuoteHydration(quote)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Deep-link target (e.g. from the dashboard): once this quote's data is
+  // hydrated into the stores, forward to Calculation or P&L to inspect it.
+  const go = searchParams.get('go')
+  useEffect(() => {
+    if (loaded && (go === 'pnl' || go === 'calculation')) {
+      router.replace(go === 'pnl' ? '/pnl' : '/calculation')
+    }
+  }, [loaded, go, router])
+
+  if (go === 'pnl' || go === 'calculation') {
+    return (
+      <div className="flex items-center justify-center py-20 text-sm text-gray-500 dark:text-gray-400">
+        Loading {quote.quote_number} into {go === 'pnl' ? 'P&L' : 'Calculation'}…
+      </div>
+    )
+  }
 
   const dashState = quote.dashboard_state as Record<string, string> | null
 

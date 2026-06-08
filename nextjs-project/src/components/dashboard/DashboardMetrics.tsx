@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronRight, Calculator, TrendingUp } from 'lucide-react'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
 import { thBase, tdBase, tdNum, borderRow } from '@/components/ui/table-styles'
 
@@ -54,6 +55,7 @@ export interface DashboardData {
     sent: number
     signed: number
     active: number
+    completed: number
     total: number
   }
   quote_counts: {
@@ -61,6 +63,7 @@ export interface DashboardData {
     sent: number
     signed: number
     active: number
+    completed: number
     rejected: number
     total: number
   }
@@ -76,6 +79,7 @@ const STATUS_DOT: Record<string, string> = {
   sent: 'bg-blue-500 dark:bg-blue-400',
   signed: 'bg-indigo-500 dark:bg-indigo-400',
   active: 'bg-emerald-500 dark:bg-emerald-400',
+  completed: 'bg-teal-500 dark:bg-teal-400',
 }
 
 function eur(value: string | null | undefined, digits = 0): string {
@@ -152,6 +156,7 @@ function SummaryStrip({ data }: { data: DashboardData }) {
             <CountEntry count={project_counts.active} label="active" dot={STATUS_DOT.active} />
             <CountEntry count={project_counts.signed} label="signed" dot={STATUS_DOT.signed} />
             <CountEntry count={project_counts.sent} label="sent" dot={STATUS_DOT.sent} />
+            <CountEntry count={project_counts.completed} label="completed" dot={STATUS_DOT.completed} />
           </div>
         </div>
         {/* Quotes */}
@@ -164,6 +169,7 @@ function SummaryStrip({ data }: { data: DashboardData }) {
             <CountEntry count={quote_counts.sent} label="sent" />
             <CountEntry count={quote_counts.signed} label="signed" />
             <CountEntry count={quote_counts.active} label="active" />
+            <CountEntry count={quote_counts.completed} label="completed" />
             <CountEntry count={quote_counts.rejected} label="rejected" />
           </div>
         </div>
@@ -288,9 +294,9 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
         </div>
       )}
 
-      {/* Source quote */}
+      {/* Source quote + navigation */}
       {p.quote ? (
-        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
           <span>
             Quote{' '}
             <span className="font-mono text-gray-700 dark:text-gray-300">
@@ -300,6 +306,22 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
           <StatusBadge status={p.quote.status} />
           <span>{shortDate(p.quote.created_at)}</span>
           {p.created_by && <span>by {p.created_by}</span>}
+          <div className="flex items-center gap-2 ml-auto">
+            <Link
+              href={`/quotes/${p.id}?go=calculation`}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Calculator size={13} />
+              Calculation
+            </Link>
+            <Link
+              href={`/quotes/${p.id}?go=pnl`}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <TrendingUp size={13} />
+              P&amp;L
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="text-xs text-gray-500 dark:text-gray-400">

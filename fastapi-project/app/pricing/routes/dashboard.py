@@ -82,29 +82,24 @@ async def get_dashboard_metrics(
     current_user: dict = Depends(get_current_user),
     db: asyncpg.Connection = Depends(get_db),
 ):
-    """Company-wide dashboard: projects with financials, quote pipeline stats."""
-    # ---- Projects (company-wide) ----
-    project_rows = await db.fetch(
-        """
-        SELECT p.id, p.name, p.created_at, p.margin_percent,
-               u.email AS created_by_email
-        FROM pricing_projects p
-        LEFT JOIN users u ON u.id = p.created_by
-        ORDER BY p.created_at DESC
-        """
-    )
+    """Company-wide dashboard: projects with financials, quote pipeline stats.
 
-    # Authoritative quote per project: the most advanced deal, then newest.
-    # A project's status on the dashboard IS this quote's status.
+    A "project" on the dashboard is a client deal: quotes are grouped by
+    client, and the most advanced quote (active > signed > sent) represents
+    that client. This is driven straight from quotes, so every saved quote is
+    accounted for regardless of any project linkage.
+    """
+    # Authoritative quote per client: most advanced status, then newest.
     quote_rows = await db.fetch(
         """
-        SELECT DISTINCT ON (project_id)
-               id, project_id, quote_number, client_name, status,
-               total_eur_per_bh, margin_percent, created_at
-        FROM quotes
-        WHERE project_id IS NOT NULL
-        ORDER BY project_id,
-                 CASE status
+        SELECT DISTINCT ON (q.client_code)
+               q.id, q.client_code, q.quote_number, q.client_name, q.status,
+               q.total_eur_per_bh, q.margin_percent, q.created_at,
+               u.email AS created_by_email
+        FROM quotes q
+        LEFT JOIN users u ON u.id = q.created_by
+        ORDER BY q.client_code,
+                 CASE q.status
                    WHEN 'active' THEN 0
                    WHEN 'signed' THEN 1
                    WHEN 'accepted' THEN 1
@@ -113,10 +108,9 @@ async def get_dashboard_metrics(
                    WHEN 'rejected' THEN 4
                    ELSE 5
                  END,
-                 created_at DESC
+                 q.created_at DESC
         """
     )
-    latest_quote_by_project = {row["project_id"]: row for row in quote_rows}
 
     # Only deals worth tracking appear in the list: active, sent, signed.
     LISTED_STATUSES = {"sent", "signed", "active"}
@@ -140,8 +134,7 @@ async def get_dashboard_metrics(
             snapshots_by_quote.setdefault(row["quote_id"], []).append(row)
 
     projects = []
-    for p in project_rows:
-        quote = latest_quote_by_project.get(p["id"])
+    for quote in quote_rows:
         if quote is None:
             continue
         status = "signed" if quote["status"] == "accepted" else quote["status"]
@@ -226,12 +219,15 @@ async def get_dashboard_metrics(
 
         projects.append(
             {
-                "id": p["id"],
+                # Stable per-client id for the row (the authoritative quote id)
+                "id": quote["id"],
                 # Project identity on the dashboard is the client from the quote
-                "name": quote["client_name"] or p["name"] or "Untitled Project",
+                "name": quote["client_name"] or quote["client_code"],
                 "status": status,
-                "created_at": p["created_at"].isoformat() if p["created_at"] else None,
-                "created_by": p["created_by_email"],
+                "created_at": quote["created_at"].isoformat()
+                if quote["created_at"]
+                else None,
+                "created_by": quote["created_by_email"],
                 "msn_count": len(msns),
                 "total_mgh": _s(total_mgh),
                 "period_months": period if has_financials else None,
@@ -240,24 +236,23 @@ async def get_dashboard_metrics(
                 "monthly_profit": _s(monthly_profit),
                 "total_revenue": _s(total_revenue),
                 "total_profit": _s(total_profit),
-                "margin_percent": _s(
-                    (quote["margin_percent"] if quote else None) or p["margin_percent"]
-                ),
+                "margin_percent": _s(quote["margin_percent"]),
                 "eur_per_bh": _s(eur_per_bh),
-                "quote": (
-                    {
-                        "quote_number": quote["quote_number"],
-                        "status": quote["status"],
-                        "created_at": quote["created_at"].isoformat()
-                        if quote["created_at"]
-                        else None,
-                    }
-                    if quote
-                    else None
-                ),
+                "quote": {
+                    "quote_number": quote["quote_number"],
+                    "status": status,
+                    "created_at": quote["created_at"].isoformat()
+                    if quote["created_at"]
+                    else None,
+                },
                 "msns": msns,
             }
         )
+
+    # Group by status (active, then signed, then sent), newest first within each
+    _rank = {"active": 0, "signed": 1, "sent": 2}
+    projects.sort(key=lambda x: (x["created_at"] or ""), reverse=True)
+    projects.sort(key=lambda x: _rank.get(x["status"], 3))
 
     # ---- Quote counts by status ('accepted' legacy rows count as signed) ----
     quote_status_rows = await db.fetch(

@@ -64,7 +64,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
       <div className="av-panel p-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
               Project Name
             </label>
             <input
@@ -72,11 +72,11 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Untitled Project"
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none"
             />
           </div>
           <div className="w-[120px]">
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
               USD/EUR Rate
             </label>
             <input
@@ -86,15 +86,15 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               onChange={(e) => setExchangeRate(e.target.value)}
               readOnly={isViewer}
               tabIndex={isViewer ? -1 : undefined}
-              className={`w-full border rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none ${
+              className={`w-full border rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none ${
                 isViewer
                   ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
-                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:border-indigo-400'
+                  : 'bg-gray-100 dark:bg-gray-800 border-[var(--border-secondary)] focus:border-indigo-400'
               }`}
             />
           </div>
           <div className="w-[100px]">
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
               BH:FH
             </label>
             <input
@@ -104,15 +104,15 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               onChange={(e) => setBhFhRatio(e.target.value)}
               readOnly={isViewer}
               tabIndex={isViewer ? -1 : undefined}
-              className={`w-full border rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none ${
+              className={`w-full border rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none ${
                 isViewer
                   ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
-                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:border-indigo-400'
+                  : 'bg-gray-100 dark:bg-gray-800 border-[var(--border-secondary)] focus:border-indigo-400'
               }`}
             />
           </div>
           <div className="w-[100px]">
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
               APU FH:FH
             </label>
             <input
@@ -122,10 +122,10 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               onChange={(e) => setApuFhRatio(e.target.value)}
               readOnly={isViewer}
               tabIndex={isViewer ? -1 : undefined}
-              className={`w-full border rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none ${
+              className={`w-full border rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none ${
                 isViewer
                   ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
-                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:border-indigo-400'
+                  : 'bg-gray-100 dark:bg-gray-800 border-[var(--border-secondary)] focus:border-indigo-400'
               }`}
             />
           </div>
@@ -158,7 +158,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
             </div>
           )}
           {savedNotice && (
-            <div className="text-xs text-green-400 pb-2">
+            <div className="text-xs text-[var(--av-pos)] pb-2">
               Saved: {savedNotice}
             </div>
           )}
@@ -177,14 +177,14 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
           <div className="av-panel p-3">
             {/* Header + Add Aircraft */}
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="text-xs font-semibold text-[var(--text-primary)]">
                 MSN Inputs ({msnInputs.length})
               </h2>
               <div className="flex items-center gap-2">
                 <select
                   value={selectedAircraft}
                   onChange={(e) => setSelectedAircraft(e.target.value)}
-                  className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1 text-xs text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
+                  className="bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md px-2 py-1 text-xs text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none"
                 >
                   <option value="">Select aircraft...</option>
                   {availableAircraft.map((ac) => (
@@ -220,7 +220,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
             </div>
 
             {msnInputs.length === 0 && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-6">
+              <p className="text-xs text-[var(--text-muted)] text-center py-6">
                 No aircraft added yet. Select an aircraft above to begin pricing.
               </p>
             )}

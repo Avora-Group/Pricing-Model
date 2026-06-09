@@ -16,7 +16,7 @@ export function MsnSwitcher() {
         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
           selectedMsn === null
             ? 'bg-indigo-400 text-white'
-            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700'
+            : 'bg-gray-100 dark:bg-gray-800 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-gray-700'
         }`}
       >
         Total Project
@@ -28,7 +28,7 @@ export function MsnSwitcher() {
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             selectedMsn === input.msn
               ? 'bg-indigo-400 text-white'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700'
+              : 'bg-gray-100 dark:bg-gray-800 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
         >
           MSN {input.msn}

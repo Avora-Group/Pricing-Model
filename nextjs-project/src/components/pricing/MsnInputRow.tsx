@@ -15,10 +15,10 @@ interface MsnInputRowProps {
 }
 
 const inputCls =
-  'w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-1 py-[2px] text-[10px] text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none'
+  'w-full bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded px-1 py-[2px] text-[10px] text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none'
 const selectCls =
-  'w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-0.5 py-[2px] text-[10px] text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none'
-const labelCls = 'text-[9px] text-gray-400 dark:text-gray-500 leading-none'
+  'w-full bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded px-0.5 py-[2px] text-[10px] text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none'
+const labelCls = 'text-[9px] text-[var(--text-muted)] leading-none'
 
 /** Reusable per-season field grid */
 function SeasonFields({
@@ -177,18 +177,18 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
   }
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-800/50 rounded-lg border border-gray-300 dark:border-gray-700/50 px-2 py-1.5">
+    <div className="bg-gray-100 dark:bg-gray-800/50 rounded-lg border border-[var(--border-secondary)]/50 px-2 py-1.5">
       {/* Card header */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+          <span className="text-xs font-semibold text-[var(--text-primary)]">
             MSN {input.msn}
           </span>
-          <span className="text-[11px] text-gray-500 dark:text-gray-400">
+          <span className="text-[11px] text-[var(--text-tertiary)]">
             {input.aircraftType}
           </span>
           {input.registration && (
-            <span className="text-[11px] text-gray-400 dark:text-gray-500">
+            <span className="text-[11px] text-[var(--text-muted)]">
               ({input.registration})
             </span>
           )}
@@ -198,7 +198,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               defaultValue={String(input.aircraftId)}
               onChange={(e) => handleSwap(e.target.value)}
               onBlur={() => setShowSwap(false)}
-              className="bg-white dark:bg-gray-900 border border-indigo-400 rounded px-1.5 py-0.5 text-[11px] text-gray-900 dark:text-gray-100 focus:outline-none"
+              className="bg-white dark:bg-gray-900 border border-indigo-400 rounded px-1.5 py-0.5 text-[11px] text-[var(--text-primary)] focus:outline-none"
             >
               {swapOptions.map((ac) => (
                 <option key={ac.id} value={ac.id}>
@@ -210,7 +210,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
           ) : (
             <button
               onClick={() => setShowSwap(true)}
-              className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-indigo-400 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="p-0.5 text-[var(--text-muted)] hover:text-indigo-400 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
               aria-label="Change aircraft"
               title="Change aircraft"
             >
@@ -220,7 +220,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
         </div>
         <div className="flex items-center gap-2">
           {/* Seasonality toggle */}
-          <label className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 cursor-pointer select-none">
+          <label className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] cursor-pointer select-none">
             <input
               type="checkbox"
               checked={input.seasonalityEnabled}
@@ -236,7 +236,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               className={`px-1.5 py-[1px] text-[9px] font-semibold rounded transition-colors ${
                 input.rateCurrency === 'eur'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-500 dark:text-gray-400'
+                  : 'text-[var(--text-tertiary)]'
               }`}
             >
               EUR
@@ -246,14 +246,14 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               className={`px-1.5 py-[1px] text-[9px] font-semibold rounded transition-colors ${
                 input.rateCurrency === 'usd'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-500 dark:text-gray-400'
+                  : 'text-[var(--text-tertiary)]'
               }`}
             >
               USD
             </button>
           </div>
           {/* Fixed Cost Coverage toggle */}
-          <label className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 cursor-pointer select-none">
+          <label className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] cursor-pointer select-none">
             <input
               type="checkbox"
               checked={input.fixedCostCoverageEnabled}
@@ -264,7 +264,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
           </label>
           <button
             onClick={() => onRemove(input.msn)}
-            className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="p-0.5 text-[var(--text-muted)] hover:text-[var(--av-neg)] transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
             aria-label={`Remove MSN ${input.msn}`}
           >
             <X size={12} />
@@ -282,7 +282,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               className={`px-2 py-[2px] text-[9px] font-medium rounded transition-colors ${
                 activeTab === 'summer'
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-200 dark:bg-gray-700 text-[var(--text-tertiary)] hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               Summer
@@ -292,7 +292,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               className={`px-2 py-[2px] text-[9px] font-medium rounded transition-colors ${
                 activeTab === 'winter'
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-200 dark:bg-gray-700 text-[var(--text-tertiary)] hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               Winter

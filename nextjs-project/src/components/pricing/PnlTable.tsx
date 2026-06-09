@@ -273,7 +273,7 @@ export function PnlTable() {
   if (!hasData && msnInputs.length === 0) {
     return (
       <div className="av-panel p-8 text-center">
-        <p className="text-gray-400 dark:text-gray-500 text-sm">
+        <p className="text-[var(--text-muted)] text-sm">
           Configure MSNs on the Dashboard to see P&L calculations
         </p>
       </div>
@@ -283,7 +283,7 @@ export function PnlTable() {
   if (!hasData) {
     return (
       <div className="av-panel p-8 text-center">
-        <p className="text-gray-400 dark:text-gray-500 text-sm">
+        <p className="text-[var(--text-muted)] text-sm">
           Select an MSN or Total Project to view P&L
         </p>
       </div>
@@ -471,8 +471,8 @@ export function PnlTable() {
   return (
     <div className={`av-panel overflow-hidden transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
       {/* MSN header */}
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{headerLabel}</h2>
+      <div className="px-4 py-3 border-b border-[var(--border-primary)]">
+        <h2 className="text-sm font-semibold text-[var(--text-primary)]">{headerLabel}</h2>
       </div>
 
       {/* Scrollable table container */}
@@ -480,19 +480,19 @@ export function PnlTable() {
         <table className="w-max min-w-full text-xs">
           {/* Month header row */}
           <thead>
-            <tr className="border-b border-gray-300 dark:border-gray-700">
-              <th className={`sticky left-0 z-10 bg-white dark:bg-gray-900 text-left px-4 py-2 text-gray-500 dark:text-gray-400 font-medium ${labelColWidth}`}>
+            <tr className="border-b border-[var(--border-secondary)]">
+              <th className={`sticky left-0 z-10 bg-white dark:bg-gray-900 text-left px-4 py-2 text-[var(--text-tertiary)] font-medium ${labelColWidth}`}>
                 &nbsp;
               </th>
               {months.map((m, i) => (
                 <th
                   key={i}
-                  className={`text-right px-3 py-2 text-gray-500 dark:text-gray-400 font-medium ${dataColWidth}`}
+                  className={`text-right px-3 py-2 text-[var(--text-tertiary)] font-medium ${dataColWidth}`}
                 >
                   {m.label}
                 </th>
               ))}
-              <th className={`text-right px-3 py-2 text-gray-900 dark:text-gray-100 font-semibold ${dataColWidth} border-l border-gray-300 dark:border-gray-700`}>
+              <th className={`text-right px-3 py-2 text-[var(--text-primary)] font-semibold ${dataColWidth} border-l border-[var(--border-secondary)]`}>
                 TOTAL
               </th>
             </tr>
@@ -509,7 +509,7 @@ export function PnlTable() {
               // Section header
               if (row.kind === 'section') {
                 return (
-                  <tr key={idx} className="border-t border-gray-300 dark:border-gray-700">
+                  <tr key={idx} className="border-t border-[var(--border-secondary)]">
                     <td
                       colSpan={months.length + 2}
                       className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 pt-4 pb-1 text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold"
@@ -526,7 +526,7 @@ export function PnlTable() {
                   <tr key={idx}>
                     <td
                       colSpan={months.length + 2}
-                      className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-medium pl-6"
+                      className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-medium pl-6"
                     >
                       {row.label}
                     </td>
@@ -537,7 +537,7 @@ export function PnlTable() {
               // KPI header
               if (row.kind === 'kpi-header') {
                 return (
-                  <tr key={idx} className="border-t-2 border-gray-300 dark:border-gray-600">
+                  <tr key={idx} className="border-t-2 border-[var(--border-secondary)]">
                     <td
                       colSpan={months.length + 2}
                       className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 pt-4 pb-1 text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold"
@@ -551,16 +551,16 @@ export function PnlTable() {
               // Total / subtotal rows
               if (row.kind === 'total') {
                 return (
-                  <tr key={idx} className="border-t border-gray-300 dark:border-gray-600">
-                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1.5 text-gray-900 dark:text-gray-100 font-semibold ${labelColWidth}`}>
+                  <tr key={idx} className="border-t border-[var(--border-secondary)]">
+                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1.5 text-[var(--text-primary)] font-semibold ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
-                      <td key={mi} className={`text-right px-3 py-1.5 font-mono font-semibold text-gray-900 dark:text-gray-100 ${dataColWidth} ${valColor(v)}`}>
+                      <td key={mi} className={`text-right px-3 py-1.5 av-num font-semibold text-[var(--text-primary)] ${dataColWidth} ${valColor(v)}`}>
                         {fmt(v, 0)}
                       </td>
                     ))}
-                    <td className={`text-right px-3 py-1.5 font-mono font-semibold text-gray-900 dark:text-gray-100 ${dataColWidth} border-l border-gray-300 dark:border-gray-700 ${valColor(total)}`}>
+                    <td className={`text-right px-3 py-1.5 av-num font-semibold text-[var(--text-primary)] ${dataColWidth} border-l border-[var(--border-secondary)] ${valColor(total)}`}>
                       {fmt(total, 0)}
                     </td>
                   </tr>
@@ -570,16 +570,16 @@ export function PnlTable() {
               // Result rows (Contribution I/II/III, EBIT, Net Profit)
               if (row.kind === 'result') {
                 return (
-                  <tr key={idx} className="border-t border-gray-300 dark:border-gray-600 bg-gray-100/30 dark:bg-gray-800/30">
-                    <td className={`sticky left-0 z-10 bg-gray-100/30 dark:bg-gray-800/30 px-4 py-2 text-gray-900 dark:text-gray-100 font-bold ${labelColWidth}`}>
+                  <tr key={idx} className="border-t border-[var(--border-secondary)] bg-[var(--bg-secondary)]">
+                    <td className={`sticky left-0 z-10 bg-[var(--bg-secondary)] px-4 py-2 text-[var(--text-primary)] font-bold ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
-                      <td key={mi} className={`text-right px-3 py-2 font-mono font-bold ${dataColWidth} ${v < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                      <td key={mi} className={`text-right px-3 py-2 av-num font-bold ${dataColWidth} ${v < 0 ? 'text-[var(--av-neg)]' : 'text-[var(--av-pos)]'}`}>
                         {fmt(v, 0)}
                       </td>
                     ))}
-                    <td className={`text-right px-3 py-2 font-mono font-bold ${dataColWidth} border-l border-gray-300 dark:border-gray-700 ${total < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    <td className={`text-right px-3 py-2 av-num font-bold ${dataColWidth} border-l border-[var(--border-secondary)] ${total < 0 ? 'text-[var(--av-neg)]' : 'text-[var(--av-pos)]'}`}>
                       {fmt(total, 0)}
                     </td>
                   </tr>
@@ -593,15 +593,15 @@ export function PnlTable() {
                   : 0
                 return (
                   <tr key={idx}>
-                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-gray-500 dark:text-gray-400 italic ${labelColWidth}`}>
+                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[var(--text-tertiary)] italic ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
-                      <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-500 dark:text-gray-400 italic ${dataColWidth}`}>
+                      <td key={mi} className={`text-right px-3 py-1 av-num text-[var(--text-tertiary)] italic ${dataColWidth}`}>
                         {fmtPct(v)}
                       </td>
                     ))}
-                    <td className={`text-right px-3 py-1 font-mono text-gray-500 dark:text-gray-400 italic ${dataColWidth} border-l border-gray-300 dark:border-gray-700`}>
+                    <td className={`text-right px-3 py-1 av-num text-[var(--text-tertiary)] italic ${dataColWidth} border-l border-[var(--border-secondary)]`}>
                       {fmtPct(avgMargin)}
                     </td>
                   </tr>
@@ -613,15 +613,15 @@ export function PnlTable() {
                 const kpiTotal = key ? getTotal(key) : 0
                 return (
                   <tr key={idx}>
-                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-gray-700 dark:text-gray-300 ${labelColWidth}`}>
+                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[var(--text-secondary)] ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
-                      <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth}`}>
+                      <td key={mi} className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth}`}>
                         {isKpiDec ? fmtDec(v, 2) : fmt(v, 0)}
                       </td>
                     ))}
-                    <td className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} border-l border-gray-300 dark:border-gray-700`}>
+                    <td className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth} border-l border-[var(--border-secondary)]`}>
                       {isKpiDec ? fmtDec(kpiTotal / Math.max(months.length, 1), 2) : fmt(kpiTotal, 0)}
                     </td>
                   </tr>
@@ -631,14 +631,14 @@ export function PnlTable() {
               // Regular item rows
               const isClickable = CLICKABLE_ROWS.has(key)
               return (
-                <tr key={idx} className="hover:bg-gray-100/20 dark:bg-gray-800/20">
-                  <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-gray-700 dark:text-gray-300 pl-8 ${labelColWidth}`}>
+                <tr key={idx} className="hover:bg-[var(--bg-secondary)]">
+                  <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[var(--text-secondary)] pl-8 ${labelColWidth}`}>
                     {row.label}
                   </td>
                   {(vals ?? []).map((v, mi) => (
                     <td
                       key={mi}
-                      className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} ${valColor(v)} ${isClickable ? 'cursor-pointer hover:underline hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
+                      className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth} ${valColor(v)} ${isClickable ? 'cursor-pointer hover:underline hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
                       onClick={isClickable ? (e) => {
                         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
                         setPopover({ rowKey: key, monthIndex: mi, anchorRect: rect })
@@ -647,7 +647,7 @@ export function PnlTable() {
                       {fmt(v, 0)}
                     </td>
                   ))}
-                  <td className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} border-l border-gray-300 dark:border-gray-700 ${valColor(total)}`}>
+                  <td className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth} border-l border-[var(--border-secondary)] ${valColor(total)}`}>
                     {fmt(total, 0)}
                   </td>
                 </tr>

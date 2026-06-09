@@ -328,7 +328,7 @@ export function SummaryTable() {
   if (msnInputs.length === 0) {
     return (
       <div className="av-panel p-4 text-center">
-        <p className="text-xs text-gray-400 dark:text-gray-500">
+        <p className="text-xs text-[var(--text-muted)]">
           Add an aircraft to see the pricing summary.
         </p>
       </div>
@@ -513,7 +513,7 @@ export function SummaryTable() {
   if (perMsnData.length === 0) {
     return (
       <div className="av-panel p-4 text-center">
-        <p className="text-xs text-gray-400 dark:text-gray-500">Calculating...</p>
+        <p className="text-xs text-[var(--text-muted)]">Calculating...</p>
       </div>
     )
   }
@@ -655,7 +655,7 @@ export function SummaryTable() {
     { label: 'FC', perMonth: fmt(mFc, 0), totalProject: fmt(dFc, 0) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'ACMI Rate', perMonth: isTotalView ? '-' : fmt(activeMsn.acmiRate, 0), totalProject: isTotalView ? '-' : fmt(activeMsn.acmiRate, 0), isRate: true },
-    { label: 'Total Revenue', ...fmtV(mRevenue, dRevenue), isBold: true, colorClass: 'text-green-400', colorClassTotal: 'text-green-400' },
+    { label: 'Total Revenue', ...fmtV(mRevenue, dRevenue), isBold: true, colorClass: 'text-[var(--av-pos)]', colorClassTotal: 'text-[var(--av-pos)]' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'Aircraft', ...fmtV(mAircraft, dAircraft) },
     { label: 'Crew', ...fmtV(mCrew, dCrew) },
@@ -665,23 +665,23 @@ export function SummaryTable() {
     { label: 'ACMI Cost', ...fmtV(mAcmiCost, dAcmiCost), isBold: true },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'TOTAL Cost', ...fmtV(mTotalCost, dTotalCost), isBold: true },
-    { label: 'Gross Profit', ...fmtV(mGrossProfit, dGrossProfit), isBold: true, colorClass: mGrossProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: dGrossProfit >= 0 ? 'text-green-400' : 'text-red-400' },
+    { label: 'Gross Profit', ...fmtV(mGrossProfit, dGrossProfit), isBold: true, colorClass: mGrossProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]', colorClassTotal: dGrossProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]' },
     { label: 'Overhead', ...fmtV(mOverhead, dOverhead) },
-    { label: 'Net Profit', ...fmtV(mNetProfit, dNetProfit), isBold: true, colorClass: mNetProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: dNetProfit >= 0 ? 'text-green-400' : 'text-red-400' },
+    { label: 'Net Profit', ...fmtV(mNetProfit, dNetProfit), isBold: true, colorClass: mNetProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]', colorClassTotal: dNetProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]' },
   ]
 
   return (
     <div className="av-panel overflow-hidden">
       {/* MSN Selector — only shown when multiple aircraft */}
       {numAc > 1 && (
-        <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-100/40 dark:bg-gray-800/40 border-b border-gray-300 dark:border-gray-700">
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 mr-1">MSN:</span>
+        <div className="flex items-center gap-1 px-2 py-1.5 bg-[var(--bg-secondary)] border-b border-[var(--border-secondary)]">
+          <span className="text-[10px] text-[var(--text-muted)] mr-1">MSN:</span>
           <button
             onClick={() => setSelectedMsn(null)}
             className={`px-2 py-0.5 text-[10px] rounded font-medium transition-colors ${
               selectedMsn === null
                 ? 'bg-indigo-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-gray-800 dark:text-gray-200'
+                : 'bg-gray-200 dark:bg-gray-700 text-[var(--text-tertiary)] hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-[var(--text-primary)]'
             }`}
           >
             Total
@@ -693,7 +693,7 @@ export function SummaryTable() {
               className={`px-2 py-0.5 text-[10px] rounded font-medium transition-colors ${
                 selectedMsn === input.msn
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-gray-800 dark:text-gray-200'
+                  : 'bg-gray-200 dark:bg-gray-700 text-[var(--text-tertiary)] hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-[var(--text-primary)]'
               }`}
             >
               {input.msn}
@@ -703,16 +703,16 @@ export function SummaryTable() {
       )}
 
       {/* Header */}
-      <div className="grid grid-cols-[1fr_90px_90px] bg-gray-100/60 dark:bg-gray-800/60 border-b border-gray-300 dark:border-gray-700">
+      <div className="grid grid-cols-[1fr_90px_90px] bg-[var(--bg-secondary)] border-b border-[var(--border-secondary)]">
         <div className="px-3 py-1.5 flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Summary</span>
+          <span className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Summary</span>
           <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
             <button
               onClick={() => setDisplayMode('eur')}
               className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
                 displayMode === 'eur'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
               }`}
             >
               EUR
@@ -722,7 +722,7 @@ export function SummaryTable() {
               className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
                 displayMode === 'eurPerBh'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
               }`}
             >
               EUR/BH
@@ -738,7 +738,7 @@ export function SummaryTable() {
                   className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
                     seasonFilter === f
                       ? f === 'summer' ? 'bg-amber-500 text-white' : f === 'winter' ? 'bg-sky-500 text-white' : 'bg-indigo-600 text-white'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200'
+                      : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -747,10 +747,10 @@ export function SummaryTable() {
             </div>
           )}
         </div>
-        <div className="px-2 py-1.5 text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right">
+        <div className="px-2 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider text-right">
           Monthly
         </div>
-        <div className="px-2 py-1.5 text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right">
+        <div className="px-2 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider text-right">
           Total
         </div>
       </div>
@@ -764,15 +764,15 @@ export function SummaryTable() {
           return (
             <div
               key={idx}
-              className={`grid grid-cols-[1fr_90px_90px] ${row.isBold ? 'bg-gray-100/30 dark:bg-gray-800/30' : ''}`}
+              className={`grid grid-cols-[1fr_90px_90px] ${row.isBold ? 'bg-[var(--bg-secondary)]' : ''}`}
             >
-              <div className={`px-3 py-[3px] text-xs ${row.isBold ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+              <div className={`px-3 py-[3px] text-xs ${row.isBold ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>
                 {row.label}
               </div>
-              <div className={`px-2 py-[3px] text-xs text-right font-mono ${row.colorClass ?? (row.isBold ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-800 dark:text-gray-200')}`}>
+              <div className={`px-2 py-[3px] text-xs text-right av-num ${row.colorClass ?? (row.isBold ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-primary)]')}`}>
                 {row.perMonth}
               </div>
-              <div className={`px-2 py-[3px] text-xs text-right font-mono ${(row.colorClassTotal ?? row.colorClass) ?? (row.isBold ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-800 dark:text-gray-200')}`}>
+              <div className={`px-2 py-[3px] text-xs text-right av-num ${(row.colorClassTotal ?? row.colorClass) ?? (row.isBold ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-primary)]')}`}>
                 {row.totalProject}
               </div>
             </div>
@@ -781,7 +781,7 @@ export function SummaryTable() {
       </div>
 
       {isCalculating && (
-        <div className="px-2 py-1 text-[10px] text-indigo-600 dark:text-indigo-400 bg-gray-100/40 dark:bg-gray-800/40 text-center">
+        <div className="px-2 py-1 text-[10px] text-indigo-600 dark:text-indigo-400 bg-[var(--bg-secondary)] text-center">
           Calculating...
         </div>
       )}

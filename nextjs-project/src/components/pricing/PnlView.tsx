@@ -21,7 +21,7 @@ export function PnlView() {
   return (
     <div className="space-y-4">
       {lastError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 text-sm text-red-400">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 text-sm text-[var(--av-neg)]">
           {lastError}
         </div>
       )}

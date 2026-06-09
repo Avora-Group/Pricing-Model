@@ -131,6 +131,98 @@ async def save_quote(
     }
 
 
+@router.put("/{quote_id}")
+async def update_quote(
+    quote_id: int,
+    body: SaveQuoteRequest,
+    current_user: dict = Depends(get_current_user),
+    db: asyncpg.Connection = Depends(get_db),
+):
+    """Edit an existing quote in place (replaces its inputs and snapshots).
+
+    Keeps the quote_number, owner, status and created_at; updates client,
+    metadata, config snapshots and re-creates the per-MSN snapshots. Only the
+    creator or an admin may edit.
+    """
+    repo = QuoteRepository(db)
+    existing = await repo.get_quote(quote_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    if current_user["id"] != existing["created_by"] and current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only the creator or an admin can edit a quote")
+
+    exchange_rate = Decimal(str(body.dashboard_state.get("exchangeRate", "0.85")))
+    margin_percent = Decimal(str(body.dashboard_state.get("marginPercent", "0")))
+
+    total_eur_per_bh = None
+    total_result = body.dashboard_state.get("totalResult")
+    if total_result and isinstance(total_result, dict):
+        rate = total_result.get("final_rate_per_bh") or total_result.get("finalRatePerBh")
+        if rate is not None:
+            total_eur_per_bh = Decimal(str(rate))
+
+    msn_list = [snap.msn for snap in body.msn_snapshots]
+    period_start = None
+    period_end = None
+    for snap in body.msn_snapshots:
+        snap_start = snap.msn_input.get("periodStart")
+        snap_end = snap.msn_input.get("periodEnd")
+        if snap_start and (period_start is None or snap_start < period_start):
+            period_start = snap_start
+        if snap_end and (period_end is None or snap_end > period_end):
+            period_end = snap_end
+
+    async with db.transaction():
+        quote = await repo.update_quote(
+            quote_id,
+            client_name=body.client_name,
+            client_code=body.client_code,
+            exchange_rate=exchange_rate,
+            margin_percent=margin_percent,
+            total_eur_per_bh=total_eur_per_bh,
+            msn_list=msn_list,
+            period_start=period_start,
+            period_end=period_end,
+            pricing_config_snapshot=body.pricing_config_snapshot,
+            crew_config_snapshot=body.crew_config_snapshot,
+            costs_config_snapshot=body.costs_config_snapshot,
+            dashboard_state=body.dashboard_state,
+            project_id=body.project_id,
+        )
+
+        # Replace per-MSN snapshots
+        await repo.delete_msn_snapshots(quote_id)
+        for snap in body.msn_snapshots:
+            monthly_cost = None
+            monthly_revenue = None
+            if snap.breakdown:
+                mc = snap.breakdown.get("monthly_cost") or snap.breakdown.get("monthlyCost")
+                mr = snap.breakdown.get("monthly_revenue") or snap.breakdown.get("monthlyRevenue")
+                if mc is not None:
+                    monthly_cost = Decimal(str(mc))
+                if mr is not None:
+                    monthly_revenue = Decimal(str(mr))
+            await repo.create_msn_snapshot(
+                quote_id=quote_id,
+                msn=snap.msn,
+                aircraft_type=snap.aircraft_type,
+                aircraft_id=snap.aircraft_id,
+                msn_input=snap.msn_input,
+                breakdown=snap.breakdown,
+                monthly_pnl=snap.monthly_pnl,
+                monthly_cost=monthly_cost,
+                monthly_revenue=monthly_revenue,
+            )
+
+    return {
+        "id": quote["id"],
+        "quote_number": quote["quote_number"],
+        "client_name": quote["client_name"],
+        "status": quote["status"],
+        "created_at": str(quote["created_at"]),
+    }
+
+
 # ---- List Quotes ----
 
 

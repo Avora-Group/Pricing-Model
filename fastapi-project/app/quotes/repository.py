@@ -209,6 +209,39 @@ class QuoteRepository(BaseRepository):
             status, quote_id,
         )
 
+    async def update_quote(self, quote_id: int, **fields) -> dict | None:
+        """Update a quote's mutable fields in place. Returns the updated row.
+
+        quote_number, created_by, status and created_at are preserved; the
+        snapshot/state columns and metadata are replaced (edit-in-place).
+        JSONB columns are passed as dicts and encoded by the connection codec.
+        """
+        if not fields:
+            return await self.get_quote(quote_id)
+        jsonb = {
+            "pricing_config_snapshot",
+            "crew_config_snapshot",
+            "costs_config_snapshot",
+            "dashboard_state",
+        }
+        set_parts = []
+        args = []
+        for i, (key, value) in enumerate(fields.items(), start=1):
+            cast = "::jsonb" if key in jsonb else ""
+            set_parts.append(f"{key} = ${i}{cast}")
+            args.append(value)
+        args.append(quote_id)
+        return await self.fetch_one(
+            f"UPDATE quotes SET {', '.join(set_parts)} WHERE id = ${len(args)} RETURNING *",
+            *args,
+        )
+
+    async def delete_msn_snapshots(self, quote_id: int) -> None:
+        """Remove all per-MSN snapshots for a quote (before re-creating them)."""
+        await self.execute(
+            "DELETE FROM quote_msn_snapshots WHERE quote_id = $1", quote_id
+        )
+
     async def delete_quote(self, quote_id: int) -> bool:
         """Delete a quote by ID. Returns True if a row was deleted.
 

@@ -72,17 +72,16 @@ export function QuoteHeader({ quoteNumber, clientName, status, createdAt }: Quot
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-500 transition-colors"
             >
               <ExternalLink size={14} />
-              Fork and Edit
+              Edit
             </button>
           </div>
         </div>
       </div>
 
-      {/* Fork info banner */}
+      {/* Edit info banner */}
       <div className="bg-indigo-50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700 rounded-lg p-3 text-sm text-indigo-700 dark:text-indigo-200">
-        You are viewing a saved quote. Any changes will create a new quote when
-        saved (fork behavior). Click &quot;Fork and Edit in Calculation&quot; to modify
-        this quote as a new working copy.
+        Click &quot;Edit&quot; to open this quote in Calculation. Saving there updates
+        this same quote in place — it does not create a new one.
       </div>
     </>
   )

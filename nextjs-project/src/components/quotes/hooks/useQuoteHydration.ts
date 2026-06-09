@@ -131,6 +131,13 @@ export function useQuoteHydration(quote: QuoteDetailResponse) {
       msnInputs,
       msnResults,
       totalResult,
+      editing: {
+        quoteId: quote.id,
+        quoteNumber: quote.quote_number,
+        clientName: quote.client_name,
+        clientCode: quote.client_code,
+        projectId: (quote as { project_id?: number | null }).project_id ?? null,
+      },
     })
 
     // Load crew config snapshot

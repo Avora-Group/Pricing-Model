@@ -32,7 +32,10 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     setApuFhRatio,
     removeMsnInput,
     updateMsnInput,
+    editingQuoteNumber,
+    reset,
   } = usePricingStore()
+  const isEditing = editingQuoteNumber !== null
 
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [savedNotice, setSavedNotice] = useState<string | null>(null)
@@ -130,14 +133,29 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
             <div className="text-xs text-indigo-600 dark:text-indigo-400 pb-2">Calculating...</div>
           )}
           {!isViewer && (
-            <button
-              onClick={() => setShowSaveDialog(true)}
-              disabled={msnResults.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <Save size={12} />
-              Save as Quote
-            </button>
+            <div className="flex items-center gap-2">
+              {isEditing && (
+                <>
+                  <span className="text-[11px] text-[var(--av-accent-ink)] bg-[var(--av-accent-soft)] px-2 py-1 rounded-md">
+                    Editing {editingQuoteNumber}
+                  </span>
+                  <button
+                    onClick={() => reset()}
+                    className="px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    New quote
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowSaveDialog(true)}
+                disabled={msnResults.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Save size={12} />
+                {isEditing ? 'Update Quote' : 'Save as Quote'}
+              </button>
+            </div>
           )}
           {savedNotice && (
             <div className="text-xs text-green-400 pb-2">

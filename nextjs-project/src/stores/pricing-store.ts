@@ -114,6 +114,13 @@ export interface MsnPnlResult {
 }
 
 interface PricingStore {
+  // Edit-in-place: when set, saving updates this existing quote instead of
+  // creating a new one. Carries the client identity for the save dialog.
+  editingQuoteId: number | null
+  editingQuoteNumber: string | null
+  editingClientName: string | null
+  editingClientCode: string | null
+
   // Project state
   projectId: number | null
   projectName: string
@@ -172,10 +179,21 @@ interface PricingStore {
     msnInputs: MsnInput[]
     msnResults: MsnPnlResult[]
     totalResult: ComponentBreakdown | null
+    editing?: {
+      quoteId: number
+      quoteNumber: string
+      clientName: string
+      clientCode: string
+      projectId: number | null
+    }
   }) => void
 }
 
 const initialState = {
+  editingQuoteId: null as number | null,
+  editingQuoteNumber: null as string | null,
+  editingClientName: null as string | null,
+  editingClientCode: null as string | null,
   projectId: null as number | null,
   projectName: '',
   exchangeRate: '0.85',
@@ -290,7 +308,12 @@ export const usePricingStore = create<PricingStore>()((set) => ({
 
   loadFromQuote: (quoteData) =>
     set({
-      projectId: null, // Fork: new working copy, not linked to original
+      editingQuoteId: quoteData.editing?.quoteId ?? null,
+      editingQuoteNumber: quoteData.editing?.quoteNumber ?? null,
+      editingClientName: quoteData.editing?.clientName ?? null,
+      editingClientCode: quoteData.editing?.clientCode ?? null,
+      // Edit in place: keep the original project link so saving updates it.
+      projectId: quoteData.editing?.projectId ?? null,
       projectName: quoteData.dashboardState.projectName ?? '',
       exchangeRate: quoteData.dashboardState.exchangeRate,
       marginPercent: quoteData.dashboardState.marginPercent,

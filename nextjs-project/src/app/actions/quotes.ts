@@ -97,6 +97,31 @@ export async function saveQuoteAction(
   }
 }
 
+export async function updateQuoteAction(
+  quoteId: number,
+  payload: SaveQuotePayload
+): Promise<{ id: number; quote_number: string } | { error: string }> {
+  const token = await getToken()
+  if (!token) return { error: 'Not authenticated' }
+
+  try {
+    const res = await fetch(`${API_URL}/quotes/${quoteId}`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ detail: 'Failed to update quote' }))
+      return { error: data.detail ?? 'Failed to update quote' }
+    }
+
+    return res.json()
+  } catch {
+    return { error: 'Network error -- could not reach API' }
+  }
+}
+
 export async function listQuotesAction(params?: {
   search?: string
   status?: string

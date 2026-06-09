@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
-import { saveQuoteAction } from '@/app/actions/quotes'
+import { saveQuoteAction, updateQuoteAction } from '@/app/actions/quotes'
 import { createProjectAction } from '@/app/actions/pricing'
 
 interface SaveQuoteDialogProps {
@@ -15,8 +15,14 @@ interface SaveQuoteDialogProps {
 }
 
 export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogProps) {
-  const [clientName, setClientName] = useState('')
-  const [clientCode, setClientCode] = useState('')
+  const editingQuoteId = usePricingStore((s) => s.editingQuoteId)
+  const editingQuoteNumber = usePricingStore((s) => s.editingQuoteNumber)
+  const editingClientName = usePricingStore((s) => s.editingClientName)
+  const editingClientCode = usePricingStore((s) => s.editingClientCode)
+  const isEditing = editingQuoteId !== null
+
+  const [clientName, setClientName] = useState(editingClientName ?? '')
+  const [clientCode, setClientCode] = useState(editingClientCode ?? '')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -38,11 +44,10 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
       const crewState = useCrewConfigStore.getState()
       const costsState = useCostsConfigStore.getState()
 
-      // Ensure the working session has a backing project so the quote is
-      // attributable on the Dashboard (status starts as 'potential').
-      // The project carries the client name -- that is its dashboard identity.
+      // For a NEW quote, ensure a backing project (its dashboard identity).
+      // When editing in place, keep the existing project link untouched.
       let projectId = pricingState.projectId
-      if (!projectId) {
+      if (!isEditing && !projectId) {
         const created = await createProjectAction(clientName.trim())
         if (!('error' in created)) {
           projectId = created.id
@@ -107,7 +112,7 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
         }
       })
 
-      const result = await saveQuoteAction({
+      const payload = {
         client_name: clientName.trim(),
         client_code: clientCode,
         project_id: projectId ?? null,
@@ -116,7 +121,10 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
         crew_config_snapshot,
         costs_config_snapshot,
         msn_snapshots,
-      })
+      }
+      const result = isEditing
+        ? await updateQuoteAction(editingQuoteId!, payload)
+        : await saveQuoteAction(payload)
 
       if ('error' in result) {
         setError(result.error)
@@ -126,8 +134,10 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
 
       // Success
       onSaved(result.quote_number)
-      setClientName('')
-      setClientCode('')
+      if (!isEditing) {
+        setClientName('')
+        setClientCode('')
+      }
       onClose()
     } catch {
       setError('Unexpected error saving quote')
@@ -141,7 +151,9 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
       <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-xl w-full max-w-md p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Save as Quote</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {isEditing ? `Update quote ${editingQuoteNumber ?? ''}` : 'Save as Quote'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 transition-colors"
@@ -204,7 +216,7 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
               disabled={!nameValid || !codeValid || saving}
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {saving ? 'Saving...' : 'Save Quote'}
+              {saving ? 'Saving...' : isEditing ? 'Update Quote' : 'Save Quote'}
             </button>
           </div>
         </form>

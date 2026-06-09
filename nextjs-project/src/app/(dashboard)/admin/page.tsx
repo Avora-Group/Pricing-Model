@@ -26,7 +26,7 @@ export default async function AdminPage() {
 
   if (!token) {
     return (
-      <div className="p-6 text-gray-500 dark:text-gray-400">
+      <div className="p-6 text-[var(--text-tertiary)]">
         Not authenticated
       </div>
     )
@@ -36,7 +36,7 @@ export default async function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+      <div className="flex flex-col items-center justify-center h-64 text-[var(--text-tertiary)]">
         <Users size={48} className="mb-4 opacity-40" />
         <p className="text-lg font-medium">Access Denied</p>
         <p className="text-sm mt-1">Admin privileges required to view this page.</p>
@@ -50,10 +50,10 @@ export default async function AdminPage() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
             User Management
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-[var(--text-tertiary)] mt-1">
             Manage user accounts and reset passwords
           </p>
         </div>
@@ -65,7 +65,7 @@ export default async function AdminPage() {
           {result.error}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-xl overflow-hidden">
           <UserTable users={result.users ?? []} />
         </div>
       )}

@@ -59,13 +59,13 @@ export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) 
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+    <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
         {isAdmin && !isEditing && (
           <button
             onClick={handleEdit}
-            className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md border border-gray-300 dark:border-gray-700 transition-colors"
+            className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
           >
             Edit
           </button>
@@ -81,13 +81,13 @@ export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) 
       {isEditing ? (
         <form action={formAction}>
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_150px] gap-2 text-xs text-gray-400 dark:text-gray-500 px-1">
+            <div className="grid grid-cols-[1fr_150px] gap-2 text-xs text-[var(--text-muted)] px-1">
               <span>Parameter</span>
               <span className="text-right">USD Value</span>
             </div>
             {rates.map((rate) => (
               <div key={rate.field} className="grid grid-cols-[1fr_150px] gap-2 items-center">
-                <span className="text-sm text-gray-700 dark:text-gray-300">{rate.label}</span>
+                <span className="text-sm text-[var(--text-secondary)]">{rate.label}</span>
                 <input
                   type="number"
                   step="any"
@@ -96,7 +96,7 @@ export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) 
                   onChange={(e) =>
                     setEditValues((prev) => ({ ...prev, [rate.field]: e.target.value }))
                   }
-                  className="px-2 py-1 text-sm text-right bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="px-2 py-1 text-sm text-right bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             ))}
@@ -113,7 +113,7 @@ export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) 
               type="button"
               onClick={handleCancel}
               disabled={isPending}
-              className="px-4 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md border border-gray-300 dark:border-gray-700 transition-colors"
+              className="px-4 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
             >
               Cancel
             </button>
@@ -121,7 +121,7 @@ export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) 
         </form>
       ) : (
         <div className="space-y-1">
-          <div className="grid grid-cols-[1fr_120px_120px] gap-2 text-xs text-gray-400 dark:text-gray-500 px-1 pb-1 border-b border-gray-200 dark:border-gray-800">
+          <div className="grid grid-cols-[1fr_120px_120px] gap-2 text-xs text-[var(--text-muted)] px-1 pb-1 border-b border-[var(--border-primary)]">
             <span>Parameter</span>
             <span className="text-right">USD</span>
             <span className="text-right">EUR</span>
@@ -131,9 +131,9 @@ export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) 
               key={rate.field}
               className="grid grid-cols-[1fr_120px_120px] gap-2 py-1.5 px-1"
             >
-              <span className="text-sm text-gray-700 dark:text-gray-300">{rate.label}</span>
-              <span className="text-sm text-gray-700 dark:text-gray-300 text-right">{formatValue(rate.usd)}</span>
-              <span className="text-sm text-gray-500 dark:text-gray-400 text-right">{formatValue(rate.eur)}</span>
+              <span className="text-sm text-[var(--text-secondary)]">{rate.label}</span>
+              <span className="text-sm text-[var(--text-secondary)] text-right">{formatValue(rate.usd)}</span>
+              <span className="text-sm text-[var(--text-tertiary)] text-right">{formatValue(rate.eur)}</span>
             </div>
           ))}
         </div>

@@ -59,12 +59,12 @@ export default async function AircraftDetailPage({
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-        <Link href="/aircraft" className="hover:text-gray-800 dark:text-gray-200 transition-colors">
+      <nav className="flex items-center gap-2 text-sm text-[var(--text-tertiary)]">
+        <Link href="/aircraft" className="hover:text-[var(--text-primary)] transition-colors">
           Aircraft
         </Link>
         <span>/</span>
-        <span className="text-gray-800 dark:text-gray-200">MSN {msn}</span>
+        <span className="text-[var(--text-primary)]">MSN {msn}</span>
       </nav>
 
       <AircraftDetail aircraft={aircraft} isAdmin={isAdmin} />

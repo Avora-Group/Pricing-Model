@@ -17,7 +17,7 @@ export function FormulaCell({
   const display = fmt(value, decimals)
   return (
     <span
-      className={`block text-right text-sm text-gray-700 dark:text-gray-300 px-2 py-0.5 ${className}`}
+      className={`block text-right text-sm text-[var(--text-secondary)] px-2 py-0.5 ${className}`}
     >
       {display}
     </span>
@@ -42,7 +42,7 @@ export function SectionHeader({ title }: { title: string }) {
  */
 export function TableCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-xs">{children}</table>
       </div>

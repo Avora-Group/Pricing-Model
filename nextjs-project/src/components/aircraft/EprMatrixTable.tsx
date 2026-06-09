@@ -76,31 +76,31 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
   // Empty state
   if (!isEditing && (!eprMatrix || eprMatrix.length === 0)) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+      <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">EPR Matrix</h3>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">EPR Matrix</h3>
           {isAdmin && (
             <button
               onClick={handleEdit}
-              className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md border border-gray-300 dark:border-gray-700 transition-colors"
+              className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
             >
               Edit
             </button>
           )}
         </div>
-        <p className="text-gray-400 dark:text-gray-500 text-sm">No EPR matrix data available</p>
+        <p className="text-[var(--text-muted)] text-sm">No EPR matrix data available</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+    <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">EPR Matrix</h3>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">EPR Matrix</h3>
         {isAdmin && !isEditing && (
           <button
             onClick={handleEdit}
-            className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md border border-gray-300 dark:border-gray-700 transition-colors"
+            className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
           >
             Edit
           </button>
@@ -122,14 +122,14 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-800">
-                  <th className="text-left px-3 py-2 text-gray-900 dark:text-gray-100 font-semibold">
+                <tr className="border-b border-[var(--border-primary)]">
+                  <th className="text-left px-3 py-2 text-[var(--text-primary)] font-semibold">
                     Cycle Ratio
                   </th>
-                  <th className="text-right px-3 py-2 text-gray-900 dark:text-gray-100 font-semibold">
+                  <th className="text-right px-3 py-2 text-[var(--text-primary)] font-semibold">
                     Benign Rate
                   </th>
-                  <th className="text-right px-3 py-2 text-gray-900 dark:text-gray-100 font-semibold">
+                  <th className="text-right px-3 py-2 text-[var(--text-primary)] font-semibold">
                     Hot Rate
                   </th>
                   <th className="w-10 px-2 py-2" />
@@ -150,7 +150,7 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
                           handleRowChange(idx, 'cycle_ratio', e.target.value)
                         }
                         placeholder="0.00"
-                        className="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </td>
                     <td className="px-2 py-1.5">
@@ -162,7 +162,7 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
                           handleRowChange(idx, 'benign_rate', e.target.value)
                         }
                         placeholder="0.00"
-                        className="w-full px-2 py-1 text-sm text-right bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm text-right bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </td>
                     <td className="px-2 py-1.5">
@@ -174,14 +174,14 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
                           handleRowChange(idx, 'hot_rate', e.target.value)
                         }
                         placeholder="0.00"
-                        className="w-full px-2 py-1 text-sm text-right bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm text-right bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </td>
                     <td className="px-2 py-1.5 text-center">
                       <button
                         type="button"
                         onClick={() => handleDeleteRow(idx)}
-                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-400 rounded transition-colors"
+                        className="p-1 text-[var(--text-muted)] hover:text-[var(--av-neg)] rounded transition-colors"
                         title="Remove row"
                       >
                         <Trash2 size={14} />
@@ -197,7 +197,7 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
           <button
             type="button"
             onClick={handleAddRow}
-            className="mt-2 flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-dashed border-gray-300 dark:border-gray-700 rounded-md transition-colors"
+            className="mt-2 flex items-center gap-1.5 px-3 py-1.5 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-dashed border-[var(--border-secondary)] rounded-md transition-colors"
           >
             <Plus size={14} />
             Add Row
@@ -216,7 +216,7 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
               type="button"
               onClick={handleCancel}
               disabled={isPending}
-              className="px-4 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md border border-gray-300 dark:border-gray-700 transition-colors"
+              className="px-4 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
             >
               Cancel
             </button>
@@ -226,14 +226,14 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800">
-                <th className="text-left px-4 py-2 text-gray-900 dark:text-gray-100 font-semibold">
+              <tr className="border-b border-[var(--border-primary)]">
+                <th className="text-left px-4 py-2 text-[var(--text-primary)] font-semibold">
                   Cycle Ratio
                 </th>
-                <th className="text-right px-4 py-2 text-gray-900 dark:text-gray-100 font-semibold">
+                <th className="text-right px-4 py-2 text-[var(--text-primary)] font-semibold">
                   Benign Rate
                 </th>
-                <th className="text-right px-4 py-2 text-gray-900 dark:text-gray-100 font-semibold">
+                <th className="text-right px-4 py-2 text-[var(--text-primary)] font-semibold">
                   Hot Rate
                 </th>
               </tr>
@@ -244,13 +244,13 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
                   key={idx}
                   className="border-b border-gray-200/50 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
                 >
-                  <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                  <td className="px-4 py-2 text-[var(--text-secondary)]">
                     {formatRatio(row.cycle_ratio)}
                   </td>
-                  <td className="px-4 py-2 text-gray-700 dark:text-gray-300 text-right">
+                  <td className="px-4 py-2 text-[var(--text-secondary)] text-right">
                     {formatValue(row.benign_rate)}
                   </td>
-                  <td className="px-4 py-2 text-gray-700 dark:text-gray-300 text-right">
+                  <td className="px-4 py-2 text-[var(--text-secondary)] text-right">
                     {formatValue(row.hot_rate)}
                   </td>
                 </tr>

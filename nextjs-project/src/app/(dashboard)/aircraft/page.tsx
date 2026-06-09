@@ -49,8 +49,8 @@ export default async function AircraftPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Aircraft Fleet</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Aircraft Fleet</h1>
+          <p className="text-[var(--text-tertiary)] mt-1">
             Manage aircraft master data and cost parameters
           </p>
         </div>

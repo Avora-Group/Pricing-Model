@@ -52,19 +52,19 @@ export function CreateUserDialog() {
 
       <dialog
         ref={dialogRef}
-        className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl p-0 w-full max-w-sm backdrop:bg-black/60"
+        className="bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded-xl p-0 w-full max-w-sm backdrop:bg-black/60"
         onClose={() => setIsOpen(false)}
       >
         {isOpen && (
           <div className="p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                 Invite User
               </h2>
               <button
                 onClick={closeDialog}
-                className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-1 text-[var(--text-tertiary)] hover:text-gray-900 dark:hover:text-gray-100 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 <X size={18} />
               </button>
@@ -86,19 +86,19 @@ export function CreateUserDialog() {
 
             <form ref={formRef} action={formAction} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">
                   Full Name
                 </label>
                 <input
                   type="text"
                   name="full_name"
                   placeholder="John Doe"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">
                   Email
                 </label>
                 <input
@@ -106,18 +106,18 @@ export function CreateUserDialog() {
                   name="email"
                   required
                   placeholder="colleague@company.com"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">
                   Role
                 </label>
                 <select
                   name="role"
                   defaultValue="user"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   {ROLES.map((r) => (
                     <option key={r.value} value={r.value}>
@@ -125,7 +125,7 @@ export function CreateUserDialog() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <p className="text-xs text-[var(--text-muted)] mt-1">
                   Viewer: read-only access to Dashboard and Quotes only
                 </p>
               </div>
@@ -142,7 +142,7 @@ export function CreateUserDialog() {
                   type="button"
                   onClick={closeDialog}
                   disabled={isPending}
-                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md border border-gray-300 dark:border-gray-700 transition-colors"
+                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
                 >
                   Cancel
                 </button>

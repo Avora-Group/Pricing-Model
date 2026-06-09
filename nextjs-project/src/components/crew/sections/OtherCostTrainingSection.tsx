@@ -25,13 +25,13 @@ export function OtherCostTrainingSection({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Other Cost */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">OTHER COST</h3>
+      <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--border-primary)]">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">OTHER COST</h3>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-100/40 dark:bg-gray-800/40">
+            <tr className="border-b border-[var(--border-secondary)] bg-gray-100/40 dark:bg-gray-800/40">
               <th className={`${thBase} text-left`}>Item</th>
               <th className={`${thBase} text-right`}>Amount</th>
               <th className={`${thBase} text-right`}>Per Month</th>
@@ -59,13 +59,13 @@ export function OtherCostTrainingSection({
       </div>
 
       {/* Training */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Training</h3>
+      <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--border-primary)]">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Training</h3>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-100/40 dark:bg-gray-800/40">
+            <tr className="border-b border-[var(--border-secondary)] bg-gray-100/40 dark:bg-gray-800/40">
               <th className={`${thBase} text-left`}>Item</th>
               <th className={`${thBase} text-right`}>Amount</th>
               <th className={`${thBase} text-right`}>Per Month</th>

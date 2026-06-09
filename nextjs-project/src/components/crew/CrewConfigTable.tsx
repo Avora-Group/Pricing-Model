@@ -106,7 +106,7 @@ export function CrewConfigTable() {
   return (
     <div className="space-y-6">
       {/* MGH indicator */}
-      <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+      <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm bg-yellow-900/40 border border-yellow-700/40" />
           Editable (click to edit)
@@ -116,7 +116,7 @@ export function CrewConfigTable() {
           BH rate &times; MGH ({mgh}h {msnInputs.length > 0 ? 'from Dashboard' : '— add MSN in Dashboard'})
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700" />
+          <span className="inline-block w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)]" />
           Calculated
         </span>
       </div>

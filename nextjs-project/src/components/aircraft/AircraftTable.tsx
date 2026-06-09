@@ -70,38 +70,38 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
           placeholder="Search by MSN or registration..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full max-w-md px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full max-w-md px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg overflow-x-auto">
         <table className="min-w-[400px] w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-800">
-              <th onClick={() => handleSort('msn')} className="text-left px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold cursor-pointer select-none">MSN{sortIndicator('msn')}</th>
-              <th onClick={() => handleSort('aircraft_type')} className="text-left px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold cursor-pointer select-none">Type{sortIndicator('aircraft_type')}</th>
-              <th className="text-left px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">Registration</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">Lease Rent (USD)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">Lease Rent (EUR)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">6Y Check (USD)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">6Y Check (EUR)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">12Y Check (USD)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">12Y Check (EUR)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">LDG (USD)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">LDG (EUR)</th>
+            <tr className="border-b border-[var(--border-primary)]">
+              <th onClick={() => handleSort('msn')} className="text-left px-4 py-3 text-[var(--text-primary)] font-semibold cursor-pointer select-none">MSN{sortIndicator('msn')}</th>
+              <th onClick={() => handleSort('aircraft_type')} className="text-left px-4 py-3 text-[var(--text-primary)] font-semibold cursor-pointer select-none">Type{sortIndicator('aircraft_type')}</th>
+              <th className="text-left px-4 py-3 text-[var(--text-primary)] font-semibold">Registration</th>
+              <th className="text-right px-4 py-3 text-[var(--text-primary)] font-semibold hidden md:table-cell">Lease Rent (USD)</th>
+              <th className="text-right px-4 py-3 text-[var(--text-primary)] font-semibold hidden md:table-cell">Lease Rent (EUR)</th>
+              <th className="text-right px-4 py-3 text-[var(--text-primary)] font-semibold hidden md:table-cell">6Y Check (USD)</th>
+              <th className="text-right px-4 py-3 text-[var(--text-primary)] font-semibold hidden md:table-cell">6Y Check (EUR)</th>
+              <th className="text-right px-4 py-3 text-[var(--text-primary)] font-semibold hidden md:table-cell">12Y Check (USD)</th>
+              <th className="text-right px-4 py-3 text-[var(--text-primary)] font-semibold hidden md:table-cell">12Y Check (EUR)</th>
+              <th className="text-right px-4 py-3 text-[var(--text-primary)] font-semibold hidden md:table-cell">LDG (USD)</th>
+              <th className="text-right px-4 py-3 text-[var(--text-primary)] font-semibold hidden md:table-cell">LDG (EUR)</th>
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
+                <td colSpan={11} className="px-4 py-8 text-center text-[var(--text-muted)]">
                   No aircraft found
                 </td>
               </tr>
             ) : (
               sorted.map((a) => (
-                <tr key={a.id} className="border-b border-gray-200 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+                <tr key={a.id} className="border-b border-[var(--border-primary)]/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-4 py-3">
                     <Link
                       href={`/aircraft/${a.msn}`}
@@ -110,16 +110,16 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
                       {a.msn}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{a.aircraft_type}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{a.registration ?? '-'}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.lease_rent_usd)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.lease_rent_eur)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.six_year_check_usd)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.six_year_check_eur)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.twelve_year_check_usd)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.twelve_year_check_eur)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.ldg_usd)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.ldg_eur)}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)]">{a.aircraft_type}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)]">{a.registration ?? '-'}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] text-right hidden md:table-cell">{formatRate(a.lease_rent_usd)}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] text-right hidden md:table-cell">{formatRate(a.lease_rent_eur)}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] text-right hidden md:table-cell">{formatRate(a.six_year_check_usd)}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] text-right hidden md:table-cell">{formatRate(a.six_year_check_eur)}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] text-right hidden md:table-cell">{formatRate(a.twelve_year_check_usd)}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] text-right hidden md:table-cell">{formatRate(a.twelve_year_check_eur)}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] text-right hidden md:table-cell">{formatRate(a.ldg_usd)}</td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] text-right hidden md:table-cell">{formatRate(a.ldg_eur)}</td>
                 </tr>
               ))
             )}

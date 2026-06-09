@@ -21,15 +21,15 @@ export function PayrollSection({
   onSetAverageAC,
 }: PayrollSectionProps) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Payroll data June 2025</h3>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">F2S</p>
+    <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg overflow-hidden">
+      <div className="px-4 py-3 border-b border-[var(--border-primary)]">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Payroll data June 2025</h3>
+        <p className="text-xs text-[var(--text-muted)] mt-0.5">F2S</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-100/40 dark:bg-gray-800/40">
+            <tr className="border-b border-[var(--border-secondary)] bg-gray-100/40 dark:bg-gray-800/40">
               <th className={`${thBase} text-left`}>Position</th>
               <th className={`${thBase} text-right`}>Gross Salary, EUR</th>
               <th className={`${thBase} text-right`}>Benefits, EUR</th>
@@ -60,7 +60,7 @@ export function PayrollSection({
                   {i <= 1 ? (
                     <EditableCell value={row.perBhPerdiem} onChange={v => onUpdatePayroll(i, 'perBhPerdiem', v)} decimals={0} formatFn={v => fmtInt(v)} />
                   ) : (
-                    <span className="font-mono text-gray-400 dark:text-gray-500">{fmtInt(row.perBhPerdiem)}</span>
+                    <span className="av-num text-[var(--text-muted)]">{fmtInt(row.perBhPerdiem)}</span>
                   )}
                 </td>
               </tr>
@@ -68,8 +68,8 @@ export function PayrollSection({
           </tbody>
         </table>
       </div>
-      <div className="px-4 py-2 border-t border-gray-300 dark:border-gray-700 bg-gray-100/30 dark:bg-gray-800/30 flex items-center gap-2">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Average AC:</span>
+      <div className="px-4 py-2 border-t border-[var(--border-secondary)] bg-gray-100/30 dark:bg-gray-800/30 flex items-center gap-2">
+        <span className="text-xs font-medium text-[var(--text-tertiary)]">Average AC:</span>
         <EditableCell value={averageAC} onChange={v => onSetAverageAC(v ?? 1)} />
       </div>
     </div>

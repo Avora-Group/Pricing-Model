@@ -48,19 +48,19 @@ export function UserTable({ users }: UserTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700 text-left">
-            <th className="py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
               Name
             </th>
-            <th className="py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
               Email
             </th>
-            <th className="py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider hidden sm:table-cell">
               Role
             </th>
-            <th className="py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider hidden sm:table-cell">
               Status
             </th>
-            <th className="py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
+            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider text-right">
               Actions
             </th>
           </tr>
@@ -71,7 +71,7 @@ export function UserTable({ users }: UserTableProps) {
               key={user.id}
               className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
             >
-              <td className="py-3 px-4 text-gray-900 dark:text-gray-100 font-medium">
+              <td className="py-3 px-4 text-[var(--text-primary)] font-medium">
                 {user.full_name || '—'}
               </td>
               <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
@@ -103,7 +103,7 @@ export function UserTable({ users }: UserTableProps) {
       </table>
 
       {users.length === 0 && (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+        <div className="text-center py-8 text-[var(--text-tertiary)] text-sm">
           No users found
         </div>
       )}

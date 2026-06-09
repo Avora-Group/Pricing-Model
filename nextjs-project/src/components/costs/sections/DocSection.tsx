@@ -4,9 +4,9 @@ import { EditableCell } from '@/components/ui/EditableCell'
 import { FormulaCell, TableCard } from '@/components/ui/TableParts'
 import type { DocItem } from '@/stores/costs-config-store'
 
-const thClass = 'text-left px-3 py-2 text-gray-500 dark:text-gray-400 font-medium text-[10px] uppercase tracking-wider'
-const tdClass = 'px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300'
-const tdLabelClass = 'px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 pl-4'
+const thClass = 'text-left px-3 py-2 text-[var(--text-tertiary)] font-medium text-[10px] uppercase tracking-wider'
+const tdClass = 'px-3 py-1.5 text-sm text-[var(--text-secondary)]'
+const tdLabelClass = 'px-3 py-1.5 text-sm text-[var(--text-secondary)] pl-4'
 const trHover = 'hover:bg-gray-100/20 dark:bg-gray-800/20'
 
 export interface DocSectionProps {
@@ -19,7 +19,7 @@ export function DocSection({ data, perMonth, onUpdate }: DocSectionProps) {
   return (
     <TableCard>
       <thead>
-        <tr className="border-b border-gray-300 dark:border-gray-700">
+        <tr className="border-b border-[var(--border-secondary)]">
           <th className={`${thClass} w-[260px]`}>Name</th>
           <th className={`${thClass} w-[160px] text-right`}>Total</th>
           <th className={`${thClass} w-[160px] text-right`}>Per Month / Per A/C</th>
@@ -36,7 +36,7 @@ export function DocSection({ data, perMonth, onUpdate }: DocSectionProps) {
             <td className={tdClass}>
               <FormulaCell value={perMonth[i]} decimals={2} />
             </td>
-            <td className={`${tdClass} text-gray-400 dark:text-gray-500 text-xs`}>{item.mapping}</td>
+            <td className={`${tdClass} text-[var(--text-muted)] text-xs`}>{item.mapping}</td>
           </tr>
         ))}
       </tbody>

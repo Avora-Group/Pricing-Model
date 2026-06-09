@@ -86,8 +86,8 @@ export function CostsConfigTable() {
   return (
     <div className="space-y-6">
       {/* Average AC - global input */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-4 py-3 flex items-center gap-4">
-        <label className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">Average A/C:</label>
+      <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg px-4 py-3 flex items-center gap-4">
+        <label className="text-sm text-[var(--text-tertiary)] whitespace-nowrap">Average A/C:</label>
         <EditableCell value={avgAc} onChange={(v) => setAvgAc(v ?? 0)} decimals={2} allowNull={false} className="w-28" />
       </div>
 

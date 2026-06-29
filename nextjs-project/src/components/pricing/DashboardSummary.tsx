@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Save, Download } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
@@ -48,6 +48,9 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
   const [savedNotice, setSavedNotice] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+
+  // Master-detail: which MSN bookmark tab is open.
+  const [activeMsn, setActiveMsn] = useState<number | null>(null)
 
   async function handleExport() {
     if (msnInputs.length === 0 || isExporting) return
@@ -97,6 +100,41 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     availableAircraft,
   } = useAddAircraft(aircraftList, msnInputs, bhFhRatio, apuFhRatio)
 
+  // Keep the open tab valid; default to the most recently added aircraft.
+  useEffect(() => {
+    if (msnInputs.length === 0) {
+      if (activeMsn !== null) setActiveMsn(null)
+      return
+    }
+    if (activeMsn === null || !msnInputs.some((i) => i.msn === activeMsn)) {
+      setActiveMsn(msnInputs[msnInputs.length - 1].msn)
+    }
+  }, [msnInputs, activeMsn])
+
+  // Add an aircraft, then jump to its tab.
+  function handleAddAndSelect() {
+    const picked = availableAircraft.find((a) => String(a.id) === String(selectedAircraft))
+    handleAddAircraft()
+    if (picked) setActiveMsn(picked.msn)
+  }
+
+  const activeInput = msnInputs.find((i) => i.msn === activeMsn) ?? null
+
+  // Per-MSN monthly margin, for the tab badges.
+  const marginByMsn = new Map<number, number>()
+  for (const r of msnResults) {
+    const rev = parseFloat(r.monthlyRevenue || '0')
+    const pnl = parseFloat(r.monthlyPnl || '0')
+    marginByMsn.set(r.msn, rev > 0 ? pnl / rev : 0)
+  }
+
+  const paramInputCls = (viewer: boolean) =>
+    `border rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] av-num focus:outline-none ${
+      viewer
+        ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
+        : 'bg-gray-100 dark:bg-gray-800 border-[var(--border-secondary)] focus:border-indigo-400'
+    }`
+
   return (
     <div className="space-y-4">
       {/* Error banner */}
@@ -106,144 +144,156 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
         </div>
       )}
 
-      {/* Project header and global inputs */}
-      <div className="av-panel p-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
-              Project Name
-            </label>
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Untitled Project"
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none"
-            />
-          </div>
-          <div className="w-[120px]">
-            <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
-              USD/EUR Rate
-            </label>
-            <input
-              type="number"
-              step="0.0001"
-              value={exchangeRate}
-              onChange={(e) => setExchangeRate(e.target.value)}
-              readOnly={isViewer}
-              tabIndex={isViewer ? -1 : undefined}
-              className={`w-full border rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none ${
-                isViewer
-                  ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
-                  : 'bg-gray-100 dark:bg-gray-800 border-[var(--border-secondary)] focus:border-indigo-400'
-              }`}
-            />
-          </div>
-          <div className="w-[100px]">
-            <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
-              BH:FH
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={bhFhRatio}
-              onChange={(e) => setBhFhRatio(e.target.value)}
-              readOnly={isViewer}
-              tabIndex={isViewer ? -1 : undefined}
-              className={`w-full border rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none ${
-                isViewer
-                  ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
-                  : 'bg-gray-100 dark:bg-gray-800 border-[var(--border-secondary)] focus:border-indigo-400'
-              }`}
-            />
-          </div>
-          <div className="w-[100px]">
-            <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
-              APU FH:FH
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={apuFhRatio}
-              onChange={(e) => setApuFhRatio(e.target.value)}
-              readOnly={isViewer}
-              tabIndex={isViewer ? -1 : undefined}
-              className={`w-full border rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none ${
-                isViewer
-                  ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
-                  : 'bg-gray-100 dark:bg-gray-800 border-[var(--border-secondary)] focus:border-indigo-400'
-              }`}
-            />
-          </div>
+      {/* Action row */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 text-xs">
           {isCalculating && (
-            <div className="text-xs text-indigo-600 dark:text-indigo-400 pb-2">Calculating...</div>
+            <span className="text-indigo-600 dark:text-indigo-400">Calculating…</span>
           )}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExport}
-              disabled={msnInputs.length === 0 || isExporting}
-              title="Download the calculation as an Excel workbook (Calculation, P&L, Aircraft, Crew, Costs)"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <Download size={12} />
-              {isExporting ? 'Preparing...' : 'Download Excel'}
-            </button>
-          </div>
-          {!isViewer && (
-            <div className="flex items-center gap-2">
-              {isEditing && (
-                <>
-                  <span className="text-[11px] text-[var(--av-accent-ink)] bg-[var(--av-accent-soft)] px-2 py-1 rounded-md">
-                    Editing {editingQuoteNumber}
-                  </span>
-                  <button
-                    onClick={() => reset()}
-                    className="px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
-                  >
-                    New quote
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => setShowSaveDialog(true)}
-                disabled={msnResults.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Save size={12} />
-                {isEditing ? 'Update Quote' : 'Save as Quote'}
-              </button>
-            </div>
+          {isEditing && (
+            <span className="text-[var(--av-accent-ink)] bg-[var(--av-accent-soft)] px-2 py-1 rounded-md">
+              Editing {editingQuoteNumber}
+            </span>
           )}
           {savedNotice && (
-            <div className="text-xs text-[var(--av-pos)] pb-2">
-              Saved: {savedNotice}
-            </div>
+            <span className="text-[var(--av-pos)]">Saved: {savedNotice}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {isEditing && !isViewer && (
+            <button
+              onClick={() => reset()}
+              className="px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              New quote
+            </button>
+          )}
+          <button
+            onClick={handleExport}
+            disabled={msnInputs.length === 0 || isExporting}
+            title="Download the calculation as an Excel workbook (Calculation, P&L, Aircraft, Crew, Costs)"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download size={12} />
+            {isExporting ? 'Preparing…' : 'Download Excel'}
+          </button>
+          {!isViewer && (
+            <button
+              onClick={() => setShowSaveDialog(true)}
+              disabled={msnResults.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Save size={12} />
+              {isEditing ? 'Update Quote' : 'Save as Quote'}
+            </button>
           )}
         </div>
       </div>
 
-      {/* Side-by-side: Summary (left) + MSN Inputs (right) */}
+      {/* Body: Summary (left) + parameters/inputs column (right) */}
       <div className="flex flex-col md:flex-row gap-4 md:items-start">
         {/* Left: Summary Table */}
         <div className="w-full md:w-[380px] md:shrink-0">
           <SummaryTable />
         </div>
 
-        {/* Right: MSN Inputs */}
-        <div className="flex-1 min-w-0">
+        {/* Right column: parameters card on top of the MSN inputs card */}
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
+          {/* Project & parameters */}
           <div className="av-panel p-3">
-            {/* Header + Add Aircraft */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-semibold text-[var(--text-primary)]">
-                MSN Inputs ({msnInputs.length})
-              </h2>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
+                  Project Name
+                </label>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="Untitled Project"
+                  className="w-[200px] bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
+                  USD/EUR Rate
+                </label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={exchangeRate}
+                  onChange={(e) => setExchangeRate(e.target.value)}
+                  readOnly={isViewer}
+                  tabIndex={isViewer ? -1 : undefined}
+                  className={`w-[96px] ${paramInputCls(isViewer)}`}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
+                  BH:FH
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={bhFhRatio}
+                  onChange={(e) => setBhFhRatio(e.target.value)}
+                  readOnly={isViewer}
+                  tabIndex={isViewer ? -1 : undefined}
+                  className={`w-[80px] ${paramInputCls(isViewer)}`}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
+                  APU FH:FH
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={apuFhRatio}
+                  onChange={(e) => setApuFhRatio(e.target.value)}
+                  readOnly={isViewer}
+                  tabIndex={isViewer ? -1 : undefined}
+                  className={`w-[80px] ${paramInputCls(isViewer)}`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* MSN inputs — single card, master-detail bookmark tabs */}
+          <div className="av-panel p-3">
+            <div className="flex items-end gap-2 border-b border-[var(--border-primary)] mb-3">
+              <div className="flex items-end gap-1 overflow-x-auto flex-1">
+                {msnInputs.map((input) => {
+                  const active = input.msn === activeMsn
+                  const margin = marginByMsn.get(input.msn)
+                  return (
+                    <button
+                      key={input.msn}
+                      onClick={() => setActiveMsn(input.msn)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 -mb-px rounded-t-md border border-b-0 whitespace-nowrap transition-colors ${
+                        active
+                          ? 'bg-[var(--bg-primary)] border-[var(--border-primary)] text-[var(--text-primary)]'
+                          : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      <span className="av-num text-xs font-semibold">{input.msn}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">{input.aircraftType}</span>
+                      {margin !== undefined && (
+                        <span className={`av-num text-[10px] ${margin >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]'}`}>
+                          {margin >= 0 ? '+' : ''}{(margin * 100).toFixed(1)}%
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-2 pb-1.5 shrink-0">
                 <select
                   value={selectedAircraft}
                   onChange={(e) => setSelectedAircraft(e.target.value)}
                   className="bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md px-2 py-1 text-xs text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none"
                 >
-                  <option value="">Select aircraft...</option>
+                  <option value="">Select aircraft…</option>
                   {availableAircraft.map((ac) => (
                     <option key={ac.id} value={ac.id}>
                       MSN {ac.msn} - {ac.aircraft_type}
@@ -252,7 +302,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
                   ))}
                 </select>
                 <button
-                  onClick={handleAddAircraft}
+                  onClick={handleAddAndSelect}
                   disabled={!selectedAircraft}
                   className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -262,22 +312,17 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               </div>
             </div>
 
-            {/* MSN cards */}
-            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-              {msnInputs.map((input) => (
-                <MsnInputRow
-                  key={input.msn}
-                  input={input}
-                  onUpdate={updateMsnInput}
-                  onRemove={removeMsnInput}
-                  aircraftList={aircraftList}
-                  usedMsns={msnInputs.map((i) => i.msn)}
-                />
-              ))}
-            </div>
-
-            {msnInputs.length === 0 && (
-              <p className="text-xs text-[var(--text-muted)] text-center py-6">
+            {activeInput ? (
+              <MsnInputRow
+                key={activeInput.msn}
+                input={activeInput}
+                onUpdate={updateMsnInput}
+                onRemove={removeMsnInput}
+                aircraftList={aircraftList}
+                usedMsns={msnInputs.map((i) => i.msn)}
+              />
+            ) : (
+              <p className="text-xs text-[var(--text-muted)] text-center py-8">
                 No aircraft added yet. Select an aircraft above to begin pricing.
               </p>
             )}

@@ -643,6 +643,14 @@ export function SummaryTable() {
   const mFh = isTotalView ? filteredMsnData.reduce((s, d) => s + d.fh, 0) : activeMsn.fh
   const mFc = isTotalView ? filteredMsnData.reduce((s, d) => s + d.fc, 0) : activeMsn.fc
 
+  // Blended ACMI rate (weighted by MGH) for the Total view; a single MSN uses its own rate.
+  const totalAcmiWeighted = (() => {
+    let num = 0, den = 0
+    for (const d of filteredMsnData) { num += d.acmiRate * d.mgh; den += d.mgh }
+    return den > 0 ? num / den : 0
+  })()
+  const acmiRateDisplay = isTotalView ? totalAcmiWeighted : activeMsn.acmiRate
+
   // ── Build rows ──
   const rows: SummaryRow[] = [
     { label: 'Customer', perMonth: projectName || 'Untitled', totalProject: projectName || 'Untitled' },
@@ -658,7 +666,7 @@ export function SummaryTable() {
     { label: 'FH - Actual', perMonth: fmt(mFh, 0), totalProject: fmt(dFh, 0) },
     { label: 'FC', perMonth: fmt(mFc, 0), totalProject: fmt(dFc, 0) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'ACMI Rate', perMonth: isTotalView ? '-' : fmt(activeMsn.acmiRate * curFactor, 0), totalProject: isTotalView ? '-' : fmt(activeMsn.acmiRate * curFactor, 0), isRate: true },
+    { label: 'ACMI Rate', perMonth: fmt(acmiRateDisplay * curFactor, 0), totalProject: fmt(acmiRateDisplay * curFactor, 0), isRate: true },
     { label: 'Total Revenue', ...fmtV(mRevenue, dRevenue), isBold: true, colorClass: 'text-[var(--av-pos)]', colorClassTotal: 'text-[var(--av-pos)]' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'Aircraft', ...fmtV(mAircraft, dAircraft) },

@@ -45,6 +45,12 @@ const CAT_LABELS: Record<string, string> = {
   Other: 'Other',
 }
 
+// Lines below EBITDA are always zero in this model (no D&A, interest, FX or
+// tax), so Net profit === EBITDA. Hide them; EBITDA is the bottom line.
+const HIDDEN_PNL_KEYS = new Set([
+  'depAmort', 'ebit', 'ebitMargin', 'interestNet', 'fxNet', 'tax', 'netProfit', 'netProfitMargin',
+])
+
 type PlanRow =
   | { t: 'section'; label: string; groupId?: string }
   | { t: 'group'; groupId: string; label: string; keys: string[] }
@@ -53,7 +59,7 @@ type PlanRow =
   | { t: 'result'; key: string; label: string }
   | { t: 'margin'; key: string; label: string }
   | { t: 'kpiheader'; label: string }
-  | { t: 'kpi'; key: string; label: string }
+  | { t: 'kpi'; key: string; label: string; groupId?: string }
 
 const PNL_PLAN: PlanRow[] = (() => {
   // Which sections contain category sub-groups?
@@ -72,6 +78,7 @@ const PNL_PLAN: PlanRow[] = (() => {
 
   PNL_ROWS.forEach((r, i) => {
     const key = r.key ?? ''
+    if (key && HIDDEN_PNL_KEYS.has(key)) return
     if (r.kind === 'section') {
       secCollapsible = !sectionHasCat[r.label]
       secGroup = secCollapsible ? `sec:${r.label}` : ''
@@ -95,9 +102,10 @@ const PNL_PLAN: PlanRow[] = (() => {
     } else if (r.kind === 'margin') {
       plan.push({ t: 'margin', key, label: r.label })
     } else if (r.kind === 'kpi-header') {
-      plan.push({ t: 'kpiheader', label: r.label })
+      // KPIs render as a collapsible group (like Revenue/Overhead).
+      plan.push({ t: 'section', label: r.label, groupId: 'kpi' })
     } else if (r.kind === 'kpi') {
-      plan.push({ t: 'kpi', key, label: r.label })
+      plan.push({ t: 'kpi', key, label: r.label, groupId: 'kpi' })
     }
   })
   return plan
@@ -777,8 +785,9 @@ export function PnlTable() {
                 )
               }
 
-              // KPI rows
+              // KPI rows — only when the KPIs group is expanded
               if (p.t === 'kpi') {
+                if (p.groupId && !expandedGroups.has(p.groupId)) return null
                 const vals = monthlyData[p.key]
                 const kpiTotal = getTotal(p.key)
                 const isKpiDec = KPI_DECIMAL_KEYS.has(p.key)

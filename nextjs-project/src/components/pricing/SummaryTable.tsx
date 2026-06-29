@@ -9,6 +9,7 @@ import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { fmt } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
+import { LineDetailPopover, type BreakdownItem } from './CostDetailPopover'
 
 interface SummaryRow {
   label: string
@@ -19,6 +20,7 @@ interface SummaryRow {
   isRate?: boolean
   colorClass?: string
   colorClassTotal?: string
+  drillKey?: string
 }
 
 /** Compute all monthly cost components for a single MSN (mirrors PnlTable.computeForMsn) */
@@ -240,6 +242,47 @@ function computeMsnCosts(
     acmiCost,
     totalCost,
     overhead,
+    // Per-month sub-component build-up for the drill-down popover.
+    parts: {
+      aircraft: {
+        'Dry Lease': dryLease,
+        'Maint. Reserves — Fixed': maintReservesFixed,
+        'Maint. Reserves — Variable': maintReservesVariable,
+      },
+      crew: {
+        'Pilot Salary': pilotSalary,
+        'Cabin Crew Salary': cabinCrewSalary,
+        'Uniform': crew.uniformPerMonth,
+        'Training': crew.trainingPerMonth,
+        'Pilot Per Diem': pilotPerDiem,
+        'Cabin Crew Per Diem': cabinCrewPerDiem,
+        'Accom & Travel': crew.accomTravelCPerMonth,
+      },
+      maintenance: {
+        'Spare Parts': spareParts,
+        'Personnel Per Diems': costs.maintPerDiemVal,
+        'Line Maintenance': costs.lineMaintenanceVal,
+        'Base Maintenance': costs.baseMaintenanceVal,
+        'Personnel Salary': costs.maintPersonnelSalaryVal,
+        'Training': costs.trainningVal,
+        'C-Check': costs.cCheckVal,
+      },
+      doc: {
+        'Fuel': costs.fuelVal,
+        'Handling': costs.handlingVal,
+        'Navigation': costs.navigationVal,
+        'Airport Charges': costs.airportChargesVal,
+        'Technical': costs.technicalVal,
+        'Other Fixed': costs.otherFixedVal,
+      },
+      overhead: {
+        'Overhead (base)': baseOverhead,
+        'MXC commission': mxcCommission,
+      },
+      insurance: {
+        'Insurance premium': insurance,
+      },
+    } as Record<string, Record<string, number>>,
     // Fixed cost breakdown (per month) for coverage calculation
     fixedCosts: {
       aircraft: dryLease + maintReservesFixed,
@@ -300,6 +343,7 @@ export function SummaryTable() {
   const [displayMode, setDisplayMode] = useState<'eur' | 'eurPerBh'>('eur')
   const [currency, setCurrency] = useState<'eur' | 'usd'>('eur')
   const [seasonFilter, setSeasonFilter] = useState<'total' | 'summer' | 'winter'>('total')
+  const [drill, setDrill] = useState<{ cat: string; rect: DOMRect } | null>(null)
 
   const exchangeRate = parseFloat(globalExchangeRate || '0.85')
   // Values are computed in EUR; EUR = USD × exchangeRate, so EUR → USD divides
@@ -651,6 +695,51 @@ export function SummaryTable() {
   })()
   const acmiRateDisplay = isTotalView ? totalAcmiWeighted : activeMsn.acmiRate
 
+  const mOtherCogs = isTotalView
+    ? filteredMsnData.reduce((s, d) => s + d.otherCogs, 0)
+    : activeMsn.otherCogs
+
+  // Sub-component build-up for the active scope (summed across MSNs in Total view).
+  const scopeParts: Record<string, Record<string, number>> = (() => {
+    if (!isTotalView) return activeMsn.parts
+    const acc: Record<string, Record<string, number>> = {}
+    for (const d of filteredMsnData) {
+      for (const cat in d.parts) {
+        acc[cat] = acc[cat] ?? {}
+        for (const k in d.parts[cat]) acc[cat][k] = (acc[cat][k] ?? 0) + d.parts[cat][k]
+      }
+    }
+    return acc
+  })()
+
+  // Build drill-down popover content for a category, honouring currency + /BH mode.
+  const buildDrill = (catKey: string): { title: string; items: BreakdownItem[] } | null => {
+    const pv = (v: number) => (isPerBh ? (v * curFactor) / activeBh : v * curFactor)
+    if (catKey === 'acmiCost') {
+      return {
+        title: 'ACMI Cost',
+        items: [
+          { label: 'Aircraft', value: pv(mAircraft) },
+          { label: 'Crew', value: pv(mCrew) },
+          { label: 'Maintenance', value: pv(mMaint) },
+          { label: 'Insurance', value: pv(mInsurance) },
+          { label: 'DOC', value: pv(mDoc) },
+          { label: 'Other COGS', value: pv(mOtherCogs) },
+        ],
+      }
+    }
+    const obj = scopeParts[catKey]
+    if (!obj) return null
+    const titles: Record<string, string> = {
+      aircraft: 'Aircraft', crew: 'Crew', maintenance: 'Maintenance',
+      doc: 'DOC', overhead: 'Overhead', insurance: 'Insurance',
+    }
+    return {
+      title: titles[catKey] ?? catKey,
+      items: Object.entries(obj).map(([label, v]) => ({ label, value: pv(v) })),
+    }
+  }
+
   // ── Build rows ──
   const rows: SummaryRow[] = [
     { label: 'Customer', perMonth: projectName || 'Untitled', totalProject: projectName || 'Untitled' },
@@ -669,16 +758,16 @@ export function SummaryTable() {
     { label: 'ACMI Rate', perMonth: fmt(acmiRateDisplay * curFactor, 0), totalProject: fmt(acmiRateDisplay * curFactor, 0), isRate: true },
     { label: 'Total Revenue', ...fmtV(mRevenue, dRevenue), isBold: true, colorClass: 'text-[var(--av-pos)]', colorClassTotal: 'text-[var(--av-pos)]' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'Aircraft', ...fmtV(mAircraft, dAircraft) },
-    { label: 'Crew', ...fmtV(mCrew, dCrew) },
-    { label: 'Maintenance', ...fmtV(mMaint, dMaint) },
-    { label: 'Insurance', ...fmtV(mInsurance, dInsurance) },
-    { label: 'DOC', ...fmtV(mDoc, dDoc) },
-    { label: 'ACMI Cost', ...fmtV(mAcmiCost, dAcmiCost), isBold: true },
+    { label: 'Aircraft', ...fmtV(mAircraft, dAircraft), drillKey: 'aircraft' },
+    { label: 'Crew', ...fmtV(mCrew, dCrew), drillKey: 'crew' },
+    { label: 'Maintenance', ...fmtV(mMaint, dMaint), drillKey: 'maintenance' },
+    { label: 'Insurance', ...fmtV(mInsurance, dInsurance), drillKey: 'insurance' },
+    { label: 'DOC', ...fmtV(mDoc, dDoc), drillKey: 'doc' },
+    { label: 'ACMI Cost', ...fmtV(mAcmiCost, dAcmiCost), isBold: true, drillKey: 'acmiCost' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'TOTAL Cost', ...fmtV(mTotalCost, dTotalCost), isBold: true },
     { label: 'Gross Profit', ...fmtV(mGrossProfit, dGrossProfit), isBold: true, colorClass: mGrossProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]', colorClassTotal: dGrossProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]' },
-    { label: 'Overhead', ...fmtV(mOverhead, dOverhead) },
+    { label: 'Overhead', ...fmtV(mOverhead, dOverhead), drillKey: 'overhead' },
     { label: 'Net Profit', ...fmtV(mNetProfit, dNetProfit), isBold: true, colorClass: mNetProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]', colorClassTotal: dNetProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]' },
   ]
 
@@ -790,13 +879,17 @@ export function SummaryTable() {
           if (row.isSeparator) {
             return <div key={idx} className="h-px bg-gray-200 dark:bg-gray-700/40" />
           }
+          const drillable = !!row.drillKey
           return (
             <div
               key={idx}
-              className={`grid grid-cols-[1fr_90px_90px] ${row.isBold ? 'bg-[var(--bg-secondary)]' : ''}`}
+              onClick={drillable ? (e) => setDrill({ cat: row.drillKey!, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() }) : undefined}
+              title={drillable ? 'Click to see the build-up' : undefined}
+              className={`grid grid-cols-[1fr_90px_90px] ${row.isBold ? 'bg-[var(--bg-secondary)]' : ''} ${drillable ? 'cursor-pointer hover:bg-[var(--bg-secondary)]' : ''}`}
             >
-              <div className={`px-3 py-[3px] text-xs ${row.isBold ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>
+              <div className={`px-3 py-[3px] text-xs flex items-center gap-1 ${row.isBold ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>
                 {row.label}
+                {drillable && <span className="text-[10px] text-[var(--text-muted)] opacity-60">›</span>}
               </div>
               <div className={`px-2 py-[3px] text-xs text-right av-num ${row.colorClass ?? (row.isBold ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-primary)]')}`}>
                 {row.perMonth}
@@ -808,6 +901,21 @@ export function SummaryTable() {
           )
         })}
       </div>
+
+      {/* Drill-down build-up popover */}
+      {drill && (() => {
+        const cfg = buildDrill(drill.cat)
+        if (!cfg) return null
+        return (
+          <LineDetailPopover
+            title={cfg.title}
+            monthLabel={`Per month${isPerBh ? ' · per BH' : ''}${currency === 'usd' ? ' · USD' : ''}`}
+            items={cfg.items}
+            anchorRect={drill.rect}
+            onClose={() => setDrill(null)}
+          />
+        )
+      })()}
 
       {isCalculating && (
         <div className="px-2 py-1 text-[10px] text-indigo-600 dark:text-indigo-400 bg-[var(--bg-secondary)] text-center">

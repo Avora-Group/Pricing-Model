@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Save, Download } from 'lucide-react'
+import { Plus, Save, Download, AlertTriangle } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
+import type { MsnInput } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { MsnInputRow } from './MsnInputRow'
@@ -16,6 +17,22 @@ import type { AircraftOption } from '@/lib/api-converters'
 interface DashboardSummaryProps {
   aircraftList: AircraftOption[]
   isViewer?: boolean
+}
+
+/** Missing / implausible inputs for an MSN, surfaced as a warning on its tab. */
+function msnIssues(i: MsnInput): string[] {
+  const num = (s?: string) => parseFloat(s || '0')
+  const rate = i.seasonalityEnabled
+    ? Math.max(num(i.summer?.acmiRate), num(i.winter?.acmiRate))
+    : num(i.acmiRate)
+  const mgh = i.seasonalityEnabled
+    ? Math.max(num(i.summer?.mgh), num(i.winter?.mgh))
+    : num(i.mgh)
+  const issues: string[] = []
+  if (!(rate > 0)) issues.push('ACMI rate not set')
+  if (!(mgh > 0)) issues.push('MGH not set')
+  if (!(i.crewSets > 0)) issues.push('Crew sets not set')
+  return issues
 }
 
 export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSummaryProps) {
@@ -266,10 +283,12 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
                 {msnInputs.map((input) => {
                   const active = input.msn === activeMsn
                   const margin = marginByMsn.get(input.msn)
+                  const issues = msnIssues(input)
                   return (
                     <button
                       key={input.msn}
                       onClick={() => setActiveMsn(input.msn)}
+                      title={issues.length ? `Check inputs: ${issues.join(' · ')}` : undefined}
                       className={`flex items-center gap-1.5 px-3 py-1.5 -mb-px rounded-t-md border border-b-0 whitespace-nowrap transition-colors ${
                         active
                           ? 'bg-[var(--bg-primary)] border-[var(--border-primary)] text-[var(--text-primary)]'
@@ -278,11 +297,13 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
                     >
                       <span className="av-num text-xs font-semibold">{input.msn}</span>
                       <span className="text-[10px] text-[var(--text-muted)]">{input.aircraftType}</span>
-                      {margin !== undefined && (
+                      {issues.length > 0 ? (
+                        <AlertTriangle size={11} className="text-amber-500" />
+                      ) : margin !== undefined ? (
                         <span className={`av-num text-[10px] ${margin >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]'}`}>
                           {margin >= 0 ? '+' : ''}{(margin * 100).toFixed(1)}%
                         </span>
-                      )}
+                      ) : null}
                     </button>
                   )
                 })}

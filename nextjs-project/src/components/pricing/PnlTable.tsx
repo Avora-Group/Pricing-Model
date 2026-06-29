@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { ChevronRight, ChevronDown } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
 import { generateMonthRange } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { fmt, fmtPct, fmtDec, valColor } from '@/lib/format'
-import { PNL_ROWS, MARGIN_KEYS, KPI_DECIMAL_KEYS, ALL_DATA_KEYS } from '@/lib/pnl-row-defs'
+import { PNL_ROWS, KPI_DECIMAL_KEYS, ALL_DATA_KEYS } from '@/lib/pnl-row-defs'
 import { buildMonthlyData } from '@/lib/pnl-monthly-builder'
 import { ALL_DATA_KEYS as ALL_KEYS_IMPORT } from '@/lib/pnl-row-defs'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
@@ -30,6 +31,82 @@ const CLICKABLE_ROWS = new Set([
   'cabinCrewSalary',
   'lineMaintenance',
 ])
+
+// ---- Collapsible statement layout ----
+// Cost categories (A/C/M/I/DOC/Other) collapse to a subtotal; sections with no
+// categories (Revenue, Overhead) collapse at the section level. Items that sit
+// after a section's TOTAL row (D&A, Interest, FX, Tax) stay loose / always-on.
+const CAT_LABELS: Record<string, string> = {
+  A: 'A · Aircraft',
+  C: 'C · Crew',
+  M: 'M · Maintenance',
+  I: 'I · Insurance',
+  DOC: 'DOC',
+  Other: 'Other',
+}
+
+type PlanRow =
+  | { t: 'section'; label: string; groupId?: string }
+  | { t: 'group'; groupId: string; label: string; keys: string[] }
+  | { t: 'item'; key: string; label: string; groupId: string; clickable: boolean }
+  | { t: 'total'; key: string; label: string }
+  | { t: 'result'; key: string; label: string }
+  | { t: 'margin'; key: string; label: string }
+  | { t: 'kpiheader'; label: string }
+  | { t: 'kpi'; key: string; label: string }
+
+const PNL_PLAN: PlanRow[] = (() => {
+  // Which sections contain category sub-groups?
+  const sectionHasCat: Record<string, boolean> = {}
+  let s = ''
+  for (const r of PNL_ROWS) {
+    if (r.kind === 'section') { s = r.label; sectionHasCat[s] = false }
+    else if (r.kind === 'category') { sectionHasCat[s] = true }
+  }
+
+  const plan: PlanRow[] = []
+  const keysOf: Record<string, string[]> = {}
+  let secCollapsible = false
+  let secGroup = ''
+  let catGroup = ''
+
+  PNL_ROWS.forEach((r, i) => {
+    const key = r.key ?? ''
+    if (r.kind === 'section') {
+      secCollapsible = !sectionHasCat[r.label]
+      secGroup = secCollapsible ? `sec:${r.label}` : ''
+      catGroup = ''
+      if (secCollapsible) { keysOf[secGroup] = []; plan.push({ t: 'section', label: r.label, groupId: secGroup }) }
+      else plan.push({ t: 'section', label: r.label })
+    } else if (r.kind === 'category') {
+      catGroup = `cat:${r.label}:${i}`
+      keysOf[catGroup] = []
+      plan.push({ t: 'group', groupId: catGroup, label: CAT_LABELS[r.label] ?? r.label, keys: keysOf[catGroup] })
+    } else if (r.kind === 'item') {
+      const gid = secCollapsible ? secGroup : catGroup
+      if (gid) keysOf[gid].push(key)
+      plan.push({ t: 'item', key, label: r.label, groupId: gid, clickable: CLICKABLE_ROWS.has(key) })
+    } else if (r.kind === 'total') {
+      plan.push({ t: 'total', key, label: r.label })
+      // grouping ends at the subtotal — later items are standalone
+      secCollapsible = false; secGroup = ''; catGroup = ''
+    } else if (r.kind === 'result') {
+      plan.push({ t: 'result', key, label: r.label })
+    } else if (r.kind === 'margin') {
+      plan.push({ t: 'margin', key, label: r.label })
+    } else if (r.kind === 'kpi-header') {
+      plan.push({ t: 'kpiheader', label: r.label })
+    } else if (r.kind === 'kpi') {
+      plan.push({ t: 'kpi', key, label: r.label })
+    }
+  })
+  return plan
+})()
+
+// Every collapsible group id (categories + Revenue/Overhead sections).
+const ALL_GROUP_IDS: string[] = PNL_PLAN.flatMap((p) =>
+  p.t === 'group' ? [p.groupId] : p.t === 'section' && p.groupId ? [p.groupId] : [],
+)
 
 /**
  * Build monthly P&L data for a single MSN, handling seasonality.
@@ -161,6 +238,17 @@ export function PnlTable() {
   // -- Cost detail popover state --
   const [popover, setPopover] = useState<PopoverState | null>(null)
   const closePopover = useCallback(() => setPopover(null), [])
+
+  // Collapsible groups — all collapsed by default for a compact statement.
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const toggleGroup = useCallback((id: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
 
   // -- Derive crew and costs values using extracted modules --
   const crew = deriveCrewValues(
@@ -301,6 +389,13 @@ export function PnlTable() {
     const arr = monthlyData[key]
     if (!arr) return 0
     return arr.reduce((s, v) => s + v, 0)
+  }
+
+  // Sum a group's member keys across months + grand total (for collapsed rows).
+  function groupVals(keys: string[]): { v: number[]; tot: number } {
+    const v = months.map((_, mi) => keys.reduce((s, k) => s + (monthlyData[k]?.[mi] ?? 0), 0))
+    const tot = keys.reduce((s, k) => s + getTotal(k), 0)
+    return { v, tot }
   }
 
   // -- Breakdown config for drill-down popovers --
@@ -477,8 +572,14 @@ export function PnlTable() {
   return (
     <div className={`av-panel overflow-hidden transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
       {/* MSN header */}
-      <div className="px-4 py-3 border-b border-[var(--border-primary)]">
+      <div className="px-4 py-3 border-b border-[var(--border-primary)] flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-[var(--text-primary)]">{headerLabel}</h2>
+        <button
+          onClick={() => setExpandedGroups(expandedGroups.size ? new Set() : new Set(ALL_GROUP_IDS))}
+          className="text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          {expandedGroups.size ? 'Collapse all' : 'Expand all'}
+        </button>
       </div>
 
       {/* Scrollable table container */}
@@ -514,61 +615,95 @@ export function PnlTable() {
           </thead>
 
           <tbody>
-            {PNL_ROWS.map((row, idx) => {
-              const key = row.key ?? ''
-              const vals = monthlyData[key]
-              const total = key ? getTotal(key) : 0
-              const isMargin = MARGIN_KEYS.has(key)
-              const isKpiDec = KPI_DECIMAL_KEYS.has(key)
-
-              // Section header
-              if (row.kind === 'section') {
+            {PNL_PLAN.map((p, idx) => {
+              // Section header — Revenue/Overhead are collapsible (chevron); others static.
+              if (p.t === 'section') {
+                const open = p.groupId ? expandedGroups.has(p.groupId) : false
+                const bandCls =
+                  'sticky left-0 z-10 bg-[var(--bg-secondary)] px-4 py-1.5 text-[10.5px] text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-semibold border-y border-[var(--border-primary)]'
+                if (p.groupId) {
+                  return (
+                    <tr key={idx} onClick={() => toggleGroup(p.groupId!)} className="cursor-pointer select-none">
+                      <td colSpan={months.length + 2} className={bandCls}>
+                        <span className="inline-flex items-center gap-1">
+                          {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                          {p.label}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                }
                 return (
                   <tr key={idx}>
-                    <td
-                      colSpan={months.length + 2}
-                      className="sticky left-0 z-10 bg-[var(--bg-secondary)] px-4 py-1.5 text-[10.5px] text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-semibold border-y border-[var(--border-primary)]"
-                    >
-                      {row.label}
-                    </td>
+                    <td colSpan={months.length + 2} className={bandCls}>{p.label}</td>
                   </tr>
                 )
               }
 
-              // Category label (A, C, M, DOC, I, Other)
-              if (row.kind === 'category') {
+              // Collapsible category subtotal (A/C/M/I/DOC/Other)
+              if (p.t === 'group') {
+                const open = expandedGroups.has(p.groupId)
+                const { v, tot } = groupVals(p.keys)
                 return (
-                  <tr key={idx}>
-                    <td
-                      colSpan={months.length + 2}
-                      className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-medium pl-6"
-                    >
-                      {row.label}
+                  <tr key={idx} onClick={() => toggleGroup(p.groupId)} className="cursor-pointer hover:bg-[var(--bg-secondary)]">
+                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[var(--text-primary)] font-medium pl-6 ${labelColWidth}`}>
+                      <span className="inline-flex items-center gap-1">
+                        {open
+                          ? <ChevronDown size={12} className="text-[var(--text-muted)]" />
+                          : <ChevronRight size={12} className="text-[var(--text-muted)]" />}
+                        {p.label}
+                      </span>
+                    </td>
+                    {v.map((val, mi) => (
+                      <td key={mi} className={`text-right px-3 py-1 av-num font-medium text-[var(--text-primary)] ${dataColWidth} ${valColor(val)}`}>
+                        {fmt(val, 0)}
+                      </td>
+                    ))}
+                    <td className={`text-right px-3 py-1 av-num font-medium text-[var(--text-primary)] ${dataColWidth} border-l border-[var(--border-secondary)] ${valColor(tot)}`}>
+                      {fmt(tot, 0)}
                     </td>
                   </tr>
                 )
               }
 
-              // KPI header
-              if (row.kind === 'kpi-header') {
+              // Detail item — shown only when its group is expanded (loose items always)
+              if (p.t === 'item') {
+                if (p.groupId && !expandedGroups.has(p.groupId)) return null
+                const vals = monthlyData[p.key]
+                const total = getTotal(p.key)
+                const indent = p.groupId ? 'pl-10' : 'pl-8'
                 return (
-                  <tr key={idx} className="border-t-2 border-[var(--border-secondary)]">
-                    <td
-                      colSpan={months.length + 2}
-                      className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 pt-4 pb-1 text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold"
-                    >
-                      {row.label}
+                  <tr key={idx} className="hover:bg-[var(--bg-secondary)]">
+                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[var(--text-tertiary)] ${indent} ${labelColWidth}`}>
+                      {p.label}
+                    </td>
+                    {(vals ?? []).map((v, mi) => (
+                      <td
+                        key={mi}
+                        className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth} ${valColor(v)} ${p.clickable ? 'cursor-pointer hover:underline hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
+                        onClick={p.clickable ? (e) => {
+                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                          setPopover({ rowKey: p.key, monthIndex: mi, anchorRect: rect })
+                        } : undefined}
+                      >
+                        {fmt(v, 0)}
+                      </td>
+                    ))}
+                    <td className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth} border-l border-[var(--border-secondary)] ${valColor(total)}`}>
+                      {fmt(total, 0)}
                     </td>
                   </tr>
                 )
               }
 
-              // Total / subtotal rows
-              if (row.kind === 'total') {
+              // Subtotal rows (Total revenue / variable / fixed / overhead)
+              if (p.t === 'total') {
+                const vals = monthlyData[p.key]
+                const total = getTotal(p.key)
                 return (
                   <tr key={idx} className="border-t border-[var(--border-secondary)] bg-[var(--bg-secondary)]">
                     <td className={`sticky left-0 z-10 bg-[var(--bg-secondary)] px-4 py-1.5 text-[var(--text-primary)] font-semibold ${labelColWidth}`}>
-                      {row.label}
+                      {p.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
                       <td key={mi} className={`text-right px-3 py-1.5 av-num font-semibold text-[var(--text-primary)] ${dataColWidth} ${valColor(v)}`}>
@@ -582,11 +717,11 @@ export function PnlTable() {
                 )
               }
 
-              // Result rows (Contribution I/II/III, EBIT, Net Profit)
-              if (row.kind === 'result') {
-                // Headline lines (EBITDA, Net profit) get the accent band; the
-                // contribution subtotals get a quieter bold treatment.
-                const isKey = key === 'ebitda' || key === 'netProfit'
+              // Result rows — EBITDA/Net profit accent band; contributions quieter
+              if (p.t === 'result') {
+                const vals = monthlyData[p.key]
+                const total = getTotal(p.key)
+                const isKey = p.key === 'ebitda' || p.key === 'netProfit'
                 const rowCls = isKey
                   ? 'border-t-2 border-[var(--av-accent)] bg-[var(--av-accent-soft)]'
                   : 'border-t border-[var(--border-secondary)] bg-[var(--bg-secondary)]'
@@ -594,7 +729,7 @@ export function PnlTable() {
                 return (
                   <tr key={idx} className={rowCls}>
                     <td className={`sticky left-0 z-10 ${stickyBg} px-4 py-2 text-[var(--text-primary)] font-bold ${labelColWidth}`}>
-                      {row.label}
+                      {p.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
                       <td key={mi} className={`text-right px-3 py-2 av-num font-bold ${dataColWidth} ${v < 0 ? 'text-[var(--av-neg)]' : 'text-[var(--av-pos)]'}`}>
@@ -608,15 +743,16 @@ export function PnlTable() {
                 )
               }
 
-              // Margin rows
-              if (row.kind === 'margin') {
-                const avgMargin = isMargin && months.length > 0
+              // Margin rows (%)
+              if (p.t === 'margin') {
+                const vals = monthlyData[p.key]
+                const avgMargin = months.length > 0
                   ? (vals ?? []).reduce((s, v) => s + v, 0) / months.length
                   : 0
                 return (
                   <tr key={idx}>
                     <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[var(--text-tertiary)] italic ${labelColWidth}`}>
-                      {row.label}
+                      {p.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
                       <td key={mi} className={`text-right px-3 py-1 av-num text-[var(--text-tertiary)] italic ${dataColWidth}`}>
@@ -630,13 +766,26 @@ export function PnlTable() {
                 )
               }
 
+              // KPI header band
+              if (p.t === 'kpiheader') {
+                return (
+                  <tr key={idx}>
+                    <td colSpan={months.length + 2} className="sticky left-0 z-10 bg-[var(--bg-secondary)] px-4 py-1.5 text-[10.5px] text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-semibold border-y border-[var(--border-primary)]">
+                      {p.label}
+                    </td>
+                  </tr>
+                )
+              }
+
               // KPI rows
-              if (row.kind === 'kpi') {
-                const kpiTotal = key ? getTotal(key) : 0
+              if (p.t === 'kpi') {
+                const vals = monthlyData[p.key]
+                const kpiTotal = getTotal(p.key)
+                const isKpiDec = KPI_DECIMAL_KEYS.has(p.key)
                 return (
                   <tr key={idx}>
                     <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[var(--text-secondary)] ${labelColWidth}`}>
-                      {row.label}
+                      {p.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
                       <td key={mi} className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth}`}>
@@ -650,30 +799,7 @@ export function PnlTable() {
                 )
               }
 
-              // Regular item rows
-              const isClickable = CLICKABLE_ROWS.has(key)
-              return (
-                <tr key={idx} className="hover:bg-[var(--bg-secondary)]">
-                  <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[var(--text-secondary)] pl-8 ${labelColWidth}`}>
-                    {row.label}
-                  </td>
-                  {(vals ?? []).map((v, mi) => (
-                    <td
-                      key={mi}
-                      className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth} ${valColor(v)} ${isClickable ? 'cursor-pointer hover:underline hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
-                      onClick={isClickable ? (e) => {
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                        setPopover({ rowKey: key, monthIndex: mi, anchorRect: rect })
-                      } : undefined}
-                    >
-                      {fmt(v, 0)}
-                    </td>
-                  ))}
-                  <td className={`text-right px-3 py-1 av-num text-[var(--text-secondary)] ${dataColWidth} border-l border-[var(--border-secondary)] ${valColor(total)}`}>
-                    {fmt(total, 0)}
-                  </td>
-                </tr>
-              )
+              return null
             })}
           </tbody>
         </table>

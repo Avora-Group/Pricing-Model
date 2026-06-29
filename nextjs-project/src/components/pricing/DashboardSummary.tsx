@@ -1,13 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Save } from 'lucide-react'
+import { Plus, Save, Download } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
+import { useCrewConfigStore } from '@/stores/crew-config-store'
+import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { MsnInputRow } from './MsnInputRow'
 import { SummaryTable } from './SummaryTable'
 import { SaveQuoteDialog } from '@/components/quotes/SaveQuoteDialog'
 import { useCalculation } from './hooks/useCalculation'
 import { useAddAircraft } from './hooks/useAddAircraft'
+import { downloadCalculationWorkbook } from '@/lib/excel-export'
 import type { AircraftOption } from '@/lib/api-converters'
 
 interface DashboardSummaryProps {
@@ -37,8 +40,51 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
   } = usePricingStore()
   const isEditing = editingQuoteNumber !== null
 
+  // Full crew & costs config — needed to build the formula-driven Excel export.
+  const crewConfig = useCrewConfigStore()
+  const costsConfig = useCostsConfigStore()
+
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [savedNotice, setSavedNotice] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  async function handleExport() {
+    if (msnInputs.length === 0 || isExporting) return
+    setIsExporting(true)
+    setExportError(null)
+    try {
+      await downloadCalculationWorkbook({
+        projectName,
+        exchangeRate: parseFloat(exchangeRate || '0.85'),
+        marginPercent: parseFloat(marginPercent || '0'),
+        bhFhRatio: parseFloat(bhFhRatio || '1.2'),
+        apuFhRatio: parseFloat(apuFhRatio || '0.7'),
+        msnInputs,
+        crew: {
+          payroll: crewConfig.payroll,
+          otherCost: crewConfig.otherCost,
+          training: crewConfig.training,
+          averageAC: crewConfig.averageAC,
+          fdDays: crewConfig.fdDays,
+          nfdDays: crewConfig.nfdDays,
+        },
+        costs: {
+          maintPersonnel: costsConfig.maintPersonnel,
+          maintCosts: costsConfig.maintCosts,
+          insurance: costsConfig.insurance,
+          doc: costsConfig.doc,
+          otherCogs: costsConfig.otherCogs,
+          overhead: costsConfig.overhead,
+          avgAc: costsConfig.avgAc,
+        },
+      })
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   // Debounced calculation side-effect
   useCalculation(msnInputs, exchangeRate, marginPercent)
@@ -54,9 +100,9 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
   return (
     <div className="space-y-4">
       {/* Error banner */}
-      {lastError && (
+      {(lastError || exportError) && (
         <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-lg p-3 text-red-700 dark:text-red-200 text-sm">
-          {lastError}
+          {lastError ?? exportError}
         </div>
       )}
 
@@ -132,6 +178,17 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
           {isCalculating && (
             <div className="text-xs text-indigo-600 dark:text-indigo-400 pb-2">Calculating...</div>
           )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              disabled={msnInputs.length === 0 || isExporting}
+              title="Download the calculation as an Excel workbook (Calculation, P&L, Aircraft, Crew, Costs)"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Download size={12} />
+              {isExporting ? 'Preparing...' : 'Download Excel'}
+            </button>
+          </div>
           {!isViewer && (
             <div className="flex items-center gap-2">
               {isEditing && (

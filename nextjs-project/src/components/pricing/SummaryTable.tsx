@@ -298,9 +298,13 @@ export function SummaryTable() {
   const costsAvgAc = useCostsConfigStore((s) => s.avgAc)
 
   const [displayMode, setDisplayMode] = useState<'eur' | 'eurPerBh'>('eur')
+  const [currency, setCurrency] = useState<'eur' | 'usd'>('eur')
   const [seasonFilter, setSeasonFilter] = useState<'total' | 'summer' | 'winter'>('total')
 
   const exchangeRate = parseFloat(globalExchangeRate || '0.85')
+  // Values are computed in EUR; EUR = USD × exchangeRate, so EUR → USD divides
+  // by the rate. Guard against a zero/blank rate.
+  const curFactor = currency === 'usd' && exchangeRate > 0 ? 1 / exchangeRate : 1
   const bhFhRatioNum = parseFloat(globalBhFhRatio || '1.2')
   const apuFhRatioNum = parseFloat(globalApuFhRatio || '1.1')
 
@@ -607,13 +611,13 @@ export function SummaryTable() {
   const fmtV = (monthlyVal: number, totalVal: number, decimals = 0): { perMonth: string; totalProject: string } => {
     if (isPerBh) {
       return {
-        perMonth: fmt(monthlyVal / activeBh, 0),
-        totalProject: fmt(totalVal / dBhForPerBh, 0),
+        perMonth: fmt((monthlyVal * curFactor) / activeBh, 0),
+        totalProject: fmt((totalVal * curFactor) / dBhForPerBh, 0),
       }
     }
     return {
-      perMonth: fmt(monthlyVal, decimals),
-      totalProject: fmt(totalVal, decimals),
+      perMonth: fmt(monthlyVal * curFactor, decimals),
+      totalProject: fmt(totalVal * curFactor, decimals),
     }
   }
 
@@ -654,7 +658,7 @@ export function SummaryTable() {
     { label: 'FH - Actual', perMonth: fmt(mFh, 0), totalProject: fmt(dFh, 0) },
     { label: 'FC', perMonth: fmt(mFc, 0), totalProject: fmt(dFc, 0) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'ACMI Rate', perMonth: isTotalView ? '-' : fmt(activeMsn.acmiRate, 0), totalProject: isTotalView ? '-' : fmt(activeMsn.acmiRate, 0), isRate: true },
+    { label: 'ACMI Rate', perMonth: isTotalView ? '-' : fmt(activeMsn.acmiRate * curFactor, 0), totalProject: isTotalView ? '-' : fmt(activeMsn.acmiRate * curFactor, 0), isRate: true },
     { label: 'Total Revenue', ...fmtV(mRevenue, dRevenue), isBold: true, colorClass: 'text-[var(--av-pos)]', colorClassTotal: 'text-[var(--av-pos)]' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'Aircraft', ...fmtV(mAircraft, dAircraft) },
@@ -706,6 +710,23 @@ export function SummaryTable() {
       <div className="grid grid-cols-[1fr_90px_90px] bg-[var(--bg-secondary)] border-b border-[var(--border-secondary)]">
         <div className="px-3 py-1.5 flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Summary</span>
+          {/* Currency: convert EUR → USD via the dashboard exchange rate */}
+          <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
+            {(['eur', 'usd'] as const).map((c) => (
+              <button
+                key={c}
+                onClick={() => setCurrency(c)}
+                className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
+                  currency === c
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {c.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          {/* Absolute vs per-block-hour (label follows the selected currency) */}
           <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
             <button
               onClick={() => setDisplayMode('eur')}
@@ -715,7 +736,7 @@ export function SummaryTable() {
                   : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              EUR
+              {currency.toUpperCase()}
             </button>
             <button
               onClick={() => setDisplayMode('eurPerBh')}
@@ -725,7 +746,7 @@ export function SummaryTable() {
                   : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              EUR/BH
+              {currency.toUpperCase()}/BH
             </button>
           </div>
           {/* Season filter — only shown when any MSN has seasonality enabled */}

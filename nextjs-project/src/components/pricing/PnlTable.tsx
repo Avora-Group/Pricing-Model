@@ -208,6 +208,12 @@ export function PnlTable() {
 
   const months = generateMonthRange(periodStart, periodEnd)
 
+  // Day-fraction per month for the active scope — used to badge prorated months.
+  // Only attributable cleanly in single-MSN view (each MSN has its own period).
+  const monthInfos = selectedMsn !== null
+    ? buildMonthDayInfos(months, periodStart, periodEnd)
+    : null
+
   // -- Compute monthly P&L data --
   let monthlyData: Record<string, number[]>
 
@@ -484,14 +490,23 @@ export function PnlTable() {
               <th className={`sticky left-0 z-10 bg-white dark:bg-gray-900 text-left px-4 py-2 text-[var(--text-tertiary)] font-medium ${labelColWidth}`}>
                 &nbsp;
               </th>
-              {months.map((m, i) => (
-                <th
-                  key={i}
-                  className={`text-right px-3 py-2 text-[var(--text-tertiary)] font-medium ${dataColWidth}`}
-                >
-                  {m.label}
-                </th>
-              ))}
+              {months.map((m, i) => {
+                const info = monthInfos?.[i]
+                const partial = info ? info.activeDays < info.totalDays : false
+                return (
+                  <th
+                    key={i}
+                    className={`text-right px-3 py-2 text-[var(--text-tertiary)] font-medium ${dataColWidth}`}
+                  >
+                    {m.label}
+                    {partial && (
+                      <span className="ml-1 text-[9px] font-normal text-[var(--text-muted)]">
+                        {info!.activeDays}/{info!.totalDays}
+                      </span>
+                    )}
+                  </th>
+                )
+              })}
               <th className={`text-right px-3 py-2 text-[var(--text-primary)] font-semibold ${dataColWidth} border-l border-[var(--border-secondary)]`}>
                 TOTAL
               </th>
@@ -509,10 +524,10 @@ export function PnlTable() {
               // Section header
               if (row.kind === 'section') {
                 return (
-                  <tr key={idx} className="border-t border-[var(--border-secondary)]">
+                  <tr key={idx}>
                     <td
                       colSpan={months.length + 2}
-                      className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 pt-4 pb-1 text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold"
+                      className="sticky left-0 z-10 bg-[var(--bg-secondary)] px-4 py-1.5 text-[10.5px] text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-semibold border-y border-[var(--border-primary)]"
                     >
                       {row.label}
                     </td>
@@ -551,8 +566,8 @@ export function PnlTable() {
               // Total / subtotal rows
               if (row.kind === 'total') {
                 return (
-                  <tr key={idx} className="border-t border-[var(--border-secondary)]">
-                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1.5 text-[var(--text-primary)] font-semibold ${labelColWidth}`}>
+                  <tr key={idx} className="border-t border-[var(--border-secondary)] bg-[var(--bg-secondary)]">
+                    <td className={`sticky left-0 z-10 bg-[var(--bg-secondary)] px-4 py-1.5 text-[var(--text-primary)] font-semibold ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
@@ -569,9 +584,16 @@ export function PnlTable() {
 
               // Result rows (Contribution I/II/III, EBIT, Net Profit)
               if (row.kind === 'result') {
+                // Headline lines (EBITDA, Net profit) get the accent band; the
+                // contribution subtotals get a quieter bold treatment.
+                const isKey = key === 'ebitda' || key === 'netProfit'
+                const rowCls = isKey
+                  ? 'border-t-2 border-[var(--av-accent)] bg-[var(--av-accent-soft)]'
+                  : 'border-t border-[var(--border-secondary)] bg-[var(--bg-secondary)]'
+                const stickyBg = isKey ? 'bg-[var(--av-accent-soft)]' : 'bg-[var(--bg-secondary)]'
                 return (
-                  <tr key={idx} className="border-t border-[var(--border-secondary)] bg-[var(--bg-secondary)]">
-                    <td className={`sticky left-0 z-10 bg-[var(--bg-secondary)] px-4 py-2 text-[var(--text-primary)] font-bold ${labelColWidth}`}>
+                  <tr key={idx} className={rowCls}>
+                    <td className={`sticky left-0 z-10 ${stickyBg} px-4 py-2 text-[var(--text-primary)] font-bold ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
@@ -656,6 +678,11 @@ export function PnlTable() {
           </tbody>
         </table>
       </div>
+
+      <p className="px-4 py-3 text-[11px] text-[var(--text-tertiary)] border-t border-[var(--border-primary)]">
+        Partial months are prorated by active days — a project starting or ending mid-month bears its
+        day-fraction of fixed costs and overhead. EBITDA reconciles to the dashboard&apos;s net profit.
+      </p>
 
       {/* Line detail popover */}
       {popover && (() => {

@@ -120,113 +120,133 @@ export function QuoteList({ initialQuotes, isAdmin = false, isViewer = false }: 
     }
   }
 
-  const inputCls =
-    'bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg text-sm text-[var(--text-primary)] focus:border-[var(--av-accent)] focus:outline-none'
-
   return (
     <div className="space-y-4">
-      {/* Search and filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search client or quote no."
-            className={`${inputCls} w-full pl-9 pr-3 py-2 placeholder-[var(--text-muted)]`}
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => handleStatusFilterChange(e.target.value)}
-          className={`${inputCls} px-3 py-2`}
-        >
-          <option value="">All statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
-      </div>
-
       {statusError && (
-        <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-lg p-2 text-sm text-red-700 dark:text-red-200">
+        <div
+          className="av-panel px-4 py-2 text-sm"
+          style={{ color: 'var(--neg)', borderColor: 'var(--neg)' }}
+        >
           {statusError}
         </div>
       )}
 
-      {quotes.length === 0 ? (
-        <div className="av-panel text-center py-12 text-[var(--text-tertiary)] text-sm">
-          No quotes found. Build a pricing calculation and save it as a quote.
-        </div>
-      ) : (
-        <div className="av-panel overflow-x-auto">
-          <table className="min-w-[560px] w-full border-collapse">
-            <thead>
-              <tr>
-                <th onClick={() => handleSort('quote_number')} className="av-th cursor-pointer select-none">Quote{sortIndicator('quote_number')}</th>
-                <th onClick={() => handleSort('client_name')} className="av-th cursor-pointer select-none">Client{sortIndicator('client_name')}</th>
-                <th onClick={() => handleSort('status')} className="av-th cursor-pointer select-none">Status{sortIndicator('status')}</th>
-                <th className="av-th text-right hidden sm:table-cell">USD/EUR</th>
-                <th className="av-th hidden sm:table-cell">MSN</th>
-                <th onClick={() => handleSort('created_at')} className="av-th text-right cursor-pointer select-none">Created{sortIndicator('created_at')}</th>
-                {!isViewer && <th className="av-th hidden sm:table-cell">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedQuotes.map((q) => (
-                <tr key={q.id} className="last:[&>td]:border-b-0 hover:bg-[var(--bg-secondary)] transition-colors">
-                  <td className="av-td">
-                    <Link href={`/quotes/${q.id}`} className="av-num font-semibold text-[var(--av-accent-ink)] hover:underline">
-                      {q.quote_number}
-                    </Link>
-                  </td>
-                  <td className="av-td font-medium text-[var(--text-primary)]">{q.client_name}</td>
-                  <td className="av-td"><StatusBadge status={q.status} /></td>
-                  <td className="av-td av-num text-right text-[var(--text-secondary)] hidden sm:table-cell">
-                    {q.exchange_rate ? parseFloat(q.exchange_rate).toFixed(4) : '—'}
-                  </td>
-                  <td className="av-td hidden sm:table-cell">
-                    {q.msn_list?.length ? (
-                      <span className="flex flex-wrap gap-1">
-                        {q.msn_list.slice(0, 4).map((m) => <span key={m} className="av-msn">{m}</span>)}
-                        {q.msn_list.length > 4 && <span className="text-[var(--text-muted)] text-[11px] self-center">+{q.msn_list.length - 4}</span>}
-                      </span>
-                    ) : '—'}
-                  </td>
-                  <td className="av-td av-num text-right text-[var(--text-muted)] whitespace-nowrap">{formatDate(q.created_at)}</td>
-                  {!isViewer && (
-                    <td className="av-td hidden sm:table-cell">
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={q.status}
-                          onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
-                          className="bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded px-2 py-1 text-xs text-[var(--text-secondary)] focus:border-[var(--av-accent)] focus:outline-none"
-                        >
-                          {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                        </select>
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDelete(q.id, q.quote_number)}
-                            disabled={deletingId === q.id}
-                            title="Delete quote"
-                            className="p-1 rounded text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="px-4 py-2 border-t border-[var(--border-primary)] text-xs text-[var(--text-muted)]">
-            Showing {quotes.length} of {total} quotes
+      <div className="av-panel">
+        <div className="av-panel-h">
+          <div>
+            <h2>Quotes</h2>
           </div>
+          <div className="relative">
+            <Search
+              size={15}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2"
+              style={{ color: 'var(--muted)' }}
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search client or quote no."
+              aria-label="Search client or quote number"
+              className="av-input pl-8"
+              style={{ width: 240 }}
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => handleStatusFilterChange(e.target.value)}
+            aria-label="Filter by status"
+            className="av-input"
+          >
+            <option value="">All statuses</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            ))}
+          </select>
         </div>
-      )}
+
+        {quotes.length === 0 ? (
+          <div className="px-4 py-12 text-center text-[13px]" style={{ color: 'var(--muted)' }}>
+            No quotes found. Build a pricing calculation and save it as a quote.
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="av-tbl">
+                <thead>
+                  <tr>
+                    <th onClick={() => handleSort('quote_number')} className="av-th cursor-pointer select-none">Quote{sortIndicator('quote_number')}</th>
+                    <th onClick={() => handleSort('client_name')} className="av-th cursor-pointer select-none">Client{sortIndicator('client_name')}</th>
+                    <th onClick={() => handleSort('status')} className="av-th cursor-pointer select-none">Status{sortIndicator('status')}</th>
+                    <th className="av-th r hidden sm:table-cell">USD/EUR</th>
+                    <th className="av-th hidden sm:table-cell">MSN</th>
+                    <th onClick={() => handleSort('created_at')} className="av-th r cursor-pointer select-none">Created{sortIndicator('created_at')}</th>
+                    {!isViewer && <th className="av-th r hidden sm:table-cell">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedQuotes.map((q) => (
+                    <tr key={q.id}>
+                      <td className="av-td">
+                        <Link href={`/quotes/${q.id}`} className="tlink av-num">
+                          {q.quote_number}
+                        </Link>
+                      </td>
+                      <td className="av-td font-semibold" style={{ color: 'var(--ink)' }}>{q.client_name}</td>
+                      <td className="av-td"><StatusBadge status={q.status} /></td>
+                      <td className="av-td av-num r hidden sm:table-cell" style={{ color: 'var(--ink-2)' }}>
+                        {q.exchange_rate ? parseFloat(q.exchange_rate).toFixed(4) : '—'}
+                      </td>
+                      <td className="av-td hidden sm:table-cell">
+                        {q.msn_list?.length ? (
+                          <span className="flex flex-wrap gap-1">
+                            {q.msn_list.slice(0, 4).map((m) => <span key={m} className="av-msn">{m}</span>)}
+                            {q.msn_list.length > 4 && <span className="text-[11px] self-center" style={{ color: 'var(--muted)' }}>+{q.msn_list.length - 4}</span>}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="av-td av-num r whitespace-nowrap" style={{ color: 'var(--muted)' }}>{formatDate(q.created_at)}</td>
+                      {!isViewer && (
+                        <td className="av-td r hidden sm:table-cell">
+                          <div className="flex items-center justify-end gap-2">
+                            <select
+                              value={q.status}
+                              onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
+                              aria-label={`Status for ${q.quote_number}`}
+                              className="av-input !py-1 !px-2 !text-xs"
+                            >
+                              {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                            </select>
+                            <Link href={`/quotes/${q.id}`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
+                              Open
+                            </Link>
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(q.id, q.quote_number)}
+                                disabled={deletingId === q.id}
+                                title="Delete quote"
+                                aria-label={`Delete ${q.quote_number}`}
+                                className="p-1 rounded transition-colors disabled:opacity-50"
+                                style={{ color: 'var(--muted)' }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-[18px] py-2.5 text-xs" style={{ color: 'var(--muted)', borderTop: '1px solid var(--line-2)' }}>
+              Showing {quotes.length} of {total} quotes
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -42,29 +42,28 @@ export function CreateUserDialog() {
 
   return (
     <>
-      <button
-        onClick={openDialog}
-        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors"
-      >
+      <button onClick={openDialog} className="av-btn av-btn-primary">
         <UserPlus size={15} />
         Invite User
       </button>
 
       <dialog
         ref={dialogRef}
-        className="bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded-xl p-0 w-full max-w-sm backdrop:bg-black/60"
+        className="av-panel p-0 w-full max-w-sm backdrop:bg-black/60"
         onClose={() => setIsOpen(false)}
       >
         {isOpen && (
           <div className="p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--ink)' }}>
                 Invite User
               </h2>
               <button
                 onClick={closeDialog}
-                className="p-1 text-[var(--text-tertiary)] hover:text-gray-900 dark:hover:text-gray-100 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="Close"
+                className="p-1 rounded-md transition-colors"
+                style={{ color: 'var(--muted)' }}
               >
                 <X size={18} />
               </button>
@@ -72,33 +71,47 @@ export function CreateUserDialog() {
 
             {/* Success banner */}
             {state.success && (
-              <div className="mb-4 px-3 py-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-300 text-sm">
+              <div
+                className="mb-4 px-3 py-2 rounded text-sm"
+                style={{
+                  color: 'var(--pos)',
+                  background: 'var(--pos-soft)',
+                  border: '1px solid color-mix(in srgb, var(--pos) 30%, transparent)',
+                }}
+              >
                 User invited successfully
               </div>
             )}
 
             {/* Error banner */}
             {state.error && (
-              <div className="mb-4 px-3 py-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+              <div
+                className="mb-4 px-3 py-2 rounded text-sm"
+                style={{
+                  color: 'var(--neg)',
+                  background: 'var(--neg-soft)',
+                  border: '1px solid color-mix(in srgb, var(--neg) 30%, transparent)',
+                }}
+              >
                 {state.error}
               </div>
             )}
 
             <form ref={formRef} action={formAction} className="space-y-4">
               <div>
-                <label className="block text-sm text-[var(--text-secondary)] mb-1">
+                <label className="block text-sm mb-1" style={{ color: 'var(--ink-2)' }}>
                   Full Name
                 </label>
                 <input
                   type="text"
                   name="full_name"
                   placeholder="John Doe"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="av-input w-full"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-[var(--text-secondary)] mb-1">
+                <label className="block text-sm mb-1" style={{ color: 'var(--ink-2)' }}>
                   Email
                 </label>
                 <input
@@ -106,18 +119,18 @@ export function CreateUserDialog() {
                   name="email"
                   required
                   placeholder="colleague@company.com"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="av-input w-full"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-[var(--text-secondary)] mb-1">
+                <label className="block text-sm mb-1" style={{ color: 'var(--ink-2)' }}>
                   Role
                 </label>
                 <select
                   name="role"
                   defaultValue="user"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="av-input w-full"
                 >
                   {ROLES.map((r) => (
                     <option key={r.value} value={r.value}>
@@ -125,8 +138,22 @@ export function CreateUserDialog() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-[var(--text-muted)] mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--muted-2)' }}>
                   Viewer: read-only access to Dashboard and Quotes only
+                </p>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--ink-2)' }}>
+                  <input
+                    type="checkbox"
+                    name="can_view_costs"
+                    className="av-checkbox"
+                  />
+                  Can view naked costs
+                </label>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted-2)' }}>
+                  Grants visibility of cost build-up, profit, and margins. Admins always have access.
                 </p>
               </div>
 
@@ -134,7 +161,7 @@ export function CreateUserDialog() {
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:text-gray-400 text-white font-medium rounded-md transition-colors"
+                  className="av-btn av-btn-primary disabled:opacity-60"
                 >
                   {isPending ? 'Inviting...' : 'Invite'}
                 </button>
@@ -142,7 +169,7 @@ export function CreateUserDialog() {
                   type="button"
                   onClick={closeDialog}
                   disabled={isPending}
-                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
+                  className="av-btn av-btn-ghost disabled:opacity-60"
                 >
                   Cancel
                 </button>

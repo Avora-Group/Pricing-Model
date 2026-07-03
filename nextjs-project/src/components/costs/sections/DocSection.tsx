@@ -1,13 +1,8 @@
 'use client'
 
 import { EditableCell } from '@/components/ui/EditableCell'
-import { FormulaCell, TableCard } from '@/components/ui/TableParts'
+import { FormulaCell } from '@/components/ui/TableParts'
 import type { DocItem } from '@/stores/costs-config-store'
-
-const thClass = 'text-left px-3 py-2 text-[var(--text-tertiary)] font-medium text-[10px] uppercase tracking-wider'
-const tdClass = 'px-3 py-1.5 text-sm text-[var(--text-secondary)]'
-const tdLabelClass = 'px-3 py-1.5 text-sm text-[var(--text-secondary)] pl-4'
-const trHover = 'hover:bg-gray-100/20 dark:bg-gray-800/20'
 
 export interface DocSectionProps {
   data: DocItem[]
@@ -17,29 +12,36 @@ export interface DocSectionProps {
 
 export function DocSection({ data, perMonth, onUpdate }: DocSectionProps) {
   return (
-    <TableCard>
-      <thead>
-        <tr className="border-b border-[var(--border-secondary)]">
-          <th className={`${thClass} w-[260px]`}>Name</th>
-          <th className={`${thClass} w-[160px] text-right`}>Total</th>
-          <th className={`${thClass} w-[160px] text-right`}>Per Month / Per A/C</th>
-          <th className={`${thClass} w-[160px]`}>P&L Mapping</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((item, i) => (
-          <tr key={i} className={trHover}>
-            <td className={tdLabelClass}>{item.name}</td>
-            <td className={tdClass}>
-              <EditableCell value={item.total} onChange={(v) => onUpdate(i, v ?? 0)} allowNull={false} decimals={2} />
-            </td>
-            <td className={tdClass}>
-              <FormulaCell value={perMonth[i]} decimals={2} />
-            </td>
-            <td className={`${tdClass} text-[var(--text-muted)] text-xs`}>{item.mapping}</td>
-          </tr>
-        ))}
-      </tbody>
-    </TableCard>
+    <div className="av-panel">
+      <div className="av-panel-h">
+        <h2>DOC (Direct Operating Cost)</h2>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="av-tbl">
+          <thead>
+            <tr>
+              <th className="av-th" style={{ width: 260 }}>Name</th>
+              <th className="av-th r" style={{ width: 160 }}>Total</th>
+              <th className="av-th r" style={{ width: 160 }}>Per month / A/C</th>
+              <th className="av-th" style={{ width: 160 }}>P&amp;L mapping</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((item, i) => (
+              <tr key={i}>
+                <td className="av-td" style={{ fontWeight: 600, color: 'var(--ink)' }}>{item.name}</td>
+                <td className="av-td r">
+                  <EditableCell value={item.total} onChange={(v) => onUpdate(i, v ?? 0)} allowNull={false} decimals={2} />
+                </td>
+                <td className="av-td r">
+                  <FormulaCell value={perMonth[i]} decimals={2} />
+                </td>
+                <td className="av-td" style={{ color: 'var(--muted)', fontSize: 12 }}>{item.mapping}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }

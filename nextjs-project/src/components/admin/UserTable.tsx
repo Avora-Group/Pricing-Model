@@ -2,15 +2,15 @@
 
 import { useTransition } from 'react'
 import type { User } from '@/app/actions/admin'
-import { updateRoleAction } from '@/app/actions/admin'
+import { updateRoleAction, updateCostAccessAction } from '@/app/actions/admin'
 import { ResetPasswordDialog } from './ResetPasswordDialog'
 
 const ROLES = ['admin', 'user', 'viewer'] as const
 
-const roleBadgeClass: Record<string, string> = {
-  admin: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300',
-  viewer: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
-  user: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
+const rolePillClass: Record<string, string> = {
+  admin: 'av-pill av-pill-signed',
+  viewer: 'av-pill av-pill-draft',
+  user: 'av-pill av-pill-sent',
 }
 
 interface UserTableProps {
@@ -31,9 +31,9 @@ function RoleSelect({ user }: { user: User }) {
       value={user.role}
       onChange={(e) => handleChange(e.target.value)}
       disabled={isPending}
-      className={`px-2 py-0.5 rounded text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+      className={`cursor-pointer border-0 capitalize focus:outline-none ${
         isPending ? 'opacity-50' : ''
-      } ${roleBadgeClass[user.role] ?? roleBadgeClass.user}`}
+      } ${rolePillClass[user.role] ?? rolePillClass.user}`}
     >
       {ROLES.map((r) => (
         <option key={r} value={r}>{r}</option>
@@ -42,56 +42,72 @@ function RoleSelect({ user }: { user: User }) {
   )
 }
 
+function CostAccessToggle({ user }: { user: User }) {
+  const [isPending, startTransition] = useTransition()
+  // Admins implicitly always have access — the toggle is fixed on & disabled.
+  const isAdmin = user.role === 'admin'
+  const enabled = isAdmin || user.can_view_costs
+
+  const handleToggle = () => {
+    if (isAdmin) return
+    startTransition(async () => {
+      await updateCostAccessAction(user.id, !user.can_view_costs)
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleToggle}
+      disabled={isAdmin || isPending}
+      aria-pressed={enabled}
+      title={isAdmin ? 'Admins always have cost access' : 'Toggle naked-cost visibility'}
+      className={`av-pill ${enabled ? 'av-pill-active' : 'av-pill-draft'} ${
+        isAdmin ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'
+      } ${isPending ? 'opacity-50' : ''}`}
+    >
+      <span className="d" />
+      {enabled ? 'Costs: On' : 'Costs: Off'}
+    </button>
+  )
+}
+
 export function UserTable({ users }: UserTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="av-tbl">
         <thead>
-          <tr className="border-b border-gray-200 dark:border-gray-700 text-left">
-            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
-              Name
-            </th>
-            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
-              Email
-            </th>
-            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider hidden sm:table-cell">
-              Role
-            </th>
-            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider hidden sm:table-cell">
-              Status
-            </th>
-            <th className="py-3 px-4 text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider text-right">
-              Actions
-            </th>
+          <tr>
+            <th className="av-th">Name</th>
+            <th className="av-th">Email</th>
+            <th className="av-th hidden sm:table-cell">Role</th>
+            <th className="av-th hidden sm:table-cell">Status</th>
+            <th className="av-th hidden sm:table-cell">Cost access</th>
+            <th className="av-th r">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+        <tbody>
           {users.map((user) => (
-            <tr
-              key={user.id}
-              className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-            >
-              <td className="py-3 px-4 text-[var(--text-primary)] font-medium">
+            <tr key={user.id}>
+              <td className="av-td font-semibold" style={{ color: 'var(--ink)' }}>
                 {user.full_name || '—'}
               </td>
-              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+              <td className="av-td" style={{ color: 'var(--ink-2)' }}>
                 {user.email}
               </td>
-              <td className="py-3 px-4 hidden sm:table-cell">
+              <td className="av-td hidden sm:table-cell">
                 <RoleSelect user={user} />
               </td>
-              <td className="py-3 px-4 hidden sm:table-cell">
-                <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                    user.is_active
-                      ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                      : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
-                  }`}
-                >
+              <td className="av-td hidden sm:table-cell">
+                <span className={`av-pill ${user.is_active ? 'av-pill-active' : 'av-pill-rejected'}`}>
+                  <span className="d" />
                   {user.is_active ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td className="py-3 px-4 text-right">
+              <td className="av-td hidden sm:table-cell">
+                <CostAccessToggle user={user} />
+              </td>
+              <td className="av-td r">
                 <ResetPasswordDialog
                   userId={user.id}
                   userName={user.full_name || user.email}
@@ -103,7 +119,7 @@ export function UserTable({ users }: UserTableProps) {
       </table>
 
       {users.length === 0 && (
-        <div className="text-center py-8 text-[var(--text-tertiary)] text-sm">
+        <div className="text-center py-8 text-sm" style={{ color: 'var(--muted)' }}>
           No users found
         </div>
       )}

@@ -10,12 +10,14 @@ class CreateUserRequest(BaseModel):
     password: str | None = None
     role: Literal["admin", "user", "viewer"] = "user"
     full_name: str | None = None
+    can_view_costs: bool = False
 
 
 class UpdateUserRequest(BaseModel):
     full_name: str | None = None
     role: Literal["admin", "user", "viewer"] | None = None
     is_active: bool | None = None
+    can_view_costs: bool | None = None
 
 
 class ResetPasswordRequest(BaseModel):

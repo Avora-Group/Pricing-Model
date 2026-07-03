@@ -44,14 +44,19 @@ class SaveQuoteRequest(BaseModel):
 
 
 class MsnSnapshotResponse(BaseModel):
-    """Per-MSN snapshot data returned from a saved quote."""
+    """Per-MSN snapshot data returned from a saved quote.
+
+    ``breakdown`` / ``monthly_pnl`` (naked cost stack) and ``monthly_cost`` are
+    Optional so they can be omitted server-side for users without cost-view
+    permission. ``monthly_revenue`` (sell side) is preserved.
+    """
     id: int
     msn: int
     aircraft_type: str
     aircraft_id: int
     msn_input: dict
-    breakdown: dict
-    monthly_pnl: dict
+    breakdown: dict | None = None
+    monthly_pnl: dict | None = None
     monthly_cost: Decimal | None = None
     monthly_revenue: Decimal | None = None
 
@@ -64,7 +69,7 @@ class QuoteListItem(BaseModel):
     client_code: str
     status: str
     exchange_rate: Decimal
-    margin_percent: Decimal
+    margin_percent: Decimal | None = None
     total_eur_per_bh: Decimal | None = None
     msn_list: list[int]
     created_at: str
@@ -72,11 +77,15 @@ class QuoteListItem(BaseModel):
 
 
 class QuoteDetailResponse(QuoteListItem):
-    """Full quote detail including all JSONB snapshots and MSN data."""
-    pricing_config_snapshot: dict
-    crew_config_snapshot: dict
-    costs_config_snapshot: dict
-    dashboard_state: dict
+    """Full quote detail including all JSONB snapshots and MSN data.
+
+    Config snapshots and dashboard_state are Optional so the naked-cost inputs
+    can be omitted server-side for users without cost-view permission.
+    """
+    pricing_config_snapshot: dict | None = None
+    crew_config_snapshot: dict | None = None
+    costs_config_snapshot: dict | None = None
+    dashboard_state: dict | None = None
     msn_snapshots: list[MsnSnapshotResponse] = []
 
 

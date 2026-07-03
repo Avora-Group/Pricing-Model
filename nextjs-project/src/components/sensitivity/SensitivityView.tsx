@@ -7,6 +7,7 @@ import { listQuotesAction, getQuoteAction } from '@/app/actions/quotes'
 import { SENSITIVITY_PARAMS } from './ParameterPicker'
 import { SensitivityChart, type DataPoint } from './SensitivityChart'
 import { SensitivityTable } from './SensitivityTable'
+import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
 
 interface ProjectOption {
   id: number
@@ -16,10 +17,10 @@ interface ProjectOption {
 // Five sweep points centered on the base value, stepped by the chosen interval.
 const OFFSETS = [-2, -1, 0, 1, 2]
 
-const selectCls =
-  'bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg text-sm text-[var(--text-primary)] px-3 py-2 focus:border-[var(--av-accent)] focus:outline-none'
+const labelCls = 'text-[10px] uppercase tracking-[0.07em]'
 
 export function SensitivityView() {
+  const canViewCosts = useCanViewCosts()
   const [projects, setProjects] = useState<ProjectOption[]>([])
   const [projectId, setProjectId] = useState<number | null>(null)
   const [engine, setEngine] = useState<QuoteEngineInputs | null>(null)
@@ -150,80 +151,107 @@ export function SensitivityView() {
     }
   }
 
+  // Sensitivity is a cost / profit analysis tool — hidden for users without
+  // naked-cost permission (server also omits the underlying config data).
+  if (!canViewCosts) {
+    return (
+      <div className="av-panel p-8 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <span className="av-redacted" aria-label="Hidden — insufficient permission">
+            ••••••••
+          </span>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            Sensitivity analysis is hidden — your account does not have permission
+            to view naked costs and margins.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       {/* Controls */}
-      <div className="av-panel p-4">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] uppercase tracking-[0.07em] text-[var(--text-muted)]">Project</label>
-            <select
-              value={projectId ?? ''}
-              onChange={(e) => handleProjectChange(e.target.value)}
-              className={`${selectCls} min-w-[220px]`}
+      <div className="av-panel">
+        <div className="av-card-b">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className={labelCls} style={{ color: 'var(--muted)' }}>Project</label>
+              <select
+                value={projectId ?? ''}
+                onChange={(e) => handleProjectChange(e.target.value)}
+                className="av-input min-w-[220px]"
+              >
+                <option value="">Select a project…</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className={labelCls} style={{ color: 'var(--muted)' }}>Parameter</label>
+              <select
+                value={selectedParam}
+                onChange={(e) => handleParamChange(e.target.value)}
+                className="av-input"
+              >
+                {SENSITIVITY_PARAMS.map((p) => (
+                  <option key={p.key} value={p.key}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className={labelCls} style={{ color: 'var(--muted)' }}>
+                Interval{paramInfo.unit ? ` (${paramInfo.unit})` : ''}
+              </label>
+              <input
+                type="number"
+                value={interval}
+                onChange={(e) => setIntervalValue(e.target.value)}
+                step="any"
+                min="0"
+                className="av-input av-num text-right w-[120px]"
+              />
+            </div>
+
+            <button
+              onClick={handleRunAnalysis}
+              disabled={isLoading || !engine}
+              className="av-btn av-btn-cyan disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="">Select a project…</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
+              {isLoading ? 'Calculating…' : 'Run analysis'}
+            </button>
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] uppercase tracking-[0.07em] text-[var(--text-muted)]">Parameter</label>
-            <select
-              value={selectedParam}
-              onChange={(e) => handleParamChange(e.target.value)}
-              className={selectCls}
-            >
-              {SENSITIVITY_PARAMS.map((p) => (
-                <option key={p.key} value={p.key}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] uppercase tracking-[0.07em] text-[var(--text-muted)]">
-              Interval{paramInfo.unit ? ` (${paramInfo.unit})` : ''}
-            </label>
-            <input
-              type="number"
-              value={interval}
-              onChange={(e) => setIntervalValue(e.target.value)}
-              step="any"
-              min="0"
-              className={`${selectCls} av-num text-right w-[120px]`}
-            />
-          </div>
-
-          <button
-            onClick={handleRunAnalysis}
-            disabled={isLoading || !engine}
-            className="px-4 py-2 text-white text-sm font-medium rounded-lg av-accent-bg hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {isLoading ? 'Calculating…' : 'Run analysis'}
-          </button>
+          {engine && (
+            <p className="text-[11px] mt-3" style={{ color: 'var(--muted)' }}>
+              {engine.msnInputs.length} MSN · sweeping {paramInfo.label} by ±2 steps of {interval || '—'}
+              {paramInfo.unit ? ` ${paramInfo.unit}` : ''} around the project base.
+            </p>
+          )}
         </div>
-        {engine && (
-          <p className="text-[11px] text-[var(--text-muted)] mt-3">
-            {engine.msnInputs.length} MSN · sweeping {paramInfo.label} by ±2 steps of {interval || '—'}
-            {paramInfo.unit ? ` ${paramInfo.unit}` : ''} around the project base.
-          </p>
-        )}
       </div>
 
       {!projectId && !loadingProject && (
-        <div className="av-panel p-8 text-center text-sm text-[var(--text-tertiary)]">
-          Choose a project, pick a parameter, set an interval, then run the analysis.
+        <div className="av-panel">
+          <div className="av-card-b text-center text-sm" style={{ color: 'var(--muted)', padding: '2rem' }}>
+            Choose a project, pick a parameter, set an interval, then run the analysis.
+          </div>
         </div>
       )}
       {loadingProject && (
-        <div className="av-panel p-8 text-center text-sm text-[var(--text-tertiary)]">Loading project…</div>
+        <div className="av-panel">
+          <div className="av-card-b text-center text-sm" style={{ color: 'var(--muted)', padding: '2rem' }}>Loading project…</div>
+        </div>
       )}
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+        <div
+          className="rounded-lg p-4"
+          style={{ background: 'var(--neg-soft)', border: '1px solid var(--neg)' }}
+        >
+          <p className="text-sm" style={{ color: 'var(--neg)' }}>{error}</p>
         </div>
       )}
 

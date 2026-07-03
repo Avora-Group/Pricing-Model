@@ -10,14 +10,10 @@ export function MsnSwitcher() {
   if (msnInputs.length === 0) return null
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="av-ac-tabs">
       <button
         onClick={() => setSelectedMsn(null)}
-        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-          selectedMsn === null
-            ? 'bg-indigo-400 text-white'
-            : 'bg-gray-100 dark:bg-gray-800 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-gray-700'
-        }`}
+        className={`av-ac-tab ${selectedMsn === null ? 'active' : ''}`}
       >
         Total Project
       </button>
@@ -25,14 +21,10 @@ export function MsnSwitcher() {
         <button
           key={input.msn}
           onClick={() => setSelectedMsn(input.msn)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            selectedMsn === input.msn
-              ? 'bg-indigo-400 text-white'
-              : 'bg-gray-100 dark:bg-gray-800 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
+          className={`av-ac-tab ${selectedMsn === input.msn ? 'active' : ''}`}
         >
-          MSN {input.msn}
-          {input.registration ? ` (${input.registration})` : ''}
+          <span>MSN <span className="av-num">{input.msn}</span></span>
+          {input.registration && <span className="ty">{input.registration}</span>}
         </button>
       ))}
     </div>

@@ -65,7 +65,13 @@ export function EditableCell({
           if (e.key === 'Enter') commit()
           if (e.key === 'Escape') setEditing(false)
         }}
-        className={`w-full bg-yellow-900/30 border border-yellow-600/50 rounded px-2 py-0.5 text-sm text-[var(--text-primary)] text-right av-num focus:border-yellow-400 focus:outline-none ${className}`}
+        className={`w-full rounded px-2 py-0.5 text-sm text-right av-num focus:outline-none ${className}`}
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--cyan)',
+          color: 'var(--ink)',
+          boxShadow: '0 0 0 3px var(--cyan-soft)',
+        }}
       />
     )
   }
@@ -73,7 +79,8 @@ export function EditableCell({
   return (
     <span
       onClick={startEdit}
-      className={`cursor-pointer px-2 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 hover:border-yellow-500/50 hover:bg-yellow-900/30 transition-colors av-num text-[var(--text-primary)] inline-block min-w-[60px] text-right ${className}`}
+      className={`cursor-pointer px-2 py-0.5 rounded transition-colors av-num inline-block min-w-[60px] text-right ${className}`}
+      style={{ background: 'var(--cyan-soft)', border: '1px solid var(--cyan)', color: 'var(--ink)' }}
       title="Click to edit"
     >
       {displayValue}

@@ -64,24 +64,25 @@ export function LineDetailPopover({
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded-lg shadow-xl w-[320px] text-xs"
-      style={{ top, left }}
+      className="fixed z-50 rounded-lg shadow-xl w-[320px] text-xs"
+      style={{ top, left, background: 'var(--card)', border: '1px solid var(--line)' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-primary)]">
-        <span className="font-semibold text-[var(--text-primary)]">
+      <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid var(--line)' }}>
+        <span className="font-semibold" style={{ color: 'var(--ink)' }}>
           {title}
         </span>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          className="transition-colors"
+          style={{ color: 'var(--muted)' }}
         >
           <X size={14} />
         </button>
       </div>
 
       {/* Month label */}
-      <div className="px-3 py-1.5 text-[var(--text-tertiary)] border-b border-gray-100 dark:border-gray-800">
+      <div className="px-3 py-1.5" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--line-2)' }}>
         {monthLabel}
       </div>
 
@@ -90,32 +91,38 @@ export function LineDetailPopover({
         {items.map((item) => (
           <div key={item.label}>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600 dark:text-gray-300">{item.label}</span>
-              <span className="av-num text-[var(--text-primary)]">{fmt(item.value, 0)}</span>
+              <span style={{ color: 'var(--ink-2)' }}>{item.label}</span>
+              <span className="av-num" style={{ color: 'var(--ink)' }}>{fmt(item.value, 0)}</span>
             </div>
             {item.formula && (
-              <div className="text-[10px] text-[var(--text-muted)] av-num pl-2 mt-0.5">
+              <div className="text-[10px] av-num pl-2 mt-0.5" style={{ color: 'var(--muted)' }}>
                 {item.formula}
               </div>
             )}
           </div>
         ))}
 
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-1.5 flex justify-between items-center font-semibold">
-          <span className="text-[var(--text-primary)]">Total</span>
-          <span className="av-num text-[var(--text-primary)]">{fmt(total, 0)}</span>
+        <div
+          className="pt-1.5 flex justify-between items-center font-semibold"
+          style={{ borderTop: '1px solid var(--line)' }}
+        >
+          <span style={{ color: 'var(--ink)' }}>Total</span>
+          <span className="av-num" style={{ color: 'var(--ink)' }}>{fmt(total, 0)}</span>
         </div>
       </div>
 
       {/* Parameters */}
       {params && params.length > 0 && (
-        <div className="px-3 py-2 border-t border-[var(--border-primary)] bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
-          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">Parameters</div>
+        <div
+          className="px-3 py-2 rounded-b-lg"
+          style={{ borderTop: '1px solid var(--line)', background: 'var(--card-2)' }}
+        >
+          <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'var(--muted)' }}>Parameters</div>
           <div className={`grid gap-2 text-[11px] ${params.length <= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
             {params.map((p) => (
               <div key={p.label}>
-                <span className="text-[var(--text-tertiary)]">{p.label}</span>
-                <span className="ml-1 av-num text-[var(--text-primary)]">
+                <span style={{ color: 'var(--muted)' }}>{p.label}</span>
+                <span className="ml-1 av-num" style={{ color: 'var(--ink)' }}>
                   {fmt(p.value, p.decimals ?? 1)}
                 </span>
               </div>

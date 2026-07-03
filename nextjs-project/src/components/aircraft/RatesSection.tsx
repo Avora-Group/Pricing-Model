@@ -59,85 +59,86 @@ export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) 
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
+    <div className="av-panel">
+      <div className="av-panel-h">
+        <h2>{title}</h2>
         {isAdmin && !isEditing && (
-          <button
-            onClick={handleEdit}
-            className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
-          >
+          <button onClick={handleEdit} className="av-btn av-btn-ghost !py-1.5 !px-3">
             Edit
           </button>
         )}
       </div>
 
-      {state.error && (
-        <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
-          {state.error}
-        </div>
-      )}
+      <div className="av-card-b">
+        {state.error && (
+          <div
+            className="mb-3 px-3 py-2 rounded-lg text-[13px]"
+            style={{ background: 'var(--neg-soft)', color: 'var(--neg)', border: '1px solid color-mix(in srgb, var(--neg) 30%, transparent)' }}
+          >
+            {state.error}
+          </div>
+        )}
 
-      {isEditing ? (
-        <form action={formAction}>
-          <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_150px] gap-2 text-xs text-[var(--text-muted)] px-1">
+        {isEditing ? (
+          <form action={formAction}>
+            <div className="space-y-2">
+              <div className="grid grid-cols-[1fr_150px] gap-2 text-[11px] px-1" style={{ color: 'var(--muted)' }}>
+                <span>Parameter</span>
+                <span className="text-right">USD Value</span>
+              </div>
+              {rates.map((rate) => (
+                <div key={rate.field} className="grid grid-cols-[1fr_150px] gap-2 items-center">
+                  <span className="text-[13.5px]" style={{ color: 'var(--ink-2)' }}>{rate.label}</span>
+                  <input
+                    type="number"
+                    step="any"
+                    name={rate.field}
+                    value={editValues[rate.field] ?? ''}
+                    onChange={(e) =>
+                      setEditValues((prev) => ({ ...prev, [rate.field]: e.target.value }))
+                    }
+                    className="av-input av-num text-right !py-1.5"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button type="submit" disabled={isPending} className="av-btn av-btn-cyan disabled:opacity-60">
+                {isPending ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={isPending}
+                className="av-btn av-btn-ghost disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-1">
+            <div
+              className="grid grid-cols-[1fr_120px_120px] gap-2 text-[11px] px-1 pb-1.5 mb-1"
+              style={{ color: 'var(--muted)', borderBottom: '1px solid var(--line-2)' }}
+            >
               <span>Parameter</span>
-              <span className="text-right">USD Value</span>
+              <span className="text-right">USD</span>
+              <span className="text-right">EUR</span>
             </div>
             {rates.map((rate) => (
-              <div key={rate.field} className="grid grid-cols-[1fr_150px] gap-2 items-center">
-                <span className="text-sm text-[var(--text-secondary)]">{rate.label}</span>
-                <input
-                  type="number"
-                  step="any"
-                  name={rate.field}
-                  value={editValues[rate.field] ?? ''}
-                  onChange={(e) =>
-                    setEditValues((prev) => ({ ...prev, [rate.field]: e.target.value }))
-                  }
-                  className="px-2 py-1 text-sm text-right bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
+              <div
+                key={rate.field}
+                className="grid grid-cols-[1fr_120px_120px] gap-2 py-1.5 px-1"
+              >
+                <span className="text-[13.5px]" style={{ color: 'var(--ink-2)' }}>{rate.label}</span>
+                <span className="text-[13.5px] text-right av-num" style={{ color: 'var(--ink-2)' }}>{formatValue(rate.usd)}</span>
+                <span className="text-[13.5px] text-right av-num" style={{ color: 'var(--muted)' }}>{formatValue(rate.eur)}</span>
               </div>
             ))}
           </div>
-          <div className="flex gap-2 mt-4">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:text-gray-400 text-white rounded-md transition-colors"
-            >
-              {isPending ? 'Saving...' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={isPending}
-              className="px-4 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="space-y-1">
-          <div className="grid grid-cols-[1fr_120px_120px] gap-2 text-xs text-[var(--text-muted)] px-1 pb-1 border-b border-[var(--border-primary)]">
-            <span>Parameter</span>
-            <span className="text-right">USD</span>
-            <span className="text-right">EUR</span>
-          </div>
-          {rates.map((rate) => (
-            <div
-              key={rate.field}
-              className="grid grid-cols-[1fr_120px_120px] gap-2 py-1.5 px-1"
-            >
-              <span className="text-sm text-[var(--text-secondary)]">{rate.label}</span>
-              <span className="text-sm text-[var(--text-secondary)] text-right">{formatValue(rate.usd)}</span>
-              <span className="text-sm text-[var(--text-tertiary)] text-right">{formatValue(rate.eur)}</span>
-            </div>
-          ))}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

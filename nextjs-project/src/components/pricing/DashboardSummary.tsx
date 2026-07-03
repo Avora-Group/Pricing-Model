@@ -145,18 +145,14 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     marginByMsn.set(r.msn, rev > 0 ? pnl / rev : 0)
   }
 
-  const paramInputCls = (viewer: boolean) =>
-    `border rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] av-num focus:outline-none ${
-      viewer
-        ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
-        : 'bg-gray-100 dark:bg-gray-800 border-[var(--border-secondary)] focus:border-indigo-400'
-    }`
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-[18px]">
       {/* Error banner */}
       {(lastError || exportError) && (
-        <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-lg p-3 text-red-700 dark:text-red-200 text-sm">
+        <div
+          className="rounded-lg p-3 text-sm"
+          style={{ background: 'var(--neg-soft)', color: 'var(--neg)', border: '1px solid var(--neg)' }}
+        >
           {lastError ?? exportError}
         </div>
       )}
@@ -165,23 +161,23 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 text-xs">
           {isCalculating && (
-            <span className="text-indigo-600 dark:text-indigo-400">Calculating…</span>
+            <span style={{ color: 'var(--cyan-ink)' }}>Calculating…</span>
           )}
           {isEditing && (
-            <span className="text-[var(--av-accent-ink)] bg-[var(--av-accent-soft)] px-2 py-1 rounded-md">
+            <span
+              className="px-2 py-1 rounded-md av-num"
+              style={{ color: 'var(--cyan-ink)', background: 'var(--cyan-soft)' }}
+            >
               Editing {editingQuoteNumber}
             </span>
           )}
           {savedNotice && (
-            <span className="text-[var(--av-pos)]">Saved: {savedNotice}</span>
+            <span style={{ color: 'var(--pos)' }}>Saved: {savedNotice}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {isEditing && !isViewer && (
-            <button
-              onClick={() => reset()}
-              className="px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
-            >
+            <button onClick={() => reset()} className="av-btn av-btn-ghost !text-xs !py-1.5">
               New quote
             </button>
           )}
@@ -189,7 +185,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
             onClick={handleExport}
             disabled={msnInputs.length === 0 || isExporting}
             title="Download the calculation as an Excel workbook (Calculation, P&L, Aircraft, Crew, Costs)"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="av-btn av-btn-ghost !text-xs !py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={12} />
             {isExporting ? 'Preparing…' : 'Download Excel'}
@@ -198,7 +194,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
             <button
               onClick={() => setShowSaveDialog(true)}
               disabled={msnResults.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="av-btn av-btn-cyan !text-xs !py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={12} />
               {isEditing ? 'Update Quote' : 'Save as Quote'}
@@ -207,147 +203,123 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
         </div>
       </div>
 
-      {/* Body: Summary (left) + parameters/inputs column (right) */}
-      <div className="flex flex-col md:flex-row gap-4 md:items-start">
-        {/* Left: Summary Table */}
-        <div className="w-full md:w-[380px] md:shrink-0">
-          <SummaryTable />
+      {/* Project bar — name + global assumptions */}
+      <div className="av-proj-bar">
+        <div className="av-pb-field name">
+          <label>Project name</label>
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            placeholder="Untitled project"
+            className="av-input"
+          />
+        </div>
+        <div className="av-pb-field small">
+          <label>USD / EUR</label>
+          <input
+            type="number"
+            step="0.0001"
+            value={exchangeRate}
+            onChange={(e) => setExchangeRate(e.target.value)}
+            readOnly={isViewer}
+            tabIndex={isViewer ? -1 : undefined}
+            className="av-input av-num"
+          />
+        </div>
+        <div className="av-pb-field small">
+          <label>BH : FH</label>
+          <input
+            type="number"
+            step="0.01"
+            value={bhFhRatio}
+            onChange={(e) => setBhFhRatio(e.target.value)}
+            readOnly={isViewer}
+            tabIndex={isViewer ? -1 : undefined}
+            className="av-input av-num"
+          />
+        </div>
+        <div className="av-pb-field small">
+          <label>APU FH : FH</label>
+          <input
+            type="number"
+            step="0.01"
+            value={apuFhRatio}
+            onChange={(e) => setApuFhRatio(e.target.value)}
+            readOnly={isViewer}
+            tabIndex={isViewer ? -1 : undefined}
+            className="av-input av-num"
+          />
+        </div>
+      </div>
+
+      {/* Aircraft tabs + add-aircraft picker */}
+      <div className="av-ac-tabs">
+        {msnInputs.map((input) => {
+          const active = input.msn === activeMsn
+          const margin = marginByMsn.get(input.msn)
+          const issues = msnIssues(input)
+          return (
+            <button
+              key={input.msn}
+              onClick={() => setActiveMsn(input.msn)}
+              title={issues.length ? `Check inputs: ${issues.join(' · ')}` : undefined}
+              className={`av-ac-tab${active ? ' active' : ''}`}
+            >
+              <span className="av-num">MSN {input.msn}</span>
+              <span className="ty">{input.aircraftType}</span>
+              {issues.length > 0 ? (
+                <AlertTriangle size={12} style={{ color: 'var(--amber)' }} />
+              ) : margin !== undefined ? (
+                <span className={`av-num ty ${margin >= 0 ? 'av-pos' : 'av-neg'}`}>
+                  {margin >= 0 ? '+' : ''}{(margin * 100).toFixed(1)}%
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
+        <div className="flex items-center gap-2 ml-1.5">
+          <select
+            value={selectedAircraft}
+            onChange={(e) => setSelectedAircraft(e.target.value)}
+            className="av-input !py-2"
+          >
+            <option value="">Select aircraft…</option>
+            {availableAircraft.map((ac) => (
+              <option key={ac.id} value={ac.id}>
+                MSN {ac.msn} · {ac.aircraft_type}
+                {ac.registration ? ` (${ac.registration})` : ''}
+              </option>
+            ))}
+          </select>
+          <button onClick={handleAddAndSelect} disabled={!selectedAircraft} className="av-ac-add disabled:opacity-50 disabled:cursor-not-allowed">
+            <Plus size={14} />
+            Add aircraft
+          </button>
+        </div>
+      </div>
+
+      {/* Work grid: inputs (left) · live results (right) */}
+      <div className="av-work-grid">
+        <div className="av-panel overflow-hidden">
+          {activeInput ? (
+            <MsnInputRow
+              key={activeInput.msn}
+              input={activeInput}
+              onUpdate={updateMsnInput}
+              onRemove={removeMsnInput}
+              aircraftList={aircraftList}
+              usedMsns={msnInputs.map((i) => i.msn)}
+            />
+          ) : (
+            <p className="text-xs text-center py-10" style={{ color: 'var(--muted)' }}>
+              No aircraft added yet. Select an aircraft above to begin pricing.
+            </p>
+          )}
         </div>
 
-        {/* Right column: parameters card on top of the MSN inputs card */}
-        <div className="flex-1 min-w-0 flex flex-col gap-4">
-          {/* Project & parameters */}
-          <div className="av-panel p-3">
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
-                  Project Name
-                </label>
-                <input
-                  type="text"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="Untitled Project"
-                  className="w-[200px] bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
-                  USD/EUR Rate
-                </label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={exchangeRate}
-                  onChange={(e) => setExchangeRate(e.target.value)}
-                  readOnly={isViewer}
-                  tabIndex={isViewer ? -1 : undefined}
-                  className={`w-[96px] ${paramInputCls(isViewer)}`}
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
-                  BH:FH
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={bhFhRatio}
-                  onChange={(e) => setBhFhRatio(e.target.value)}
-                  readOnly={isViewer}
-                  tabIndex={isViewer ? -1 : undefined}
-                  className={`w-[80px] ${paramInputCls(isViewer)}`}
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-[var(--text-tertiary)] mb-1">
-                  APU FH:FH
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={apuFhRatio}
-                  onChange={(e) => setApuFhRatio(e.target.value)}
-                  readOnly={isViewer}
-                  tabIndex={isViewer ? -1 : undefined}
-                  className={`w-[80px] ${paramInputCls(isViewer)}`}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* MSN inputs — single card, master-detail bookmark tabs */}
-          <div className="av-panel p-3">
-            <div className="flex items-end gap-2 border-b border-[var(--border-primary)] mb-3">
-              <div className="flex items-end gap-1 overflow-x-auto flex-1">
-                {msnInputs.map((input) => {
-                  const active = input.msn === activeMsn
-                  const margin = marginByMsn.get(input.msn)
-                  const issues = msnIssues(input)
-                  return (
-                    <button
-                      key={input.msn}
-                      onClick={() => setActiveMsn(input.msn)}
-                      title={issues.length ? `Check inputs: ${issues.join(' · ')}` : undefined}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 -mb-px rounded-t-md border border-b-0 whitespace-nowrap transition-colors ${
-                        active
-                          ? 'bg-[var(--bg-primary)] border-[var(--border-primary)] text-[var(--text-primary)]'
-                          : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      <span className="av-num text-xs font-semibold">{input.msn}</span>
-                      <span className="text-[10px] text-[var(--text-muted)]">{input.aircraftType}</span>
-                      {issues.length > 0 ? (
-                        <AlertTriangle size={11} className="text-amber-500" />
-                      ) : margin !== undefined ? (
-                        <span className={`av-num text-[10px] ${margin >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]'}`}>
-                          {margin >= 0 ? '+' : ''}{(margin * 100).toFixed(1)}%
-                        </span>
-                      ) : null}
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex items-center gap-2 pb-1.5 shrink-0">
-                <select
-                  value={selectedAircraft}
-                  onChange={(e) => setSelectedAircraft(e.target.value)}
-                  className="bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md px-2 py-1 text-xs text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none"
-                >
-                  <option value="">Select aircraft…</option>
-                  {availableAircraft.map((ac) => (
-                    <option key={ac.id} value={ac.id}>
-                      MSN {ac.msn} - {ac.aircraft_type}
-                      {ac.registration ? ` (${ac.registration})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAddAndSelect}
-                  disabled={!selectedAircraft}
-                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Plus size={12} />
-                  Add
-                </button>
-              </div>
-            </div>
-
-            {activeInput ? (
-              <MsnInputRow
-                key={activeInput.msn}
-                input={activeInput}
-                onUpdate={updateMsnInput}
-                onRemove={removeMsnInput}
-                aircraftList={aircraftList}
-                usedMsns={msnInputs.map((i) => i.msn)}
-              />
-            ) : (
-              <p className="text-xs text-[var(--text-muted)] text-center py-8">
-                No aircraft added yet. Select an aircraft above to begin pricing.
-              </p>
-            )}
-          </div>
+        <div className="min-w-0">
+          <SummaryTable />
         </div>
       </div>
 

@@ -1,22 +1,30 @@
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { TopBar } from '@/components/layout/TopBar'
 import { BottomTabBar } from '@/components/navigation/BottomTabBar'
+import { CostVisibilityProvider } from '@/providers/CostVisibilityProvider'
 import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
 
-async function getUserRole(token: string): Promise<string> {
+async function getUser(
+  token: string,
+): Promise<{ role: string; email?: string; canViewCosts: boolean }> {
   try {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: { Cookie: `access_token=${token}` },
       cache: 'no-store',
     })
-    if (!res.ok) return 'user'
+    if (!res.ok) return { role: 'user', canViewCosts: false }
     const user = await res.json()
-    return user.role ?? 'user'
+    return {
+      role: user.role ?? 'user',
+      email: user.email,
+      // Admins implicitly always have cost access.
+      canViewCosts: user.role === 'admin' || Boolean(user.can_view_costs),
+    }
   } catch {
-    return 'user'
+    return { role: 'user', canViewCosts: false }
   }
 }
 
@@ -31,16 +39,18 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  const userRole = await getUserRole(session.token)
+  const { role: userRole, email: userEmail, canViewCosts } = await getUser(session.token)
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-950 overflow-hidden">
-      <Sidebar userRole={userRole} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopBar />
-        <main className="flex-1 overflow-auto p-4 md:p-6 pb-18 md:pb-6">{children}</main>
+    <CostVisibilityProvider value={canViewCosts}>
+      <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
+        <Sidebar userRole={userRole} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <TopBar userEmail={userEmail} userRole={userRole} />
+          <main className="flex-1 overflow-auto p-4 md:p-6 pb-18 md:pb-6">{children}</main>
+        </div>
+        <BottomTabBar userRole={userRole} />
       </div>
-      <BottomTabBar userRole={userRole} />
-    </div>
+    </CostVisibilityProvider>
   )
 }

@@ -41,3 +41,13 @@ async def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+
+def user_can_view_costs(user: dict) -> bool:
+    """Naked-cost access rule (single source of truth).
+
+    Only admins and users explicitly granted ``can_view_costs`` may see actual
+    cost figures and profit margins. Everyone else gets cost/margin fields
+    omitted from API responses (enforced server-side, never client-only).
+    """
+    return user.get("role") == "admin" or bool(user.get("can_view_costs"))

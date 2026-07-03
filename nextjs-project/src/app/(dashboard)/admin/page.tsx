@@ -50,22 +50,25 @@ export default async function AdminPage() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            User Management
-          </h1>
-          <p className="text-sm text-[var(--text-tertiary)] mt-1">
-            Manage user accounts and reset passwords
-          </p>
+          <h1 className="av-page-title">Admin</h1>
+          <p className="av-page-sub">User management and access control</p>
         </div>
         <CreateUserDialog />
       </div>
 
       {result.error ? (
-        <div className="px-4 py-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+        <div
+          className="px-4 py-3 rounded-lg text-sm"
+          style={{
+            color: 'var(--neg)',
+            background: 'var(--neg-soft)',
+            border: '1px solid color-mix(in srgb, var(--neg) 30%, transparent)',
+          }}
+        >
           {result.error}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-xl overflow-hidden">
+        <div className="av-panel overflow-hidden">
           <UserTable users={result.users ?? []} />
         </div>
       )}

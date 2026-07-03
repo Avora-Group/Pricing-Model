@@ -23,23 +23,74 @@ function LoginContent() {
   const azureError = searchParams.get('error')
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#030712] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">ACMI Pricing</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Sign in to your account</p>
+    <div className="av-panel w-full" style={{ maxWidth: 400 }}>
+      <div className="av-card-b" style={{ padding: 32 }}>
+        {/* Brand lockup */}
+        <div className="flex flex-col items-center text-center mb-7">
+          <div
+            className="flex items-center justify-center mb-4"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: '#ffffff',
+              boxShadow: '0 4px 14px rgba(0,0,0,.10)',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--font-serif)',
+                color: 'var(--navy)',
+                fontSize: 32,
+                fontWeight: 700,
+                lineHeight: 1,
+              }}
+            >
+              A
+            </span>
+          </div>
+          <div
+            style={{
+              fontFamily: 'var(--font-serif)',
+              color: 'var(--ink)',
+              fontSize: 26,
+              fontWeight: 700,
+              letterSpacing: '-.5px',
+              lineHeight: 1,
+            }}
+          >
+            Avora
+          </div>
+          <div
+            className="mt-2"
+            style={{
+              color: 'var(--muted)',
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '.18em',
+            }}
+          >
+            ACMI Pricing
+          </div>
+        </div>
 
         {azureError && (
-          <p className="text-sm text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg px-3 py-2 mb-5">
+          <p
+            className="text-sm rounded-lg px-3 py-2 mb-5"
+            style={{
+              color: 'var(--neg)',
+              background: 'var(--neg-soft)',
+              border: '1px solid color-mix(in srgb, var(--neg) 30%, transparent)',
+            }}
+          >
             {AZURE_ERRORS[azureError] ?? 'Login failed'}
           </p>
         )}
 
         <a
           href="/api/auth/login/azure"
-          className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4
-                     bg-[#2f2f2f] hover:bg-[#3b3b3b] dark:bg-white dark:hover:bg-gray-100
-                     text-white dark:text-[#2f2f2f] font-medium rounded-lg transition-colors
-                     focus:outline-none focus:ring-3 focus:ring-gray-500/50"
+          className="av-btn av-btn-cyan w-full justify-center"
         >
           <svg className="w-5 h-5" viewBox="0 0 21 21" fill="none">
             <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
@@ -49,6 +100,10 @@ function LoginContent() {
           </svg>
           Sign in with Microsoft
         </a>
+
+        <p className="text-center mt-6" style={{ color: 'var(--muted)', fontSize: 12 }}>
+          Fly2Sky JSC · ACMI &amp; wet-lease pricing
+        </p>
       </div>
     </div>
   )

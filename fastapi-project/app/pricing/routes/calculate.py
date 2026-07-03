@@ -10,8 +10,9 @@ from decimal import Decimal
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, user_can_view_costs
 from app.db.database import get_db
+from app.pricing.redaction import redact_calculate_response
 from app.aircraft.repository import AircraftRepository
 from app.pricing.repository import (
     CrewConfigRepository,
@@ -207,4 +208,9 @@ async def calculate(
                 final_rate_per_bh=agg.get("weighted_avg_rate_per_bh", Decimal("0")),
             )
 
-    return CalculateResponse(msn_results=msn_results, total=total)
+    response = CalculateResponse(msn_results=msn_results, total=total)
+    # Server-side naked-cost gate: strip cost/profit/margin for users without
+    # permission. Revenue and the EUR/BH sell rate are preserved.
+    payload = response.model_dump()
+    payload = redact_calculate_response(payload, user_can_view_costs(current_user))
+    return CalculateResponse(**payload)

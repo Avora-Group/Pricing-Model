@@ -58,14 +58,14 @@ export function AircraftDetail({
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[18px]">
       {/* Header */}
       <div>
-        <div className="flex items-baseline gap-4">
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">MSN {aircraft.msn}</h1>
-          <span className="text-lg text-[var(--text-tertiary)]">{aircraft.aircraft_type}</span>
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <h1 className="av-page-title av-num">MSN {aircraft.msn}</h1>
+          <span className="chip">{aircraft.aircraft_type}</span>
         </div>
-        <p className="text-[var(--text-tertiary)] mt-1">
+        <p className="av-page-sub">
           {aircraft.registration ?? 'No registration'}
         </p>
       </div>
@@ -87,31 +87,31 @@ export function AircraftDetail({
       />
 
       {/* Escalation Rates */}
-      <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-3">Escalation Rates</h3>
-        <div className="space-y-1">
-          <div className="grid grid-cols-[1fr_120px] gap-2 text-xs text-[var(--text-muted)] px-1 pb-1 border-b border-[var(--border-primary)]">
-            <span>Parameter</span>
-            <span className="text-right">Rate</span>
-          </div>
-          <div className="grid grid-cols-[1fr_120px] gap-2 py-1.5 px-1">
-            <span className="text-sm text-[var(--text-secondary)]">EPR Escalation</span>
-            <span className="text-sm text-[var(--text-secondary)] text-right">
-              {formatEscalation(aircraft.epr_escalation)}
-            </span>
-          </div>
-          <div className="grid grid-cols-[1fr_120px] gap-2 py-1.5 px-1">
-            <span className="text-sm text-[var(--text-secondary)]">LLP Escalation</span>
-            <span className="text-sm text-[var(--text-secondary)] text-right">
-              {formatEscalation(aircraft.llp_escalation)}
-            </span>
-          </div>
-          <div className="grid grid-cols-[1fr_120px] gap-2 py-1.5 px-1">
-            <span className="text-sm text-[var(--text-secondary)]">AF+APU Escalation</span>
-            <span className="text-sm text-[var(--text-secondary)] text-right">
-              {formatEscalation(aircraft.af_apu_escalation)}
-            </span>
-          </div>
+      <div className="av-panel">
+        <div className="av-panel-h"><h2>Escalation Rates</h2></div>
+        <div className="overflow-x-auto">
+          <table className="av-tbl">
+            <thead>
+              <tr>
+                <th className="av-th">Parameter</th>
+                <th className="av-th r">Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="av-td" style={{ color: 'var(--ink-2)' }}>EPR Escalation</td>
+                <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.epr_escalation)}</td>
+              </tr>
+              <tr>
+                <td className="av-td" style={{ color: 'var(--ink-2)' }}>LLP Escalation</td>
+                <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.llp_escalation)}</td>
+              </tr>
+              <tr>
+                <td className="av-td" style={{ color: 'var(--ink-2)' }}>AF+APU Escalation</td>
+                <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.af_apu_escalation)}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

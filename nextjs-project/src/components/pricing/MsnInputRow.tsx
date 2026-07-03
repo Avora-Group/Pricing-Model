@@ -14,11 +14,9 @@ interface MsnInputRowProps {
   usedMsns: number[]
 }
 
-const inputCls =
-  'w-full bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded px-1 py-[2px] text-[10px] text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none'
-const selectCls =
-  'w-full bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded px-0.5 py-[2px] text-[10px] text-[var(--text-primary)] focus:border-indigo-400 focus:outline-none'
-const labelCls = 'text-[9px] text-[var(--text-muted)] leading-none'
+const inputCls = 'av-input av-num !py-1.5 !text-xs w-full'
+const selectCls = 'av-input !py-1.5 !text-xs w-full'
+const labelCls = 'text-[10px] font-semibold leading-none mb-1 block text-[var(--muted)]'
 
 /** Reusable per-season field grid */
 function SeasonFields({
@@ -31,7 +29,7 @@ function SeasonFields({
   currencyLabel: string
 }) {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-1 gap-y-0.5">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       {/* MGH */}
       <div>
         <label className={labelCls}>MGH</label>
@@ -177,18 +175,18 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
   }
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-800/50 rounded-lg border border-[var(--border-secondary)]/50 px-2 py-1.5">
-      {/* Card header */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold text-[var(--text-primary)]">
+    <div>
+      {/* Inputs header */}
+      <div className="flex items-center justify-between gap-2 px-[18px] py-3.5 flex-wrap" style={{ borderBottom: '1px solid var(--line-2)' }}>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-bold" style={{ color: 'var(--ink)' }}>
             MSN {input.msn}
           </span>
-          <span className="text-[11px] text-[var(--text-tertiary)]">
+          <span className="text-xs font-semibold" style={{ color: 'var(--ink-2)' }}>
             {input.aircraftType}
           </span>
           {input.registration && (
-            <span className="text-[11px] text-[var(--text-muted)]">
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>
               ({input.registration})
             </span>
           )}
@@ -198,7 +196,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               defaultValue={String(input.aircraftId)}
               onChange={(e) => handleSwap(e.target.value)}
               onBlur={() => setShowSwap(false)}
-              className="bg-white dark:bg-gray-900 border border-indigo-400 rounded px-1.5 py-0.5 text-[11px] text-[var(--text-primary)] focus:outline-none"
+              className="av-input !py-1 !text-xs"
             >
               {swapOptions.map((ac) => (
                 <option key={ac.id} value={ac.id}>
@@ -210,91 +208,68 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
           ) : (
             <button
               onClick={() => setShowSwap(true)}
-              className="p-0.5 text-[var(--text-muted)] hover:text-indigo-400 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="p-1 rounded transition-colors"
+              style={{ color: 'var(--muted)' }}
               aria-label="Change aircraft"
               title="Change aircraft"
             >
-              <RefreshCw size={11} />
+              <RefreshCw size={12} />
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Seasonality toggle */}
-          <label className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] cursor-pointer select-none">
+          <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
             <input
               type="checkbox"
               checked={input.seasonalityEnabled}
               onChange={(e) => toggleSeasonality(input.msn, e.target.checked)}
-              className="w-3 h-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="w-3 h-3 rounded"
+              style={{ accentColor: 'var(--cyan)' }}
             />
             Seasonality
           </label>
           {/* Rate currency toggle */}
-          <div className="flex bg-gray-200 dark:bg-gray-700 rounded p-[1px]">
-            <button
-              onClick={() => onUpdate(input.msn, 'rateCurrency', 'eur')}
-              className={`px-1.5 py-[1px] text-[9px] font-semibold rounded transition-colors ${
-                input.rateCurrency === 'eur'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-[var(--text-tertiary)]'
-              }`}
-            >
+          <div className="av-seg" style={{ flex: 'unset' }}>
+            <button className={input.rateCurrency === 'eur' ? 'on' : ''} onClick={() => onUpdate(input.msn, 'rateCurrency', 'eur')} style={{ padding: '4px 9px' }}>
               EUR
             </button>
-            <button
-              onClick={() => onUpdate(input.msn, 'rateCurrency', 'usd')}
-              className={`px-1.5 py-[1px] text-[9px] font-semibold rounded transition-colors ${
-                input.rateCurrency === 'usd'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-[var(--text-tertiary)]'
-              }`}
-            >
+            <button className={input.rateCurrency === 'usd' ? 'on' : ''} onClick={() => onUpdate(input.msn, 'rateCurrency', 'usd')} style={{ padding: '4px 9px' }}>
               USD
             </button>
           </div>
           {/* Fixed Cost Coverage toggle */}
-          <label className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] cursor-pointer select-none">
+          <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
             <input
               type="checkbox"
               checked={input.fixedCostCoverageEnabled}
               onChange={(e) => onUpdate(input.msn, 'fixedCostCoverageEnabled', e.target.checked)}
-              className="w-3 h-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="w-3 h-3 rounded"
+              style={{ accentColor: 'var(--cyan)' }}
             />
             FC Coverage
           </label>
           <button
             onClick={() => onRemove(input.msn)}
-            className="p-0.5 text-[var(--text-muted)] hover:text-[var(--av-neg)] transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="p-1 rounded transition-colors"
+            style={{ color: 'var(--muted)' }}
             aria-label={`Remove MSN ${input.msn}`}
           >
-            <X size={12} />
+            <X size={13} />
           </button>
         </div>
       </div>
 
+      <div className="av-in-sec">
       {/* Seasonal tabs or flat inputs */}
       {input.seasonalityEnabled && input.summer && input.winter ? (
         <>
           {/* Tab bar */}
-          <div className="flex gap-1 mb-1">
-            <button
-              onClick={() => setActiveTab('summer')}
-              className={`px-2 py-[2px] text-[9px] font-medium rounded transition-colors ${
-                activeTab === 'summer'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-[var(--text-tertiary)] hover:bg-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
+          <div className="av-seg mb-3" style={{ flex: 'unset', maxWidth: 200 }}>
+            <button className={activeTab === 'summer' ? 'on' : ''} onClick={() => setActiveTab('summer')}>
               Summer
             </button>
-            <button
-              onClick={() => setActiveTab('winter')}
-              className={`px-2 py-[2px] text-[9px] font-medium rounded transition-colors ${
-                activeTab === 'winter'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-[var(--text-tertiary)] hover:bg-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
+            <button className={activeTab === 'winter' ? 'on' : ''} onClick={() => setActiveTab('winter')}>
               Winter
             </button>
           </div>
@@ -307,7 +282,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
           />
 
           {/* Shared fields below tabs */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-1 gap-y-0.5 mt-0.5 pt-0.5 border-t border-gray-200 dark:border-gray-700/50">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--line-2)' }}>
             {/* Environment */}
             <div>
               <label className={labelCls}>Environment</label>
@@ -338,7 +313,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
         </>
       ) : (
         /* Non-seasonal: original flat input grid */
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-1 gap-y-0.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {/* MGH */}
           <div>
             <label className={labelCls}>MGH</label>
@@ -471,7 +446,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
 
       {/* Fixed Cost Coverage inputs (shown when FC Coverage is toggled on) */}
       {input.fixedCostCoverageEnabled && (
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-1 gap-y-0.5 mt-0.5 pt-0.5 border-t border-gray-200 dark:border-gray-700/50">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--line-2)' }}>
           <div>
             <label className={labelCls}>Coverage %</label>
             <input
@@ -498,6 +473,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -20,3 +20,4 @@ class UserResponse(BaseModel):
     role: str
     full_name: str | None
     is_active: bool
+    can_view_costs: bool = False

@@ -46,12 +46,12 @@ export default async function AircraftPage() {
   ])
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-[18px]">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Aircraft Fleet</h1>
-          <p className="text-[var(--text-tertiary)] mt-1">
-            Manage aircraft master data and cost parameters
+          <h1 className="av-page-title">Aircraft Fleet</h1>
+          <p className="av-page-sub">
+            Master data and cost parameters — feeds the pricing model
           </p>
         </div>
         {isAdmin && <CreateAircraftDialog />}

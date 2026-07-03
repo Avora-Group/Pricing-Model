@@ -12,6 +12,7 @@ export interface User {
   role: string
   full_name: string | null
   is_active: boolean
+  can_view_costs: boolean
   created_at: string
   updated_at: string
 }
@@ -67,6 +68,8 @@ export async function createUserAction(
   const email = (formData.get('email') as string)?.trim()
   const fullName = (formData.get('full_name') as string)?.trim() || null
   const role = (formData.get('role') as string) || 'user'
+  // Checkbox: present in FormData only when checked. Admins always get access.
+  const canViewCosts = role === 'admin' || formData.get('can_view_costs') === 'on'
 
   if (!email) return { error: 'Email is required' }
 
@@ -77,7 +80,7 @@ export async function createUserAction(
         'Content-Type': 'application/json',
         Cookie: `access_token=${token}`,
       },
-      body: JSON.stringify({ email, full_name: fullName, role }),
+      body: JSON.stringify({ email, full_name: fullName, role, can_view_costs: canViewCosts }),
     })
 
     if (!res.ok) {
@@ -116,6 +119,39 @@ export async function updateRoleAction(
     if (!res.ok) {
       const data = await res.json().catch(() => ({ detail: 'Failed to update role' }))
       return { error: data.detail ?? 'Failed to update role' }
+    }
+
+    revalidatePath('/admin')
+    return { success: true }
+  } catch {
+    return { error: 'Network error — could not reach API' }
+  }
+}
+
+/* ─── Update Cost Access (naked-cost visibility) ─── */
+
+export async function updateCostAccessAction(
+  userId: number,
+  canViewCosts: boolean,
+): Promise<{ success?: boolean; error?: string }> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+
+  if (!token) return { error: 'Not authenticated' }
+
+  try {
+    const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: `access_token=${token}`,
+      },
+      body: JSON.stringify({ can_view_costs: canViewCosts }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ detail: 'Failed to update cost access' }))
+      return { error: data.detail ?? 'Failed to update cost access' }
     }
 
     revalidatePath('/admin')

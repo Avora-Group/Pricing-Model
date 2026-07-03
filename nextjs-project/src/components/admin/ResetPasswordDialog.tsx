@@ -44,53 +44,70 @@ export function ResetPasswordDialog({ userId, userName }: ResetPasswordDialogPro
     <>
       <button
         onClick={openDialog}
-        className="p-1.5 text-[var(--text-tertiary)] hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+        className="av-btn av-btn-ghost !py-1.5 !px-2.5"
         title="Reset password"
+        aria-label="Reset password"
       >
         <KeyRound size={15} />
       </button>
 
       <dialog
         ref={dialogRef}
-        className="bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded-xl p-0 w-full max-w-sm backdrop:bg-black/60"
+        className="av-panel p-0 w-full max-w-sm backdrop:bg-black/60"
         onClose={() => setIsOpen(false)}
       >
         {isOpen && (
           <div className="p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--ink)' }}>
                 Reset Password
               </h2>
               <button
                 onClick={closeDialog}
-                className="p-1 text-[var(--text-tertiary)] hover:text-gray-900 dark:hover:text-gray-100 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="Close"
+                className="p-1 rounded-md transition-colors"
+                style={{ color: 'var(--muted)' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Set a new password for <span className="font-medium text-[var(--text-primary)]">{userName}</span>
+            <p className="text-sm mb-4" style={{ color: 'var(--ink-2)' }}>
+              Set a new password for <span className="font-medium" style={{ color: 'var(--ink)' }}>{userName}</span>
             </p>
 
             {/* Success banner */}
             {state.success && (
-              <div className="mb-4 px-3 py-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-300 text-sm">
+              <div
+                className="mb-4 px-3 py-2 rounded text-sm"
+                style={{
+                  color: 'var(--pos)',
+                  background: 'var(--pos-soft)',
+                  border: '1px solid color-mix(in srgb, var(--pos) 30%, transparent)',
+                }}
+              >
                 Password reset successfully
               </div>
             )}
 
             {/* Error banner */}
             {state.error && (
-              <div className="mb-4 px-3 py-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+              <div
+                className="mb-4 px-3 py-2 rounded text-sm"
+                style={{
+                  color: 'var(--neg)',
+                  background: 'var(--neg-soft)',
+                  border: '1px solid color-mix(in srgb, var(--neg) 30%, transparent)',
+                }}
+              >
                 {state.error}
               </div>
             )}
 
             <form ref={formRef} action={formAction} className="space-y-4">
               <div>
-                <label className="block text-sm text-[var(--text-secondary)] mb-1">
+                <label className="block text-sm mb-1" style={{ color: 'var(--ink-2)' }}>
                   New Password
                 </label>
                 <input
@@ -99,12 +116,12 @@ export function ResetPasswordDialog({ userId, userName }: ResetPasswordDialogPro
                   required
                   minLength={8}
                   placeholder="Min 8 characters"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="av-input w-full"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-[var(--text-secondary)] mb-1">
+                <label className="block text-sm mb-1" style={{ color: 'var(--ink-2)' }}>
                   Confirm Password
                 </label>
                 <input
@@ -113,7 +130,7 @@ export function ResetPasswordDialog({ userId, userName }: ResetPasswordDialogPro
                   required
                   minLength={8}
                   placeholder="Repeat password"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="av-input w-full"
                 />
               </div>
 
@@ -121,7 +138,7 @@ export function ResetPasswordDialog({ userId, userName }: ResetPasswordDialogPro
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:text-gray-400 text-white font-medium rounded-md transition-colors"
+                  className="av-btn av-btn-primary disabled:opacity-60"
                 >
                   {isPending ? 'Resetting...' : 'Reset Password'}
                 </button>
@@ -129,7 +146,7 @@ export function ResetPasswordDialog({ userId, userName }: ResetPasswordDialogPro
                   type="button"
                   onClick={closeDialog}
                   disabled={isPending}
-                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
+                  className="av-btn av-btn-ghost disabled:opacity-60"
                 >
                   Cancel
                 </button>

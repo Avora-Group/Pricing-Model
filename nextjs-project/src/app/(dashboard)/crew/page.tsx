@@ -2,14 +2,10 @@ import { CrewConfigTable } from '@/components/crew/CrewConfigTable'
 
 export default function CrewPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-[18px]">
       <div>
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-          Crew Cost Assumptions
-        </h1>
-        <p className="text-[var(--text-tertiary)] mt-1">
-          Payroll, other costs, training, and per diem parameters
-        </p>
+        <h1 className="av-page-title">Crew Cost Assumptions</h1>
+        <p className="av-page-sub">Payroll, per-diem and training parameters</p>
       </div>
       <CrewConfigTable />
     </div>

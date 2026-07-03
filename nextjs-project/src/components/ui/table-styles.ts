@@ -22,4 +22,4 @@ export const tdLabel = `${tdBase} text-[var(--text-secondary)]`
 export const tdComputed = `${tdBase} text-right av-num text-[var(--text-tertiary)]`
 
 /** Standard row border */
-export const borderRow = 'border-b border-gray-200/60 dark:border-gray-800/60'
+export const borderRow = 'border-b border-[var(--line-2)]'

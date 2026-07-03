@@ -35,6 +35,7 @@ async def create_user(
             hashed_password=hashed,
             role=body.role,
             full_name=body.full_name,
+            can_view_costs=body.can_view_costs,
         )
     else:
         # Azure SSO invite (no password)
@@ -43,6 +44,7 @@ async def create_user(
             azure_id=None,
             full_name=body.full_name,
             role=body.role,
+            can_view_costs=body.can_view_costs,
         )
     return user
 

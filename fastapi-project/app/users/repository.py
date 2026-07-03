@@ -24,16 +24,18 @@ class UserRepository(BaseRepository):
         azure_id: str | None,
         full_name: str | None = None,
         role: str = "user",
+        can_view_costs: bool = False,
     ) -> dict:
         """Create a user authenticated via Azure AD (no password)."""
         return await self.fetch_one(
-            """INSERT INTO users (email, hashed_password, azure_id, role, full_name)
-               VALUES ($1, NULL, $2, $3, $4)
+            """INSERT INTO users (email, hashed_password, azure_id, role, full_name, can_view_costs)
+               VALUES ($1, NULL, $2, $3, $4, $5)
                RETURNING *""",
             email,
             azure_id,
             role,
             full_name,
+            can_view_costs,
         )
 
     async def fetch_by_id(self, user_id: int) -> dict | None:
@@ -48,16 +50,18 @@ class UserRepository(BaseRepository):
         hashed_password: str,
         role: str = "user",
         full_name: str | None = None,
+        can_view_costs: bool = False,
     ) -> dict:
         """Insert a new user and return the full row."""
         return await self.fetch_one(
-            """INSERT INTO users (email, hashed_password, role, full_name)
-               VALUES ($1, $2, $3, $4)
+            """INSERT INTO users (email, hashed_password, role, full_name, can_view_costs)
+               VALUES ($1, $2, $3, $4, $5)
                RETURNING *""",
             email,
             hashed_password,
             role,
             full_name,
+            can_view_costs,
         )
 
     async def list_users(self) -> list[dict]:

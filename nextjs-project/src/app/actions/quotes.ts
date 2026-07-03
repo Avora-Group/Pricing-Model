@@ -36,12 +36,14 @@ export interface QuoteDetailResponse {
   client_code: string
   status: string
   exchange_rate: string
-  margin_percent: string
+  // Naked-cost fields below are omitted (null) server-side for users without
+  // cost-view permission — the sell rate and identity always come through.
+  margin_percent: string | null
   msn_list: number[]
-  dashboard_state: Record<string, unknown>
-  pricing_config_snapshot: Record<string, unknown>
-  crew_config_snapshot: Record<string, unknown>
-  costs_config_snapshot: Record<string, unknown>
+  dashboard_state: Record<string, unknown> | null
+  pricing_config_snapshot: Record<string, unknown> | null
+  crew_config_snapshot: Record<string, unknown> | null
+  costs_config_snapshot: Record<string, unknown> | null
   msn_snapshots: QuoteMsnSnapshot[]
   created_at: string
   created_by: number
@@ -53,8 +55,9 @@ export interface QuoteMsnSnapshot {
   aircraft_type: string
   aircraft_id: number
   msn_input: Record<string, unknown>
-  breakdown: Record<string, unknown>
-  monthly_pnl: Record<string, unknown>
+  // Null when the current user lacks cost-view permission.
+  breakdown: Record<string, unknown> | null
+  monthly_pnl: Record<string, unknown> | null
 }
 
 // ---- Helper ----

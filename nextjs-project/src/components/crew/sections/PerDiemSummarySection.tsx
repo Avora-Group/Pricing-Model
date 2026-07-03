@@ -2,7 +2,6 @@
 
 import { EditableCell } from '@/components/ui/EditableCell'
 import { fmtInt } from '@/lib/format'
-import { thBase, tdBase, tdLabel, tdNum, tdComputed, borderRow } from '@/components/ui/table-styles'
 
 export interface PerDiemData {
   pilotFD: number
@@ -37,81 +36,85 @@ export function PerDiemSummarySection({
   onSetFdDays,
   onSetNfdDays,
 }: PerDiemSummarySectionProps) {
+  const groupBorder = { borderLeft: '1px solid var(--line-2)' }
+  const bhBonus = {
+    background: 'var(--pos-soft)',
+    color: 'var(--pos)',
+    borderRadius: 6,
+    padding: '2px 8px',
+    fontWeight: 600,
+  }
   return (
-    <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--border-primary)]">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Per Diem Summary</h3>
+    <div className="av-panel">
+      <div className="av-panel-h">
+        <h2>Per diem summary</h2>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="av-tbl">
           <thead>
             {/* Lease type header row */}
-            <tr className="border-b border-[var(--border-primary)] bg-gray-100/20 dark:bg-gray-800/20">
-              <th className={`${thBase} text-left`}></th>
-              <th className={`${thBase} text-right`}></th>
-              <th colSpan={2} className={`${thBase} text-center border-l border-[var(--border-secondary)]`}>
+            <tr>
+              <th className="av-th"></th>
+              <th className="av-th r"></th>
+              <th colSpan={2} className="av-th" style={{ textAlign: 'center', ...groupBorder }}>
                 Wet / Moist / Damp Lease
               </th>
-              <th colSpan={2} className={`${thBase} text-center border-l border-[var(--border-secondary)]`}>
+              <th colSpan={2} className="av-th" style={{ textAlign: 'center', ...groupBorder }}>
                 Wet Lease
               </th>
-              <th className={`${thBase} text-center border-l border-[var(--border-secondary)]`}>
+              <th className="av-th" style={{ textAlign: 'center', ...groupBorder }}>
                 Moist Lease
               </th>
             </tr>
             {/* Column headers */}
-            <tr className="border-b border-[var(--border-secondary)] bg-gray-100/40 dark:bg-gray-800/40">
-              <th className={`${thBase} text-left`}></th>
-              <th className={`${thBase} text-right`}>Days</th>
-              <th className={`${thBase} text-right border-l border-[var(--border-secondary)]`}>PILOT A321/A320</th>
-              <th className={`${thBase} text-right`}>BH Bonus for Pilot</th>
-              <th className={`${thBase} text-right border-l border-[var(--border-secondary)]`}>A321</th>
-              <th className={`${thBase} text-right`}>A320</th>
-              <th className={`${thBase} text-right border-l border-[var(--border-secondary)]`}>A321/A320</th>
+            <tr>
+              <th className="av-th"></th>
+              <th className="av-th r">Days</th>
+              <th className="av-th r" style={groupBorder}>PILOT A321/A320</th>
+              <th className="av-th r">BH Bonus for Pilot</th>
+              <th className="av-th r" style={groupBorder}>A321</th>
+              <th className="av-th r">A320</th>
+              <th className="av-th r" style={groupBorder}>A321/A320</th>
             </tr>
           </thead>
           <tbody>
             {/* FD row */}
-            <tr className={borderRow}>
-              <td className={`${tdLabel} font-medium`}>FD</td>
-              <td className={`${tdBase} text-right`}>
+            <tr>
+              <td className="av-td" style={{ fontWeight: 600, color: 'var(--ink)' }}>FD</td>
+              <td className="av-td r">
                 <EditableCell value={fdDays} onChange={v => onSetFdDays(v ?? 0)} decimals={0} formatFn={v => fmtInt(v)} />
               </td>
-              <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.pilotFD)}</td>
-              <td className={`${tdBase} text-right av-num`}>
-                <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/25 border border-emerald-300 dark:border-emerald-700/30 text-emerald-700 dark:text-emerald-300">
-                  {fmtInt(perDiem.bhBonusFD)}
-                </span>
+              <td className="av-td r av-num" style={{ color: 'var(--muted)', ...groupBorder }}>{fmtInt(perDiem.pilotFD)}</td>
+              <td className="av-td r av-num">
+                <span style={bhBonus}>{fmtInt(perDiem.bhBonusFD)}</span>
               </td>
-              <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.a321FD)}</td>
-              <td className={tdComputed}>{fmtInt(perDiem.a320FD)}</td>
-              <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.moistFD)}</td>
+              <td className="av-td r av-num" style={{ color: 'var(--muted)', ...groupBorder }}>{fmtInt(perDiem.a321FD)}</td>
+              <td className="av-td r av-num" style={{ color: 'var(--muted)' }}>{fmtInt(perDiem.a320FD)}</td>
+              <td className="av-td r av-num" style={{ color: 'var(--muted)', ...groupBorder }}>{fmtInt(perDiem.moistFD)}</td>
             </tr>
             {/* Non-FD row */}
-            <tr className={borderRow}>
-              <td className={`${tdLabel} font-medium`}>Non-FD</td>
-              <td className={`${tdBase} text-right`}>
+            <tr>
+              <td className="av-td" style={{ fontWeight: 600, color: 'var(--ink)' }}>Non-FD</td>
+              <td className="av-td r">
                 <EditableCell value={nfdDays} onChange={v => onSetNfdDays(v ?? 0)} decimals={0} formatFn={v => fmtInt(v)} />
               </td>
-              <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.pilotNFD)}</td>
-              <td className={`${tdBase} text-right av-num`}>
-                <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/25 border border-emerald-300 dark:border-emerald-700/30 text-emerald-700 dark:text-emerald-300">
-                  {fmtInt(perDiem.bhBonusNFD)}
-                </span>
+              <td className="av-td r av-num" style={{ color: 'var(--muted)', ...groupBorder }}>{fmtInt(perDiem.pilotNFD)}</td>
+              <td className="av-td r av-num">
+                <span style={bhBonus}>{fmtInt(perDiem.bhBonusNFD)}</span>
               </td>
-              <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.a321NFD)}</td>
-              <td className={tdComputed}>{fmtInt(perDiem.a320NFD)}</td>
-              <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.moistNFD)}</td>
+              <td className="av-td r av-num" style={{ color: 'var(--muted)', ...groupBorder }}>{fmtInt(perDiem.a321NFD)}</td>
+              <td className="av-td r av-num" style={{ color: 'var(--muted)' }}>{fmtInt(perDiem.a320NFD)}</td>
+              <td className="av-td r av-num" style={{ color: 'var(--muted)', ...groupBorder }}>{fmtInt(perDiem.moistNFD)}</td>
             </tr>
             {/* Totals row */}
-            <tr className="border-t border-[var(--border-secondary)] bg-gray-100/30 dark:bg-gray-800/30 font-medium">
-              <td className={tdLabel}></td>
-              <td className={`${tdBase} text-right text-xs text-[var(--text-tertiary)]`}>Per Diem per Crew Set</td>
-              <td className={`${tdNum} border-l border-gray-200/60 dark:border-gray-800/60 text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.pilotTotal)}</td>
-              <td className={`${tdNum} text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.bhBonusTotal)}</td>
-              <td className={`${tdNum} border-l border-gray-200/60 dark:border-gray-800/60 text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.a321Total)}</td>
-              <td className={`${tdNum} text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.a320Total)}</td>
-              <td className={`${tdNum} border-l border-gray-200/60 dark:border-gray-800/60 text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.moistTotal)}</td>
+            <tr style={{ background: 'var(--card-2)' }}>
+              <td className="av-td"></td>
+              <td className="av-td r" style={{ fontSize: 11, color: 'var(--muted)' }}>Per Diem per Crew Set</td>
+              <td className="av-td r av-num" style={{ fontWeight: 700, color: 'var(--brand)', ...groupBorder }}>{fmtInt(perDiem.pilotTotal)}</td>
+              <td className="av-td r av-num" style={{ fontWeight: 700, color: 'var(--brand)' }}>{fmtInt(perDiem.bhBonusTotal)}</td>
+              <td className="av-td r av-num" style={{ fontWeight: 700, color: 'var(--brand)', ...groupBorder }}>{fmtInt(perDiem.a321Total)}</td>
+              <td className="av-td r av-num" style={{ fontWeight: 700, color: 'var(--brand)' }}>{fmtInt(perDiem.a320Total)}</td>
+              <td className="av-td r av-num" style={{ fontWeight: 700, color: 'var(--brand)', ...groupBorder }}>{fmtInt(perDiem.moistTotal)}</td>
             </tr>
           </tbody>
         </table>

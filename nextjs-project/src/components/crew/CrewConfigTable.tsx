@@ -104,19 +104,22 @@ export function CrewConfigTable() {
   // ──────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
-      {/* MGH indicator */}
-      <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm bg-yellow-900/40 border border-yellow-700/40" />
-          Editable (click to edit)
+    <div className="space-y-[18px]">
+      {/* Legend bar */}
+      <div
+        className="flex flex-wrap items-center gap-5 px-4 py-2.5 rounded-xl text-[12px]"
+        style={{ background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--muted)' }}
+      >
+        <span className="flex items-center gap-2">
+          <span className="inline-block w-3 h-3 rounded-[3px]" style={{ background: 'var(--cyan-soft)', border: '1px solid var(--cyan)' }} />
+          Editable
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm bg-emerald-900/40 border border-emerald-600/40" />
+        <span className="flex items-center gap-2">
+          <span className="inline-block w-3 h-3 rounded-[3px]" style={{ background: 'var(--pos-soft)', border: '1px solid var(--pos)' }} />
           BH rate &times; MGH ({mgh}h {msnInputs.length > 0 ? 'from Dashboard' : '— add MSN in Dashboard'})
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)]" />
+        <span className="flex items-center gap-2">
+          <span className="inline-block w-3 h-3 rounded-[3px]" style={{ background: 'var(--line-2)', border: '1px solid var(--line)' }} />
           Calculated
         </span>
       </div>

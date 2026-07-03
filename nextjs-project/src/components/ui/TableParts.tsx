@@ -30,7 +30,7 @@ export function FormulaCell({
 export function SectionHeader({ title }: { title: string }) {
   return (
     <div className="mt-6 mb-2">
-      <h3 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+      <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--cyan-ink)' }}>
         {title}
       </h3>
     </div>
@@ -42,7 +42,7 @@ export function SectionHeader({ title }: { title: string }) {
  */
 export function TableCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg overflow-hidden">
+    <div className="av-panel rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-xs">{children}</table>
       </div>

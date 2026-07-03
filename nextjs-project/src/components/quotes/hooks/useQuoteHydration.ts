@@ -71,8 +71,10 @@ export function useQuoteHydration(quote: QuoteDetailResponse) {
 
     // Reconstruct msnResults from msn_snapshots
     const msnResults: MsnPnlResult[] = (quote.msn_snapshots ?? []).map((snap) => {
-      const bd = snap.breakdown as Record<string, string>
-      const mp = snap.monthly_pnl as Record<string, string>
+      // breakdown / monthly_pnl are null server-side for users without
+      // cost-view permission — fall back to empty objects so hydration is safe.
+      const bd = (snap.breakdown ?? {}) as Record<string, string>
+      const mp = (snap.monthly_pnl ?? {}) as Record<string, string>
       return {
         msn: snap.msn,
         aircraftType: snap.aircraft_type,

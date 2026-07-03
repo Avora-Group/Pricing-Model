@@ -6,7 +6,6 @@ import {
   type MaintPersonnel,
 } from '@/stores/costs-config-store'
 import { EditableCell } from '@/components/ui/EditableCell'
-import { SectionHeader } from '@/components/ui/TableParts'
 import { MaintPersonnelSection } from './sections/MaintPersonnelSection'
 import { MaintCostsSection } from './sections/MaintCostsSection'
 import { InsuranceSection } from './sections/InsuranceSection'
@@ -84,15 +83,17 @@ export function CostsConfigTable() {
   // ---- Render ----
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[18px]">
       {/* Average AC - global input */}
-      <div className="bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg px-4 py-3 flex items-center gap-4">
-        <label className="text-sm text-[var(--text-tertiary)] whitespace-nowrap">Average A/C:</label>
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-xl"
+        style={{ background: 'var(--card)', border: '1px solid var(--line)' }}
+      >
+        <label className="text-[13px] whitespace-nowrap" style={{ color: 'var(--muted)' }}>Average A/C:</label>
         <EditableCell value={avgAc} onChange={(v) => setAvgAc(v ?? 0)} decimals={2} allowNull={false} className="w-28" />
       </div>
 
       {/* 1. Maintenance Personnel Cost */}
-      <SectionHeader title="Maintenance Personnel Cost" />
       <MaintPersonnelSection
         data={maintPersonnel}
         totals={maintPersonnelTotals}
@@ -101,23 +102,18 @@ export function CostsConfigTable() {
       />
 
       {/* 2. Maintenance Cost Assumptions */}
-      <SectionHeader title="Maintenance Cost Assumptions" />
       <MaintCostsSection data={maintCosts} onUpdate={updateMaintCost} />
 
       {/* 3. Insurance */}
-      <SectionHeader title="Insurance" />
       <InsuranceSection data={insurance} total={insuranceTotal} onUpdate={updateInsurance} />
 
       {/* 4. DOC */}
-      <SectionHeader title="DOC (Direct Operating Cost)" />
       <DocSection data={doc} perMonth={docPerMonth} onUpdate={updateDoc} />
 
       {/* 5. Other COGS */}
-      <SectionHeader title="Other COGS" />
       <OtherCogsSection data={otherCogsComputed} onUpdate={updateOtherCogs} />
 
       {/* 6. Overhead */}
-      <SectionHeader title="Overhead" />
       <OverheadSection
         data={overhead}
         perMonth={overheadPerMonth}

@@ -147,74 +147,87 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div
+        className="av-panel w-full max-w-md"
+        style={{ boxShadow: '0 20px 50px rgba(0,0,0,.3)' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {isEditing ? `Update quote ${editingQuoteNumber ?? ''}` : 'Save as Quote'}
-          </h2>
+        <div className="av-panel-h">
+          <h2>{isEditing ? `Update quote ${editingQuoteNumber ?? ''}` : 'Save as Quote'}</h2>
           <button
+            type="button"
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200 transition-colors"
+            aria-label="Close dialog"
+            className="transition-colors"
+            style={{ color: 'var(--muted)' }}
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Client Name <span className="text-red-400">*</span>
-            </label>
+        <form onSubmit={handleSubmit} className="av-card-b">
+          <div className="av-field">
+            <div className="fl">
+              <label htmlFor="quote-client-name">
+                Client Name <span style={{ color: 'var(--neg)' }}>*</span>
+              </label>
+            </div>
             <input
+              id="quote-client-name"
               type="text"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="e.g. EasyJet"
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-400 focus:outline-none"
+              className="av-input w-full"
               autoFocus
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Client Code <span className="text-red-400">*</span>
-            </label>
+          <div className="av-field">
+            <div className="fl">
+              <label htmlFor="quote-client-code">
+                Client Code <span style={{ color: 'var(--neg)' }}>*</span>
+              </label>
+            </div>
             <input
+              id="quote-client-code"
               type="text"
               value={clientCode}
               onChange={(e) => setClientCode(e.target.value.toUpperCase().slice(0, 4))}
               placeholder="e.g. EZJ (2-4 letters)"
               maxLength={4}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-400 focus:outline-none"
+              className="av-input w-full"
             />
             {clientCode.length > 0 && !codeValid && (
-              <p className="text-xs text-red-400 mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--neg)' }}>
                 Code must be 2-4 uppercase letters
               </p>
             )}
           </div>
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-md p-2 text-sm text-red-700 dark:text-red-200">
+            <div
+              className="rounded-md p-2 text-sm mt-3"
+              style={{ color: 'var(--neg)', background: 'var(--neg-soft)', border: '1px solid var(--neg)' }}
+            >
               {error}
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="av-btn av-btn-ghost"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!nameValid || !codeValid || saving}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="av-btn av-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving...' : isEditing ? 'Update Quote' : 'Save Quote'}
             </button>

@@ -36,32 +36,41 @@ class CalculateRequest(BaseModel):
 # ---- Component Breakdown ----
 
 class ComponentBreakdown(BaseModel):
-    """Per-BH cost breakdown for all 7 ACMI components (EUR)."""
+    """Per-BH cost breakdown for all 7 ACMI components (EUR).
 
-    aircraft_eur_per_bh: Decimal
-    crew_eur_per_bh: Decimal
-    maintenance_eur_per_bh: Decimal
-    insurance_eur_per_bh: Decimal
-    doc_eur_per_bh: Decimal
-    other_cogs_eur_per_bh: Decimal
-    overhead_eur_per_bh: Decimal
-    total_cost_per_bh: Decimal
+    Cost / margin fields are Optional so they can be omitted (nulled) server-side
+    for users without ``can_view_costs``. ``revenue_per_bh`` and
+    ``final_rate_per_bh`` are the sell rate and are always populated.
+    """
+
+    aircraft_eur_per_bh: Optional[Decimal] = None
+    crew_eur_per_bh: Optional[Decimal] = None
+    maintenance_eur_per_bh: Optional[Decimal] = None
+    insurance_eur_per_bh: Optional[Decimal] = None
+    doc_eur_per_bh: Optional[Decimal] = None
+    other_cogs_eur_per_bh: Optional[Decimal] = None
+    overhead_eur_per_bh: Optional[Decimal] = None
+    total_cost_per_bh: Optional[Decimal] = None
     revenue_per_bh: Decimal
-    margin_percent: Decimal
+    margin_percent: Optional[Decimal] = None
     final_rate_per_bh: Decimal
 
 
 # ---- MSN P&L Result ----
 
 class MsnPnlResult(BaseModel):
-    """Full P&L result for a single MSN."""
+    """Full P&L result for a single MSN.
+
+    ``monthly_cost`` / ``monthly_pnl`` are Optional so they can be omitted for
+    users without cost-view permission. ``monthly_revenue`` is always present.
+    """
 
     msn: int
     aircraft_type: str
     breakdown: ComponentBreakdown
-    monthly_cost: Decimal
+    monthly_cost: Optional[Decimal] = None
     monthly_revenue: Decimal
-    monthly_pnl: Decimal
+    monthly_pnl: Optional[Decimal] = None
 
 
 class CalculateResponse(BaseModel):

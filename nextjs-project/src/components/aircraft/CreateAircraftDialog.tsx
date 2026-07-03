@@ -55,29 +55,29 @@ export function CreateAircraftDialog() {
 
   return (
     <>
-      <button
-        onClick={openDialog}
-        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
-      >
+      <button onClick={openDialog} className="av-btn av-btn-cyan">
         <Plus size={16} />
         Add Aircraft
       </button>
 
       <dialog
         ref={dialogRef}
-        className="bg-white dark:bg-gray-900 border border-[var(--border-secondary)] rounded-xl p-0 w-full max-w-lg backdrop:bg-black/60"
+        className="p-0 w-full max-w-lg backdrop:bg-black/60"
+        style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', color: 'var(--ink)' }}
         onClose={() => setIsOpen(false)}
       >
         {isOpen && (
           <div className="p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              <h2 className="text-[17px] font-bold" style={{ color: 'var(--brand)' }}>
                 Add New Aircraft
               </h2>
               <button
                 onClick={closeDialog}
-                className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-1 rounded-md transition-colors"
+                style={{ color: 'var(--muted)' }}
+                aria-label="Close dialog"
               >
                 <X size={18} />
               </button>
@@ -85,7 +85,10 @@ export function CreateAircraftDialog() {
 
             {/* Error banner */}
             {state.error && (
-              <div className="mb-4 px-3 py-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+              <div
+                className="mb-4 px-3 py-2 rounded-lg text-[13px]"
+                style={{ background: 'var(--neg-soft)', color: 'var(--neg)', border: '1px solid color-mix(in srgb, var(--neg) 30%, transparent)' }}
+              >
                 {state.error}
               </div>
             )}
@@ -93,12 +96,12 @@ export function CreateAircraftDialog() {
             <form action={formAction} className="space-y-5">
               {/* Aircraft Identity */}
               <div>
-                <h3 className="text-sm font-medium text-[var(--text-tertiary)] mb-3">
+                <h3 className="text-[10.5px] font-bold uppercase tracking-[0.09em] mb-3" style={{ color: 'var(--muted)' }}>
                   Aircraft Identity
                 </h3>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">
+                    <label className="block text-[11px] mb-1" style={{ color: 'var(--muted)' }}>
                       MSN *
                     </label>
                     <input
@@ -106,31 +109,31 @@ export function CreateAircraftDialog() {
                       name="msn"
                       required
                       placeholder="e.g. 3055"
-                      className="w-full px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="av-input av-num !py-1.5 !text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">
+                    <label className="block text-[11px] mb-1" style={{ color: 'var(--muted)' }}>
                       Type
                     </label>
                     <select
                       name="aircraft_type"
                       defaultValue="A320"
-                      className="w-full px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="av-input !py-1.5 !text-[13px]"
                     >
                       <option value="A320">A320</option>
                       <option value="A321">A321</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">
+                    <label className="block text-[11px] mb-1" style={{ color: 'var(--muted)' }}>
                       Registration
                     </label>
                     <input
                       type="text"
                       name="registration"
                       placeholder="e.g. TC-UNA"
-                      className="w-full px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="av-input !py-1.5 !text-[13px]"
                     />
                   </div>
                 </div>
@@ -147,18 +150,14 @@ export function CreateAircraftDialog() {
 
               {/* Actions */}
               <div className="flex gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:text-gray-400 text-white font-medium rounded-md transition-colors"
-                >
+                <button type="submit" disabled={isPending} className="av-btn av-btn-cyan disabled:opacity-60">
                   {isPending ? 'Creating...' : 'Create Aircraft'}
                 </button>
                 <button
                   type="button"
                   onClick={closeDialog}
                   disabled={isPending}
-                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[var(--text-secondary)] rounded-md border border-[var(--border-secondary)] transition-colors"
+                  className="av-btn av-btn-ghost disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -180,20 +179,20 @@ function RateFieldGroup({
 }) {
   return (
     <div>
-      <h3 className="text-sm font-medium text-[var(--text-tertiary)] mb-3">{title}</h3>
+      <h3 className="text-[10.5px] font-bold uppercase tracking-[0.09em] mb-3" style={{ color: 'var(--muted)' }}>{title}</h3>
       <div className="space-y-2">
         {fields.map(({ field, label }) => (
           <div
             key={field}
             className="grid grid-cols-[1fr_150px] gap-2 items-center"
           >
-            <span className="text-sm text-[var(--text-secondary)]">{label}</span>
+            <span className="text-[13.5px]" style={{ color: 'var(--ink-2)' }}>{label}</span>
             <input
               type="number"
               step="any"
               name={field}
               placeholder="0.00"
-              className="px-2 py-1 text-sm text-right bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="av-input av-num text-right !py-1.5 !text-[13px]"
             />
           </div>
         ))}

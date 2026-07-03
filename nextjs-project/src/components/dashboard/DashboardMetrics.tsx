@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ChevronRight, Calculator, TrendingUp, List, CalendarDays } from 'lucide-react'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
 import { FleetCalendar, type CalendarSegment } from './FleetCalendar'
+import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
+import { Redacted } from '@/components/common/Redacted'
 
 // ---- Types (mirror the dashboard payload) ----
 
@@ -101,10 +103,18 @@ function shortDate(d: string | null): string {
 // signed + active deals (not completed/sent).
 const COMMITTED = new Set(['active', 'signed'])
 
-// ---- Ribbon ----
+interface Rollup {
+  signedValue: number
+  pipelineValue: number
+  committedMsn: number
+  avgRate: string | null
+  avgMargin: string | null
+  monthlyRevenue: number
+  monthlyProfit: number
+  lifetimeProfit: number
+}
 
-function Ribbon({ data }: { data: DashboardData }) {
-  const { project_counts, projects } = data
+function rollup(data: DashboardData): Rollup {
   let signedValue = 0
   let pipelineValue = 0
   let committedMsn = 0
@@ -112,7 +122,10 @@ function Ribbon({ data }: { data: DashboardData }) {
   let rateWeight = 0
   let sumRev = 0
   let sumProfit = 0
-  for (const p of projects) {
+  let monthlyRevenue = 0
+  let monthlyProfit = 0
+  let lifetimeProfit = 0
+  for (const p of data.projects) {
     const rev = n(p.total_revenue) ?? 0
     if (COMMITTED.has(p.status)) {
       signedValue += rev
@@ -125,49 +138,185 @@ function Ribbon({ data }: { data: DashboardData }) {
       }
       sumRev += rev
       sumProfit += n(p.total_profit) ?? 0
+      monthlyRevenue += n(p.monthly_revenue) ?? 0
+      monthlyProfit += n(p.monthly_profit) ?? 0
+      lifetimeProfit += n(p.total_profit) ?? 0
     } else if (p.status === 'sent') {
       pipelineValue += rev
     }
   }
-  const avgRate = rateWeight > 0 ? String(rateWeightSum / rateWeight) : null
-  const avgMargin = sumRev > 0 ? String((sumProfit / sumRev) * 100) : null
+  return {
+    signedValue,
+    pipelineValue,
+    committedMsn,
+    avgRate: rateWeight > 0 ? String(rateWeightSum / rateWeight) : null,
+    avgMargin: sumRev > 0 ? String((sumProfit / sumRev) * 100) : null,
+    monthlyRevenue,
+    monthlyProfit,
+    lifetimeProfit,
+  }
+}
 
-  const Chip = ({ count, label, dot }: { count: number; label: string; dot: string }) => (
-    <div className="flex items-baseline gap-1.5">
-      <span className={`w-2 h-2 rounded-full self-center shrink-0 ${dot}`} />
-      <span className="text-lg font-semibold tabular-nums">{count}</span>
-      <span className="text-[10px] uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</span>
-    </div>
-  )
+// ---- Hero ----
+
+function Hero({ data, r, canViewCosts }: { data: DashboardData; r: Rollup; canViewCosts: boolean }) {
+  const { project_counts } = data
+  const totForBar = Math.max(project_counts.total, 1)
+  const seg = (c: number) => `${(c / totForBar) * 100}%`
 
   return (
-    <div className="flex flex-wrap border border-[var(--border-primary)] rounded-xl bg-[var(--bg-primary)] overflow-hidden shadow-sm">
-      <div className="px-[18px] py-3.5 flex-1 min-w-[260px] border-r border-[var(--border-primary)]">
-        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-2">
-          Pipeline · {project_counts.total} projects
+    <div className="av-hero">
+      <div className="av-hero-grid">
+        {/* Left */}
+        <div>
+          <div className="av-hero-eyebrow">Committed contract value</div>
+          <div className="av-hero-val">{eurM(r.signedValue)}</div>
+          <div className="av-hero-sub">
+            <b>{project_counts.total}</b> projects in pipeline
+            {canViewCosts && (
+              <> · <b>{eurM(r.lifetimeProfit)}</b> lifetime profit committed</>
+            )}
+          </div>
+          <div className="av-pipe-bar mt-4">
+            <div className="av-pipe-seg" style={{ width: seg(project_counts.active), background: '#2cc39c' }} />
+            <div className="av-pipe-seg" style={{ width: seg(project_counts.signed), background: '#3f56b0' }} />
+            <div className="av-pipe-seg" style={{ width: seg(project_counts.sent), background: '#18B4D8' }} />
+          </div>
+          <div className="av-pipe-legend">
+            <div className="pl"><span className="d" style={{ background: '#2cc39c' }} /> Active <b>{project_counts.active}</b></div>
+            <div className="pl"><span className="d" style={{ background: '#3f56b0' }} /> Signed <b>{project_counts.signed}</b></div>
+            <div className="pl"><span className="d" style={{ background: '#18B4D8' }} /> Sent <b>{project_counts.sent}</b></div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-          <Chip count={project_counts.active} label="active" dot="av-dot-active" />
-          <Chip count={project_counts.signed} label="signed" dot="av-dot-signed" />
-          <Chip count={project_counts.sent} label="sent" dot="av-dot-sent" />
+        {/* Right */}
+        <div className="av-hstat-grid">
+          <div className="av-hstat">
+            <div className="l">Avg rate · signed &amp; active</div>
+            <div className="v av-num">{num(r.avgRate)}<span className="text-[13px] font-medium opacity-70"> €/BH</span></div>
+            <div className="s">{canViewCosts ? `${num(r.avgMargin, 1)}% blended margin` : 'signed & active deals'}</div>
+          </div>
+          <div className="av-hstat">
+            <div className="l">Fleet committed</div>
+            <div className="v av-num">{r.committedMsn}<span className="text-[13px] font-medium opacity-70"> MSN</span></div>
+            <div className="s">on signed &amp; active deals</div>
+          </div>
+          <div className="av-hstat">
+            <div className="l">Monthly revenue</div>
+            <div className="v av-num">{eur(String(r.monthlyRevenue))}</div>
+            <div className="s">committed run-rate</div>
+          </div>
+          <div className="av-hstat">
+            <div className="l">Monthly profit</div>
+            <div className="v av-num" style={{ color: canViewCosts ? (r.monthlyProfit >= 0 ? '#5eead4' : '#fca5a5') : undefined }}>
+              {canViewCosts ? eur(String(r.monthlyProfit)) : <Redacted />}
+            </div>
+            <div className="s">across committed deals</div>
+          </div>
         </div>
       </div>
-      <div className="px-[18px] py-3.5 flex-1 min-w-[180px] border-r border-[var(--border-primary)]">
-        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Signed contract value</div>
-        <div className="text-[22px] font-semibold tracking-tight">{eurM(signedValue)}</div>
-        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{eurM(pipelineValue)} in pipeline</div>
+    </div>
+  )
+}
+
+// ---- Charts ----
+
+const STATUS_FILL: Record<string, string> = {
+  active: 'av-hbar-fill',
+  signed: 'av-hbar-fill sig',
+  sent: 'av-hbar-fill snt',
+}
+
+function RevenueByClient({ data }: { data: DashboardData }) {
+  const rows = data.projects
+    .map((p) => ({ name: p.name, status: p.status, rev: n(p.monthly_revenue) ?? 0 }))
+    .filter((x) => x.rev > 0)
+    .sort((a, b) => b.rev - a.rev)
+    .slice(0, 7)
+  const max = Math.max(...rows.map((x) => x.rev), 1)
+
+  return (
+    <div className="av-panel">
+      <div className="av-panel-h"><h2>Monthly revenue by client</h2></div>
+      <div className="av-card-b">
+        {rows.length === 0 ? (
+          <div className="text-center py-6 text-[13px]" style={{ color: 'var(--muted)' }}>No revenue yet.</div>
+        ) : (
+          rows.map((x) => (
+            <div className="av-hbar-row" key={x.name}>
+              <div className="nm" title={x.name}>{x.name}</div>
+              <div className="av-hbar-track">
+                <div className={STATUS_FILL[x.status] ?? 'av-hbar-fill'} style={{ width: `${(x.rev / max) * 100}%` }} />
+              </div>
+              <div className="vl av-num">{eur(String(x.rev))}</div>
+            </div>
+          ))
+        )}
       </div>
-      <div className="px-[18px] py-3.5 flex-1 min-w-[160px] border-r border-[var(--border-primary)]">
-        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Avg rate · signed &amp; active</div>
-        <div className="text-[22px] font-semibold tracking-tight av-num">
-          {num(avgRate)}<span className="text-xs text-[var(--text-muted)] font-medium ml-1">€/BH</span>
+    </div>
+  )
+}
+
+function PipelineDonut({ data, r }: { data: DashboardData; r: Rollup }) {
+  const { project_counts } = data
+  const segs = [
+    { label: 'Active', value: project_counts.active, color: '#2cc39c' },
+    { label: 'Signed', value: project_counts.signed, color: '#3f56b0' },
+    { label: 'Sent', value: project_counts.sent, color: '#18B4D8' },
+  ]
+  const total = segs.reduce((s, x) => s + x.value, 0) || 1
+  const C = 2 * Math.PI * 54 // r=54
+  let offset = 0
+
+  return (
+    <div className="av-panel">
+      <div className="av-panel-h"><h2>Pipeline mix</h2></div>
+      <div className="av-card-b">
+        <div className="flex items-center gap-6">
+          <div className="relative shrink-0" style={{ width: 140, height: 140 }}>
+            <svg width="140" height="140" viewBox="0 0 140 140">
+              <circle cx="70" cy="70" r="54" fill="none" stroke="var(--line)" strokeWidth="16" />
+              {segs.map((s) => {
+                const len = (s.value / total) * C
+                const el = (
+                  <circle
+                    key={s.label}
+                    cx="70" cy="70" r="54" fill="none"
+                    stroke={s.color} strokeWidth="16"
+                    strokeDasharray={`${len} ${C - len}`}
+                    strokeDashoffset={-offset}
+                    transform="rotate(-90 70 70)"
+                    strokeLinecap="butt"
+                  />
+                )
+                offset += len
+                return el
+              })}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div className="text-[26px] font-extrabold" style={{ color: 'var(--brand)' }}>{project_counts.total}</div>
+              <div className="text-[10px] uppercase tracking-[0.08em] font-bold" style={{ color: 'var(--muted)' }}>Projects</div>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col gap-2.5">
+            {segs.map((s) => (
+              <div className="flex items-center gap-2.5 text-[12.5px]" key={s.label}>
+                <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: s.color }} />
+                <span className="font-semibold" style={{ color: 'var(--ink-2)', minWidth: 52 }}>{s.label}</span>
+                <span className="ml-auto font-extrabold av-num" style={{ color: 'var(--brand)' }}>{s.value}</span>
+              </div>
+            ))}
+            <div className="mt-2 pt-2.5 space-y-1" style={{ borderTop: '1px solid var(--line-2)' }}>
+              <div className="flex justify-between text-[11.5px]">
+                <span style={{ color: 'var(--muted)' }}>Signed value</span>
+                <span className="font-bold av-num" style={{ color: 'var(--ink)' }}>{eurM(r.signedValue)}</span>
+              </div>
+              <div className="flex justify-between text-[11.5px]">
+                <span style={{ color: 'var(--muted)' }}>Open pipeline</span>
+                <span className="font-bold av-num" style={{ color: 'var(--ink)' }}>{eurM(r.pipelineValue)}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{num(avgMargin, 1)}% blended margin</div>
-      </div>
-      <div className="px-[18px] py-3.5 min-w-[150px]">
-        <div className="text-[10px] tracking-[0.1em] uppercase text-[var(--text-muted)] mb-1.5">Fleet committed</div>
-        <div className="text-[22px] font-semibold tracking-tight av-num">{committedMsn}<span className="text-xs text-[var(--text-muted)] font-medium ml-1">MSN</span></div>
-        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">on signed & active deals</div>
       </div>
     </div>
   )
@@ -177,58 +326,55 @@ function Ribbon({ data }: { data: DashboardData }) {
 
 function Metric({ label, value, cls = '' }: { label: string; value: string; cls?: string }) {
   return (
-    <div>
-      <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</div>
-      <div className={`av-num text-sm font-semibold mt-0.5 ${cls}`}>{value}</div>
+    <div className="av-dstat">
+      <div className="l">{label}</div>
+      <div className={`v av-num ${cls}`}>{value}</div>
     </div>
   )
 }
 
-const thCls = 'text-left text-[10px] tracking-[0.08em] uppercase text-[var(--text-muted)] font-semibold px-3.5 py-2'
-const tdCls = 'px-3.5 py-2.5 text-[12.5px]'
-
-function ProjectDetail({ p }: { p: DashboardProject }) {
+function ProjectDetail({ p, canViewCosts }: { p: DashboardProject; canViewCosts: boolean }) {
   return (
-    <div className="px-4 pb-[18px] pl-10 pt-4 space-y-4">
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-6 gap-y-3.5">
+    <div className="av-detail-inner">
+      <div className="av-detail-stats">
         <Metric label="Mo. revenue" value={eur(p.monthly_revenue)} />
-        <Metric label="Mo. cost" value={eur(p.monthly_cost)} />
-        <Metric label="Mo. profit" value={signed(p.monthly_profit)} cls={profitClass(p.monthly_profit)} />
+        {canViewCosts && <Metric label="Mo. cost" value={eur(p.monthly_cost)} />}
+        {canViewCosts && <Metric label="Mo. profit" value={signed(p.monthly_profit)} cls={profitClass(p.monthly_profit)} />}
         <Metric label="Period" value={p.period_months ? `${p.period_months} mo` : '—'} />
         <Metric label="Total revenue" value={eur(p.total_revenue)} />
-        <Metric label="Total profit" value={signed(p.total_profit)} cls={profitClass(p.total_profit)} />
+        {canViewCosts && <Metric label="Total profit" value={signed(p.total_profit)} cls={profitClass(p.total_profit)} />}
       </div>
 
       {p.msns.length > 0 && (
-        <div className="border border-[var(--border-primary)] rounded-lg overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="overflow-x-auto av-panel" style={{ boxShadow: 'none' }}>
+          <table className="av-tbl">
             <thead>
-              <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)]">
-                <th className={thCls}>MSN</th>
-                <th className={thCls}>Type</th>
-                <th className={`${thCls} text-right`}>MGH</th>
-                <th className={`${thCls} text-right`}>FH:FC</th>
-                <th className={`${thCls} text-right`}>Crew</th>
-                <th className={thCls}>Env</th>
-                <th className={thCls}>Lease</th>
-                <th className={`${thCls} text-right`}>€/BH</th>
-                <th className={`${thCls} text-right`}>Mo. revenue</th>
-                <th className={`${thCls} text-right`}>Mo. profit</th>
+              <tr>
+                <th className="av-th">MSN</th>
+                <th className="av-th">Type</th>
+                <th className="av-th r">MGH</th>
+                <th className="av-th r">FH:FC</th>
+                <th className="av-th r">Crew</th>
+                <th className="av-th">Env</th>
+                <th className="av-th">Lease</th>
+                <th className="av-th r">€/BH</th>
+                <th className="av-th r">Mo. revenue</th>
+                {canViewCosts && <th className="av-th r">Mo. profit</th>}
               </tr>
             </thead>
             <tbody>
               {p.msns.map((m) => (
-                <tr key={m.msn} className="border-b border-[var(--border-primary)] last:border-0">
-                  <td className={tdCls}><span className="av-msn">{m.msn}</span></td>
-                  <td className={`${tdCls} text-[var(--text-secondary)]`}>{m.aircraft_type}</td>
-                  <td className={`${tdCls} av-num text-right`}>{num(m.mgh)}</td>
-                  <td className={`${tdCls} av-num text-right`}>{num(m.cycle_ratio, 2)}</td>
-                  <td className={`${tdCls} av-num text-right`}>{num(m.crew_sets, 1)}</td>
-                  <td className={`${tdCls} text-[var(--text-secondary)] capitalize`}>{m.environment ?? '—'}</td>
-                  <td className={`${tdCls} text-[var(--text-secondary)] capitalize`}>{m.lease_type ?? '—'}</td>
-                  <td className={`${tdCls} av-num text-right`}>{num(m.eur_per_bh)}</td>
-                  <td className={`${tdCls} av-num text-right`}>{eur(m.monthly_revenue)}</td>
-                  <td className={`${tdCls} av-num text-right ${profitClass(m.monthly_profit)}`}>{signed(m.monthly_profit)}</td>
+                <tr key={m.msn}>
+                  <td className="av-td"><span className="av-msn">{m.msn}</span></td>
+                  <td className="av-td" style={{ color: 'var(--ink-2)' }}>{m.aircraft_type}</td>
+                  <td className="av-td r av-num">{num(m.mgh)}</td>
+                  <td className="av-td r av-num">{num(m.cycle_ratio, 2)}</td>
+                  <td className="av-td r av-num">{num(m.crew_sets, 1)}</td>
+                  <td className="av-td capitalize" style={{ color: 'var(--ink-2)' }}>{m.environment ?? '—'}</td>
+                  <td className="av-td capitalize" style={{ color: 'var(--ink-2)' }}>{m.lease_type ?? '—'}</td>
+                  <td className="av-td r av-num">{num(m.eur_per_bh)}</td>
+                  <td className="av-td r av-num">{eur(m.monthly_revenue)}</td>
+                  {canViewCosts && <td className={`av-td r av-num ${profitClass(m.monthly_profit)}`}>{signed(m.monthly_profit)}</td>}
                 </tr>
               ))}
             </tbody>
@@ -237,22 +383,22 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
       )}
 
       {p.quote ? (
-        <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--text-muted)]">
-          <span>Quote <span className="av-num text-[var(--text-secondary)]">{p.quote.quote_number}</span></span>
+        <div className="flex flex-wrap items-center gap-3 text-[11px] mt-3.5" style={{ color: 'var(--muted)' }}>
+          <span>Quote <span className="av-num" style={{ color: 'var(--ink-2)' }}>{p.quote.quote_number}</span></span>
           <StatusBadge status={p.quote.status} />
           <span>{shortDate(p.quote.created_at)}</span>
           {p.created_by && <span>by {p.created_by}</span>}
           <div className="flex items-center gap-2 ml-auto">
-            <Link href={`/quotes/${p.id}?go=calculation`} className="flex items-center gap-1.5 px-2.5 py-1 text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-tertiary)] transition-colors">
+            <Link href={`/quotes/${p.id}?go=calculation`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
               <Calculator size={13} /> Calculation
             </Link>
-            <Link href={`/quotes/${p.id}?go=pnl`} className="flex items-center gap-1.5 px-2.5 py-1 text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border-secondary)] rounded-md hover:bg-[var(--bg-tertiary)] transition-colors">
+            <Link href={`/quotes/${p.id}?go=pnl`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
               <TrendingUp size={13} /> P&amp;L
             </Link>
           </div>
         </div>
       ) : (
-        <div className="text-[11px] text-[var(--text-muted)]">
+        <div className="text-[11px] mt-3.5" style={{ color: 'var(--muted)' }}>
           No quote linked yet — metrics appear once a quote is saved for this project.
         </div>
       )}
@@ -263,11 +409,14 @@ function ProjectDetail({ p }: { p: DashboardProject }) {
 // ---- Main ----
 
 export function DashboardMetrics({ data }: { data: DashboardData }) {
+  const canViewCosts = useCanViewCosts()
+  const r = rollup(data)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const toggle = (id: number) =>
     setExpanded((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
 
@@ -276,24 +425,30 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
   const SwitchBtn = ({ v, icon: Icon, label }: { v: 'list' | 'calendar'; icon: typeof List; label: string }) => (
     <button
       onClick={() => setView(v)}
-      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors"
+      style={
         view === v
-          ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm border border-[var(--border-secondary)]'
-          : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-      }`}
+          ? { background: 'var(--card)', color: 'var(--ink)', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
+          : { color: 'var(--muted)' }
+      }
     >
       <Icon size={13} /> {label}
     </button>
   )
 
   return (
-    <div className="space-y-4">
-      <Ribbon data={data} />
+    <div className="space-y-[18px]">
+      <Hero data={data} r={r} canViewCosts={canViewCosts} />
 
-      <div className="border border-[var(--border-primary)] rounded-xl bg-[var(--bg-primary)] overflow-hidden shadow-sm">
-        <div className="px-4 py-2.5 border-b border-[var(--border-primary)] flex items-center justify-between">
-          <h2 className="text-[13px] font-semibold">{view === 'list' ? 'Projects' : 'Fleet calendar'}</h2>
-          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-tertiary)]">
+      <div className="dash-charts grid gap-[18px]" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
+        <RevenueByClient data={data} />
+        <PipelineDonut data={data} r={r} />
+      </div>
+
+      <div className="av-panel">
+        <div className="av-panel-h">
+          <h2>{view === 'list' ? 'Projects' : 'Fleet calendar'}</h2>
+          <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'var(--line-2)' }}>
             <SwitchBtn v="list" icon={List} label="List" />
             <SwitchBtn v="calendar" icon={CalendarDays} label="Calendar" />
           </div>
@@ -302,33 +457,30 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
         {view === 'calendar' ? (
           <FleetCalendar segments={data.calendar} />
         ) : data.projects.length === 0 ? (
-          <div className="px-4 py-12 text-center text-[13px] text-[var(--text-tertiary)]">
-            No projects yet. Save a quote from the Calculation page — its client becomes a project here.
+          <div className="px-4 py-12 text-center text-[13px]" style={{ color: 'var(--muted)' }}>
+            No projects yet. Save a quote from the Pricing Workspace — its client becomes a project here.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="av-tbl">
               <thead>
-                <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)]">
-                  <th className={`${thCls} w-7`}></th>
-                  <th className={thCls}>Client</th>
-                  <th className={thCls}>Status</th>
-                  <th className={`${thCls} text-right`}>MSN</th>
-                  <th className={`${thCls} text-right`}>MGH</th>
-                  <th className={`${thCls} text-right`}>€/BH</th>
-                  <th className={`${thCls} text-right`}>Mo. revenue</th>
-                  <th className={`${thCls} text-right`}>Mo. profit</th>
-                  <th className={`${thCls} text-right`}>Total profit</th>
-                  <th className={`${thCls} text-right`}>Created</th>
+                <tr>
+                  <th className="av-th" style={{ width: 28 }}></th>
+                  <th className="av-th">Client</th>
+                  <th className="av-th">Status</th>
+                  <th className="av-th r">MSN</th>
+                  <th className="av-th r">MGH</th>
+                  <th className="av-th r">€/BH</th>
+                  <th className="av-th r">Mo. revenue</th>
+                  {canViewCosts && <th className="av-th r">Mo. profit</th>}
+                  {canViewCosts && <th className="av-th r">Total profit</th>}
+                  <th className="av-th r">Created</th>
                 </tr>
               </thead>
               <tbody>
-                {data.projects.map((p) => {
-                  const open = expanded.has(p.id)
-                  return (
-                    <FragmentRow key={p.id} p={p} open={open} onToggle={() => toggle(p.id)} />
-                  )
-                })}
+                {data.projects.map((p) => (
+                  <FragmentRow key={p.id} p={p} open={expanded.has(p.id)} onToggle={() => toggle(p.id)} canViewCosts={canViewCosts} />
+                ))}
               </tbody>
             </table>
           </div>
@@ -338,33 +490,30 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
   )
 }
 
-function FragmentRow({ p, open, onToggle }: { p: DashboardProject; open: boolean; onToggle: () => void }) {
+function FragmentRow({ p, open, onToggle, canViewCosts }: { p: DashboardProject; open: boolean; onToggle: () => void; canViewCosts: boolean }) {
   return (
     <>
-      <tr
-        onClick={onToggle}
-        className={`border-b border-[var(--border-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] ${open ? 'bg-[var(--bg-secondary)]' : ''}`}
-      >
-        <td className={`${tdCls} text-[var(--text-muted)]`}>
-          <ChevronRight size={13} className={`transition-transform duration-150 ${open ? 'rotate-90' : ''}`} />
+      <tr onClick={onToggle} className={`av-exp-row ${open ? 'open' : ''}`} style={open ? { background: 'var(--hover)' } : undefined}>
+        <td className="av-td">
+          <ChevronRight size={13} className="av-exp-chev" />
         </td>
-        <td className={tdCls}>
-          <span className="font-semibold">{p.name}</span>
-          {p.quote && <span className="av-num block text-[10.5px] text-[var(--text-muted)] mt-px">{p.quote.quote_number}</span>}
+        <td className="av-td">
+          <span className="font-semibold" style={{ color: 'var(--ink)' }}>{p.name}</span>
+          {p.quote && <span className="av-num block text-[10.5px] mt-px" style={{ color: 'var(--muted)' }}>{p.quote.quote_number}</span>}
         </td>
-        <td className={tdCls}><StatusBadge status={p.status} /></td>
-        <td className={`${tdCls} av-num text-right`}>{p.msn_count}</td>
-        <td className={`${tdCls} av-num text-right`}>{num(p.total_mgh)}</td>
-        <td className={`${tdCls} av-num text-right`}>{num(p.eur_per_bh)}</td>
-        <td className={`${tdCls} av-num text-right`}>{eur(p.monthly_revenue)}</td>
-        <td className={`${tdCls} av-num text-right ${profitClass(p.monthly_profit)}`}>{signed(p.monthly_profit)}</td>
-        <td className={`${tdCls} av-num text-right ${profitClass(p.total_profit)}`}>{signed(p.total_profit)}</td>
-        <td className={`${tdCls} av-num text-right text-[var(--text-muted)] whitespace-nowrap`}>{shortDate(p.created_at)}</td>
+        <td className="av-td"><StatusBadge status={p.status} /></td>
+        <td className="av-td r av-num">{p.msn_count}</td>
+        <td className="av-td r av-num">{num(p.total_mgh)}</td>
+        <td className="av-td r av-num">{num(p.eur_per_bh)}</td>
+        <td className="av-td r av-num">{eur(p.monthly_revenue)}</td>
+        {canViewCosts && <td className={`av-td r av-num ${profitClass(p.monthly_profit)}`}>{signed(p.monthly_profit)}</td>}
+        {canViewCosts && <td className={`av-td r av-num ${profitClass(p.total_profit)}`}>{signed(p.total_profit)}</td>}
+        <td className="av-td r av-num whitespace-nowrap" style={{ color: 'var(--muted)' }}>{shortDate(p.created_at)}</td>
       </tr>
       {open && (
-        <tr className="border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
-          <td colSpan={10} className="p-0">
-            <ProjectDetail p={p} />
+        <tr>
+          <td colSpan={10} className="av-detail-cell">
+            <ProjectDetail p={p} canViewCosts={canViewCosts} />
           </td>
         </tr>
       )}

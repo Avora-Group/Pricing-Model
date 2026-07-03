@@ -29,7 +29,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
 
   if (go === 'pnl' || go === 'calculation') {
     return (
-      <div className="flex items-center justify-center py-20 text-sm text-gray-500 dark:text-gray-400">
+      <div className="flex items-center justify-center py-20 text-sm" style={{ color: 'var(--muted)' }}>
         Loading {quote.quote_number} into {go === 'pnl' ? 'P&L' : 'Calculation'}…
       </div>
     )
@@ -72,17 +72,17 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
       )}
 
       {/* Navigation hint */}
-      <div className="text-xs text-gray-400 dark:text-gray-500">
+      <div className="text-xs" style={{ color: 'var(--muted)' }}>
         Stores are loaded with this quote&apos;s data. Navigate to{' '}
-        <Link href="/pnl" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-600 dark:text-indigo-300">
+        <Link href="/pnl" className="av-link">
           P&amp;L
         </Link>
         ,{' '}
-        <Link href="/crew" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-600 dark:text-indigo-300">
+        <Link href="/crew" className="av-link">
           Crew
         </Link>
         , or{' '}
-        <Link href="/costs" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-600 dark:text-indigo-300">
+        <Link href="/costs" className="av-link">
           Costs
         </Link>{' '}
         to see full details from this quote.

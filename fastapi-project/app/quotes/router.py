@@ -16,8 +16,9 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import JSONResponse
 
-from app.auth.dependencies import get_current_user, require_admin
+from app.auth.dependencies import get_current_user, require_admin, user_can_view_costs
 from app.db.database import get_db
+from app.pricing.redaction import redact_quote_detail
 from app.quotes.repository import QuoteRepository
 from app.quotes.schemas import (
     QuoteDetailResponse,
@@ -322,7 +323,9 @@ async def get_quote_detail(
         msn_snapshots=msn_snapshot_list,
     )
 
-    return detail.model_dump()
+    # Server-side naked-cost gate: strip cost/profit/margin + config snapshots
+    # for users without permission. Sell rate + identity are preserved.
+    return redact_quote_detail(detail.model_dump(), user_can_view_costs(current_user))
 
 
 # ---- Update Status ----

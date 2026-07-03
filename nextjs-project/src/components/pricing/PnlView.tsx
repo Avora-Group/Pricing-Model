@@ -11,7 +11,7 @@ export function PnlView() {
   if (msnInputs.length === 0) {
     return (
       <div className="av-panel p-8 text-center">
-        <p className="text-[var(--text-tertiary)] text-sm">
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>
           Configure MSNs on the Calculation page to see P&amp;L calculations
         </p>
       </div>
@@ -21,7 +21,10 @@ export function PnlView() {
   return (
     <div className="space-y-4">
       {lastError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 text-sm text-[var(--av-neg)]">
+        <div
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ background: 'var(--neg-soft)', border: '1px solid var(--neg)', color: 'var(--neg)' }}
+        >
           {lastError}
         </div>
       )}

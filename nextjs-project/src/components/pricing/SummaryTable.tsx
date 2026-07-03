@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
-import type { EprMatrixRow, MsnInput } from '@/stores/pricing-store'
+import type { MsnInput } from '@/stores/pricing-store'
 import { computePeriodMonths, generateMonthRange } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
@@ -10,18 +10,9 @@ import { fmt } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { LineDetailPopover, type BreakdownItem } from './CostDetailPopover'
+import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
+import { Redacted } from '@/components/common/Redacted'
 
-interface SummaryRow {
-  label: string
-  perMonth: string | number
-  totalProject: string | number
-  isSeparator?: boolean
-  isBold?: boolean
-  isRate?: boolean
-  colorClass?: string
-  colorClassTotal?: string
-  drillKey?: string
-}
 
 /** Compute all monthly cost components for a single MSN (mirrors PnlTable.computeForMsn) */
 function computeMsnCosts(
@@ -312,8 +303,8 @@ function computeMsnCosts(
 }
 
 export function SummaryTable() {
+  const canViewCosts = useCanViewCosts()
   const {
-    projectName,
     exchangeRate: globalExchangeRate,
     bhFhRatio: globalBhFhRatio,
     apuFhRatio: globalApuFhRatio,
@@ -366,12 +357,10 @@ export function SummaryTable() {
     }
   }, [msnInputs, numAc, selectedMsn, setSelectedMsn])
 
-  // Reset season filter when no MSN has seasonality enabled
-  useEffect(() => {
-    if (seasonFilter !== 'total' && !msnInputs.some((i) => i.seasonalityEnabled)) {
-      setSeasonFilter('total')
-    }
-  }, [msnInputs, seasonFilter])
+  // Note: when no MSN has seasonality the season toggle is not rendered, so a
+  // stale non-'total' filter can never be reached from the UI; getFilteredMsn
+  // also falls back to combined data when a season's data is absent — so no
+  // effect is needed to reset it.
 
   if (msnInputs.length === 0) {
     return (
@@ -567,12 +556,6 @@ export function SummaryTable() {
   }
   const activeRaw = perMsnData.find((d) => d.msn === selectedMsn) ?? perMsnData[0]
   const activeMsn = getFilteredMsn(activeRaw)
-  const activeInput = msnInputs.find((i) => i.msn === activeMsn?.msn)
-
-  const activeCondition = activeInput
-    ? activeInput.leaseType.charAt(0).toUpperCase() + activeInput.leaseType.slice(1) + ' Lease'
-    : '-'
-
   // ── Total Project (all MSNs aggregated, with proration) — uses season filter ──
   const filteredMsnData = perMsnData.map(getFilteredMsn)
 
@@ -582,50 +565,6 @@ export function SummaryTable() {
 
   const totalMgh = filteredMsnData.reduce((s, d) => s + d.mgh, 0)
 
-  const totalProjectRevenue = filteredMsnData.reduce((s, d) => s + d.total.revenue, 0)
-  const totalProjectBhSold = filteredMsnData.reduce((s, d) => s + d.total.bhSold, 0)
-  const totalProjectBhActual = filteredMsnData.reduce((s, d) => s + d.total.bhActual, 0)
-  const totalProjectFh = filteredMsnData.reduce((s, d) => s + d.total.fh, 0)
-  const totalProjectFc = filteredMsnData.reduce((s, d) => s + d.total.fc, 0)
-
-  // ── Fixed Cost Coverage: per-MSN coverage% × monthly fixed cost × months ──
-  // Coverage always uses combined (unfiltered) data — it's a total-project adjustment
-  let covAircraft = 0, covCrew = 0, covMaint = 0, covInsurance = 0, covDoc = 0, covOverhead = 0
-  for (let idx = 0; idx < msnInputs.length; idx++) {
-    const inp = msnInputs[idx]
-    if (!inp.fixedCostCoverageEnabled) continue
-    const pct = (parseFloat(inp.fixedCostCoveragePercent) || 0) / 100
-    const months = parseFloat(inp.fixedCostCoverageMonths) || 0
-    const d = perMsnData[idx] // use combined data for coverage calc
-    covAircraft += d.fixedCosts.aircraft * pct * months
-    covCrew += d.fixedCosts.crew * pct * months
-    covMaint += d.fixedCosts.maintenance * pct * months
-    covInsurance += d.fixedCosts.insurance * pct * months
-    covDoc += d.fixedCosts.doc * pct * months
-    covOverhead += d.fixedCosts.overhead * pct * months
-  }
-
-  // When filtering by season, only include coverage in 'total' view
-  const includeCoverage = seasonFilter === 'total'
-
-  const tAircraftAbs = filteredMsnData.reduce((s, d) => s + d.total.aircraft, 0) + (includeCoverage ? covAircraft : 0)
-  const tCrewAbs = filteredMsnData.reduce((s, d) => s + d.total.crew, 0) + (includeCoverage ? covCrew : 0)
-  const tMaintAbs = filteredMsnData.reduce((s, d) => s + d.total.maintenance, 0) + (includeCoverage ? covMaint : 0)
-  const tInsuranceAbs = filteredMsnData.reduce((s, d) => s + d.total.insurance, 0) + (includeCoverage ? covInsurance : 0)
-  const tDocAbs = filteredMsnData.reduce((s, d) => s + d.total.doc, 0) + (includeCoverage ? covDoc : 0)
-  const tAcmiCostAbs = tAircraftAbs + tCrewAbs + tMaintAbs + tInsuranceAbs + tDocAbs
-    + filteredMsnData.reduce((s, d) => s + d.total.otherCogs, 0)
-  const tOverheadAbs = filteredMsnData.reduce((s, d) => s + d.total.overhead, 0) + (includeCoverage ? covOverhead : 0)
-  const totalProjectCost = tAcmiCostAbs
-  const totalProjectGrossProfit = totalProjectRevenue - totalProjectCost
-  const totalProjectNetProfit = totalProjectGrossProfit - tOverheadAbs
-
-  // Display values
-  const leaseTypes = [...new Set(msnInputs.map((i) => i.leaseType))]
-  const totalCondition = leaseTypes.length === 1
-    ? leaseTypes[0].charAt(0).toUpperCase() + leaseTypes[0].slice(1) + ' Lease'
-    : 'Mixed'
-
   // ── EUR/BH helpers ──
   const isPerBh = displayMode === 'eurPerBh'
   const isTotalView = selectedMsn === null
@@ -633,42 +572,7 @@ export function SummaryTable() {
     ? (totalMgh || 1)
     : (activeMsn.bhActual || 1)
 
-  // ── Display totals: per-MSN totals when a specific MSN is selected, project totals when "Total" ──
-  const dRevenue = isTotalView ? totalProjectRevenue : activeMsn.total.revenue
-  const dBhSold = isTotalView ? totalProjectBhSold : activeMsn.total.bhSold
-  const dBhActual = isTotalView ? totalProjectBhActual : activeMsn.total.bhActual
-  const dFh = isTotalView ? totalProjectFh : activeMsn.total.fh
-  const dFc = isTotalView ? totalProjectFc : activeMsn.total.fc
-  const dAircraft = isTotalView ? tAircraftAbs : activeMsn.total.aircraft
-  const dCrew = isTotalView ? tCrewAbs : activeMsn.total.crew
-  const dMaint = isTotalView ? tMaintAbs : activeMsn.total.maintenance
-  const dInsurance = isTotalView ? tInsuranceAbs : activeMsn.total.insurance
-  const dDoc = isTotalView ? tDocAbs : activeMsn.total.doc
-  const dAcmiCost = isTotalView ? tAcmiCostAbs : activeMsn.total.acmiCost
-  const dTotalCost = isTotalView ? totalProjectCost : activeMsn.total.totalCost
-  const dOverhead = isTotalView ? tOverheadAbs : activeMsn.total.overhead
-  const dGrossProfit = isTotalView ? totalProjectGrossProfit : (dRevenue - dTotalCost)
-  const dNetProfit = isTotalView ? totalProjectNetProfit : (dGrossProfit - dOverhead)
-  const dBhForPerBh = dBhActual || 1
-
-  /** Format a monetary value — in EUR/BH mode divides by block hours */
-  const fmtV = (monthlyVal: number, totalVal: number, decimals = 0): { perMonth: string; totalProject: string } => {
-    if (isPerBh) {
-      return {
-        perMonth: fmt((monthlyVal * curFactor) / activeBh, 0),
-        totalProject: fmt((totalVal * curFactor) / dBhForPerBh, 0),
-      }
-    }
-    return {
-      perMonth: fmt(monthlyVal * curFactor, decimals),
-      totalProject: fmt(totalVal * curFactor, decimals),
-    }
-  }
-
   // ── Per-month values: use weighted average across MSNs in total view ──
-  const mMonthly = isTotalView
-    ? totalMgh / numAc  // average MGH per month across MSNs
-    : activeMsn.mgh
   const mRevenue = isTotalView
     ? filteredMsnData.reduce((s, d) => s + d.revenuePerMonth, 0)
     : activeMsn.revenuePerMonth
@@ -682,9 +586,7 @@ export function SummaryTable() {
   const mOverhead = isTotalView ? filteredMsnData.reduce((s, d) => s + d.overhead, 0) : activeMsn.overhead
   const mGrossProfit = mRevenue - mTotalCost
   const mNetProfit = mGrossProfit - mOverhead
-  const mBhSold = isTotalView ? filteredMsnData.reduce((s, d) => s + d.bhSold, 0) : activeMsn.bhSold
   const mBhActual = isTotalView ? filteredMsnData.reduce((s, d) => s + d.bhActual, 0) : activeMsn.bhActual
-  const mFh = isTotalView ? filteredMsnData.reduce((s, d) => s + d.fh, 0) : activeMsn.fh
   const mFc = isTotalView ? filteredMsnData.reduce((s, d) => s + d.fc, 0) : activeMsn.fc
 
   // Blended ACMI rate (weighted by MGH) for the Total view; a single MSN uses its own rate.
@@ -740,167 +642,350 @@ export function SummaryTable() {
     }
   }
 
-  // ── Build rows ──
-  const rows: SummaryRow[] = [
-    { label: 'Customer', perMonth: projectName || 'Untitled', totalProject: projectName || 'Untitled' },
-    { label: 'Condition', perMonth: isTotalView ? totalCondition : activeCondition, totalProject: isTotalView ? totalCondition : activeCondition },
-    { label: 'MSN', perMonth: isTotalView ? `All (${numAc})` : String(activeMsn.msn), totalProject: isTotalView ? `All (${numAc})` : String(activeMsn.msn) },
-    { label: '# of AC', perMonth: isTotalView ? String(numAc) : '1', totalProject: isTotalView ? String(numAc) : '1' },
-    { label: 'MGH', perMonth: fmt(isTotalView ? totalMgh : activeMsn.mgh, 0), totalProject: fmt(dBhSold, 0) },
-    { label: 'Cycle Ratio', perMonth: isTotalView ? '-' : activeMsn.cycleRatio.toFixed(1), totalProject: isTotalView ? '-' : activeMsn.cycleRatio.toFixed(1) },
-    { label: 'Duration', perMonth: isTotalView ? String(totalProjectDuration) : String(activeMsn.duration), totalProject: isTotalView ? String(totalProjectDuration) : String(activeMsn.duration) },
-    { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'BH - Sold', perMonth: fmt(mBhSold, 0), totalProject: fmt(dBhSold, 0) },
-    { label: 'BH - Actual', perMonth: fmt(mBhActual, 0), totalProject: fmt(dBhActual, 0) },
-    { label: 'FH - Actual', perMonth: fmt(mFh, 0), totalProject: fmt(dFh, 0) },
-    { label: 'FC', perMonth: fmt(mFc, 0), totalProject: fmt(dFc, 0) },
-    { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'ACMI Rate', perMonth: fmt(acmiRateDisplay * curFactor, 0), totalProject: fmt(acmiRateDisplay * curFactor, 0), isRate: true },
-    { label: 'Total Revenue', ...fmtV(mRevenue, dRevenue), isBold: true, colorClass: 'text-[var(--av-pos)]', colorClassTotal: 'text-[var(--av-pos)]' },
-    { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'Aircraft', ...fmtV(mAircraft, dAircraft), drillKey: 'aircraft' },
-    { label: 'Crew', ...fmtV(mCrew, dCrew), drillKey: 'crew' },
-    { label: 'Maintenance', ...fmtV(mMaint, dMaint), drillKey: 'maintenance' },
-    { label: 'Insurance', ...fmtV(mInsurance, dInsurance), drillKey: 'insurance' },
-    { label: 'DOC', ...fmtV(mDoc, dDoc), drillKey: 'doc' },
-    { label: 'ACMI Cost', ...fmtV(mAcmiCost, dAcmiCost), isBold: true, drillKey: 'acmiCost' },
-    { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'TOTAL Cost', ...fmtV(mTotalCost, dTotalCost), isBold: true },
-    { label: 'Gross Profit', ...fmtV(mGrossProfit, dGrossProfit), isBold: true, colorClass: mGrossProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]', colorClassTotal: dGrossProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]' },
-    { label: 'Overhead', ...fmtV(mOverhead, dOverhead), drillKey: 'overhead' },
-    { label: 'Net Profit', ...fmtV(mNetProfit, dNetProfit), isBold: true, colorClass: mNetProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]', colorClassTotal: dNetProfit >= 0 ? 'text-[var(--av-pos)]' : 'text-[var(--av-neg)]' },
+  // ── Period months (contract term) for the "Project total" column ──
+  const periodMonths = isTotalView ? totalProjectDuration : activeMsn.duration
+
+  // ── Monthly block hours (MGH-based, incl. excess) for the "Per BH" column ──
+  const monthlyBh = mBhActual
+
+  // Display transforms honour the currency toggle. The dedicated Per-BH column
+  // always divides monthly value by monthly block hours, independent of the
+  // header's absolute/per-BH toggle (which still drives the "€ / month" column
+  // exactly as before so no live number changes for existing users).
+  const cur = (v: number) => v * curFactor
+
+  /** € / month column — mirrors the old fmtV per-month behaviour. */
+  const fmtMonth = (monthlyVal: number, decimals = 0): string =>
+    isPerBh ? fmt(cur(monthlyVal) / activeBh, 0) : fmt(cur(monthlyVal), decimals)
+
+  /** Project total = monthly value × period months. */
+  const fmtProjectTotal = (monthlyVal: number): string => {
+    if (!(periodMonths > 0)) return '—'
+    return fmt(cur(monthlyVal) * periodMonths, 0)
+  }
+
+  /** Per BH = monthly value ÷ monthly block hours. Em dash if unavailable. */
+  const fmtPerBh = (monthlyVal: number): string => {
+    if (!(monthlyBh > 0)) return '—'
+    return fmt(cur(monthlyVal) / monthlyBh, 0)
+  }
+
+  /** % of monthly revenue. Em dash if no revenue. */
+  const fmtPctRev = (monthlyVal: number): string => {
+    if (!(mRevenue > 0)) return '—'
+    return `${((monthlyVal / mRevenue) * 100).toFixed(0)}%`
+  }
+
+  // ── Verdict metrics (from already-computed monthly + project figures) ──
+  const netMargin = mRevenue > 0 ? mNetProfit / mRevenue : 0
+  const gpMargin = mRevenue > 0 ? mGrossProfit / mRevenue : 0
+  const projectNet = mNetProfit * (periodMonths > 0 ? periodMonths : 1)
+  const marginTone = (m: number) =>
+    m >= 0.1 ? 'var(--pos)' : m >= 0.02 ? 'var(--amber)' : 'var(--neg)'
+  const flag =
+    netMargin >= 0.1
+      ? { cls: 'av-vf-good', text: `Healthy deal — ${(netMargin * 100).toFixed(1)}% net margin clears the 10% hurdle` }
+      : netMargin >= 0.02
+        ? { cls: 'av-vf-thin', text: `Thin margin — ${(netMargin * 100).toFixed(1)}% net, below the 10% hurdle. Review rate or utilisation` }
+        : { cls: 'av-vf-loss', text: `Loss-making at this rate — ${(netMargin * 100).toFixed(1)}% net. Do not release` }
+
+  // ── Waterfall (revenue → cost stack → net), all monthly, currency-adjusted ──
+  const wfSteps: { lab: string; v: number; cls: 'rev' | 'cost' | 'net' }[] = [
+    { lab: 'Revenue', v: cur(mRevenue), cls: 'rev' },
+    { lab: 'Aircraft', v: cur(mAircraft), cls: 'cost' },
+    { lab: 'Crew', v: cur(mCrew), cls: 'cost' },
+    { lab: 'Maint.', v: cur(mMaint), cls: 'cost' },
+    { lab: 'Insurance', v: cur(mInsurance), cls: 'cost' },
+    { lab: 'DOC', v: cur(mDoc), cls: 'cost' },
+    { lab: 'Overhead', v: cur(mOverhead), cls: 'cost' },
+    { lab: 'Net', v: cur(mNetProfit), cls: 'net' },
+  ]
+  const wfMax = Math.max(cur(mRevenue) * 1.05, 1)
+  let wfRun = 0
+  const wfBars = wfSteps.map((s, i) => {
+    let barH: number, floatBottom: number
+    if (i === 0) { barH = (s.v / wfMax) * 100; floatBottom = 0; wfRun = s.v }
+    else if (i === wfSteps.length - 1) { barH = (Math.abs(s.v) / wfMax) * 100; floatBottom = s.v >= 0 ? 0 : (s.v / wfMax) * 100; wfRun = s.v }
+    else { wfRun -= s.v; barH = (s.v / wfMax) * 100; floatBottom = (wfRun / wfMax) * 100 }
+    const neg = s.cls === 'net' && s.v < 0
+    return { ...s, barH: Math.max(barH, 1.5), floatBottom: Math.max(floatBottom, 0), neg }
+  })
+
+  // Compact figure label for the waterfall bars (e.g. 1.2M / 340k).
+  const compact = (v: number) => {
+    const abs = Math.abs(v)
+    if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+    if (abs >= 1_000) return `${Math.round(v / 1_000)}k`
+    return fmt(v, 0)
+  }
+
+  // ── Cost build-up rows (colour swatches mirror the prototype) ──
+  const costLines: { n: string; v: number; sw: string; drillKey?: string }[] = [
+    { n: 'Aircraft (lease + reserves)', v: mAircraft, sw: '#e08a8a', drillKey: 'aircraft' },
+    { n: 'Crew', v: mCrew, sw: '#e5a3a3', drillKey: 'crew' },
+    { n: 'Maintenance', v: mMaint, sw: '#eab5b5', drillKey: 'maintenance' },
+    { n: 'Insurance', v: mInsurance, sw: '#f0c8c8', drillKey: 'insurance' },
+    { n: 'DOC', v: mDoc, sw: '#f4d6d6', drillKey: 'doc' },
   ]
 
-  return (
-    <div className="av-panel overflow-hidden">
-      {/* MSN Selector — only shown when multiple aircraft */}
-      {numAc > 1 && (
-        <div className="flex items-center gap-1 px-2 py-1.5 bg-[var(--bg-secondary)] border-b border-[var(--border-secondary)]">
-          <span className="text-[10px] text-[var(--text-muted)] mr-1">MSN:</span>
-          <button
-            onClick={() => setSelectedMsn(null)}
-            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-colors ${
-              selectedMsn === null
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-[var(--text-tertiary)] hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-[var(--text-primary)]'
-            }`}
-          >
-            Total
-          </button>
-          {msnInputs.map((input) => (
-            <button
-              key={input.msn}
-              onClick={() => setSelectedMsn(input.msn)}
-              className={`px-2 py-0.5 text-[10px] rounded font-medium transition-colors ${
-                selectedMsn === input.msn
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-[var(--text-tertiary)] hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {input.msn}
-            </button>
-          ))}
-        </div>
-      )}
+  // ── Rate sensitivity: net margin across a ±rate band. Revenue moves linearly
+  // with the ACMI rate (revenue = rate × MGH + excess), so we shift the already-
+  // computed monthly revenue by Δrate × monthly MGH — no pricing formula is
+  // re-derived; costs/overhead are held at their computed monthly values. ──
+  const sensMgh = isTotalView ? totalMgh : activeMsn.mgh
+  const baseRate = acmiRateDisplay
+  const sensBand = [-150, -100, -50, 0, 50, 100, 150]
+  const sens = sensBand.map((d) => {
+    const rev = mRevenue + d * sensMgh
+    const net = rev - mTotalCost - mOverhead
+    const m = rev > 0 ? net / rev : 0
+    return { rate: baseRate + d, m, net: cur(net), cur: d === 0 }
+  })
 
-      {/* Header */}
-      <div className="grid grid-cols-[1fr_90px_90px] bg-[var(--bg-secondary)] border-b border-[var(--border-secondary)]">
-        <div className="px-3 py-1.5 flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Summary</span>
-          {/* Currency: convert EUR → USD via the dashboard exchange rate */}
-          <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
-            {(['eur', 'usd'] as const).map((c) => (
+  const bdUnit = currency === 'usd' ? 'USD' : 'EUR'
+
+  return (
+    <div className={`flex flex-col gap-[18px] transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
+      {/* ── Scope + display controls ── */}
+      <div className="av-panel">
+        <div className="av-card-b flex items-center gap-2 flex-wrap" style={{ padding: '12px 16px' }}>
+          {/* Scope: Total / per-MSN */}
+          <div className="av-seg" style={{ flex: 'unset' }}>
+            <button
+              className={selectedMsn === null ? 'on' : ''}
+              onClick={() => setSelectedMsn(null)}
+              style={{ padding: '6px 12px' }}
+            >
+              Total
+            </button>
+            {msnInputs.map((input) => (
               <button
-                key={c}
-                onClick={() => setCurrency(c)}
-                className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
-                  currency === c
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-                }`}
+                key={input.msn}
+                className={selectedMsn === input.msn ? 'on' : ''}
+                onClick={() => setSelectedMsn(input.msn)}
+                style={{ padding: '6px 12px' }}
               >
-                {c.toUpperCase()}
+                <span className="av-num">{input.msn}</span>
               </button>
             ))}
           </div>
-          {/* Absolute vs per-block-hour (label follows the selected currency) */}
-          <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
-            <button
-              onClick={() => setDisplayMode('eur')}
-              className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
-                displayMode === 'eur'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {currency.toUpperCase()}
-            </button>
-            <button
-              onClick={() => setDisplayMode('eurPerBh')}
-              className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
-                displayMode === 'eurPerBh'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {currency.toUpperCase()}/BH
-            </button>
-          </div>
-          {/* Season filter — only shown when any MSN has seasonality enabled */}
-          {msnInputs.some((i) => i.seasonalityEnabled) && (
-            <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
-              {(['total', 'summer', 'winter'] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setSeasonFilter(f)}
-                  className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
-                    seasonFilter === f
-                      ? f === 'summer' ? 'bg-amber-500 text-white' : f === 'winter' ? 'bg-sky-500 text-white' : 'bg-indigo-600 text-white'
-                      : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+
+          <div className="ml-auto flex items-center gap-2 flex-wrap">
+            {/* Currency */}
+            <div className="av-seg" style={{ flex: 'unset' }}>
+              {(['eur', 'usd'] as const).map((c) => (
+                <button key={c} className={currency === c ? 'on' : ''} onClick={() => setCurrency(c)} style={{ padding: '6px 12px' }}>
+                  {c.toUpperCase()}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-        <div className="px-2 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider text-right">
-          Monthly
-        </div>
-        <div className="px-2 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider text-right">
-          Total
+            {/* Absolute vs per-BH */}
+            <div className="av-seg" style={{ flex: 'unset' }}>
+              <button className={displayMode === 'eur' ? 'on' : ''} onClick={() => setDisplayMode('eur')} style={{ padding: '6px 12px' }}>
+                {currency.toUpperCase()}
+              </button>
+              <button className={displayMode === 'eurPerBh' ? 'on' : ''} onClick={() => setDisplayMode('eurPerBh')} style={{ padding: '6px 12px' }}>
+                {currency.toUpperCase()}/BH
+              </button>
+            </div>
+            {/* Season filter */}
+            {msnInputs.some((i) => i.seasonalityEnabled) && (
+              <div className="av-seg" style={{ flex: 'unset' }}>
+                {(['total', 'summer', 'winter'] as const).map((f) => (
+                  <button key={f} className={seasonFilter === f ? 'on' : ''} onClick={() => setSeasonFilter(f)} style={{ padding: '6px 12px' }}>
+                    {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Body */}
-      <div className={isCalculating ? 'opacity-60' : ''}>
-        {rows.map((row, idx) => {
-          if (row.isSeparator) {
-            return <div key={idx} className="h-px bg-gray-200 dark:bg-gray-700/40" />
-          }
-          const drillable = !!row.drillKey
-          return (
-            <div
-              key={idx}
-              onClick={drillable ? (e) => setDrill({ cat: row.drillKey!, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() }) : undefined}
-              title={drillable ? 'Click to see the build-up' : undefined}
-              className={`grid grid-cols-[1fr_90px_90px] ${row.isBold ? 'bg-[var(--bg-secondary)]' : ''} ${drillable ? 'cursor-pointer hover:bg-[var(--bg-secondary)]' : ''}`}
-            >
-              <div className={`px-3 py-[3px] text-xs flex items-center gap-1 ${row.isBold ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>
-                {row.label}
-                {drillable && <span className="text-[10px] text-[var(--text-muted)] opacity-60">›</span>}
+      {/* ── Verdict ── */}
+      <div className="av-panel overflow-hidden">
+        <div className="av-verdict-top">
+          {canViewCosts && (
+            <div className="av-vcell">
+              <div className="vlab">Net profit · monthly</div>
+              <div className="vval av-num" style={mNetProfit < 0 ? { color: 'var(--neg)' } : undefined}>
+                {fmt(cur(mNetProfit), 0)} {bdUnit}
               </div>
-              <div className={`px-2 py-[3px] text-xs text-right av-num ${row.colorClass ?? (row.isBold ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-primary)]')}`}>
-                {row.perMonth}
-              </div>
-              <div className={`px-2 py-[3px] text-xs text-right av-num ${(row.colorClassTotal ?? row.colorClass) ?? (row.isBold ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-primary)]')}`}>
-                {row.totalProject}
+              <div className="vsub av-num">
+                {periodMonths > 0
+                  ? `${fmt(cur(projectNet), 0)} over ${periodMonths}-month term`
+                  : 'Set a contract term to see project total'}
               </div>
             </div>
-          )
-        })}
+          )}
+          {canViewCosts && (
+            <div className="av-vcell">
+              <div className="vlab">Net margin</div>
+              <div className="vval av-num" style={{ color: marginTone(netMargin) }}>
+                {(netMargin * 100).toFixed(1)}%
+              </div>
+              <div className="vsub av-num">GP margin {(gpMargin * 100).toFixed(1)}%</div>
+            </div>
+          )}
+          <div className="av-vcell">
+            <div className="vlab">Monthly revenue</div>
+            <div className="vval av-num">{fmt(cur(mRevenue), 0)} {bdUnit}</div>
+            <div className="vsub av-num">{fmt(mBhActual, 0)} BH · {fmt(mFc, 0)} cycles</div>
+          </div>
+        </div>
+        {/* Verdict flag exposes the net margin verdict — naked-cost only. */}
+        {canViewCosts && <div className={`av-verdict-flag ${flag.cls}`}>{flag.text}</div>}
       </div>
+
+      {/* ── Waterfall ── (naked cost build-up: hidden without permission) */}
+      {canViewCosts && (
+        <div className="av-panel">
+          <div className="av-panel-h">
+            <h2>ACMI cost build-up · monthly</h2>
+            <span className="av-hint">Revenue → cost stack → net</span>
+          </div>
+          <div className="av-wf">
+            {wfBars.map((s, i) => (
+              <div className="av-wf-col" key={i}>
+                <div
+                  className={`av-wf-bar ${s.cls}${s.neg ? ' isneg' : ''}`}
+                  style={{ height: `${s.barH}%`, marginBottom: `${s.floatBottom}%` }}
+                >
+                  <span className="av-wf-val av-num">{compact(s.v)}</span>
+                </div>
+                <div className="av-wf-lab">{s.lab}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Cost build-up table (Line | € / month | Project total | Per BH | % rev) ── */}
+      <div className="av-panel overflow-hidden">
+        <div className="av-panel-h">
+          <h2>Cost breakdown</h2>
+          <span className="av-hint">
+            monthly · project total ({periodMonths > 0 ? `${periodMonths} mo` : '—'}) · per block hour ({fmt(monthlyBh, 0)} BH)
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="av-bd-tbl">
+            <tbody>
+              <tr className="head">
+                <td>Line</td>
+                <td className="r">{bdUnit} / month</td>
+                <td className="r">Project total</td>
+                <td className="r">Per BH</td>
+                <td className="pct">% rev</td>
+              </tr>
+
+              {/* Total revenue */}
+              <tr>
+                <td>
+                  <span className="cat"><span className="sw" style={{ background: 'var(--navy)' }} />Total revenue</span>
+                </td>
+                <td className="r av-num" style={{ color: 'var(--brand)' }}>{fmtMonth(mRevenue)}</td>
+                <td className="r av-num">{fmtProjectTotal(mRevenue)}</td>
+                <td className="r av-num">{fmtPerBh(mRevenue)}</td>
+                <td className="pct av-num">{mRevenue > 0 ? '100%' : '—'}</td>
+              </tr>
+
+              {/* Cost lines — click to drill into the build-up (naked cost) */}
+              {canViewCosts && costLines.map((r) => (
+                <tr
+                  key={r.n}
+                  className="sub cursor-pointer"
+                  onClick={r.drillKey ? (e) => setDrill({ cat: r.drillKey!, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() }) : undefined}
+                  title={r.drillKey ? 'Click to see the build-up' : undefined}
+                >
+                  <td>
+                    <span className="cat"><span className="sw" style={{ background: r.sw }} />{r.n}</span>
+                  </td>
+                  <td className="r av-num">{fmtMonth(r.v)}</td>
+                  <td className="r av-num">{fmtProjectTotal(r.v)}</td>
+                  <td className="r av-num">{fmtPerBh(r.v)}</td>
+                  <td className="pct av-num">{fmtPctRev(r.v)}</td>
+                </tr>
+              ))}
+
+              {/* ACMI cost total (naked cost) */}
+              {canViewCosts && (
+                <tr
+                  className="total cursor-pointer"
+                  onClick={(e) => setDrill({ cat: 'acmiCost', rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })}
+                  title="Click to see the build-up"
+                >
+                  <td>ACMI cost</td>
+                  <td className="r av-num">{fmtMonth(mAcmiCost)}</td>
+                  <td className="r av-num">{fmtProjectTotal(mAcmiCost)}</td>
+                  <td className="r av-num">{fmtPerBh(mAcmiCost)}</td>
+                  <td className="pct av-num">{fmtPctRev(mAcmiCost)}</td>
+                </tr>
+              )}
+
+              {/* Gross profit (naked cost) */}
+              {canViewCosts && (
+                <tr>
+                  <td>
+                    <span className="cat"><span className="sw" style={{ background: 'var(--pos)' }} />Gross profit</span>
+                  </td>
+                  <td className={`r av-num ${mGrossProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtMonth(mGrossProfit)}</td>
+                  <td className={`r av-num ${mGrossProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtProjectTotal(mGrossProfit)}</td>
+                  <td className={`r av-num ${mGrossProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtPerBh(mGrossProfit)}</td>
+                  <td className="pct av-num">{fmtPctRev(mGrossProfit)}</td>
+                </tr>
+              )}
+
+              {/* Overhead — click to drill (naked cost) */}
+              {canViewCosts && (
+                <tr
+                  className="sub cursor-pointer"
+                  onClick={(e) => setDrill({ cat: 'overhead', rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })}
+                  title="Click to see the build-up"
+                >
+                  <td>Overhead</td>
+                  <td className="r av-num">{fmtMonth(mOverhead)}</td>
+                  <td className="r av-num">{fmtProjectTotal(mOverhead)}</td>
+                  <td className="r av-num">{fmtPerBh(mOverhead)}</td>
+                  <td className="pct av-num">{fmtPctRev(mOverhead)}</td>
+                </tr>
+              )}
+
+              {/* Net profit (naked cost) */}
+              {canViewCosts && (
+                <tr className="total">
+                  <td>Net profit</td>
+                  <td className={`r av-num ${mNetProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtMonth(mNetProfit)}</td>
+                  <td className={`r av-num ${mNetProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtProjectTotal(mNetProfit)}</td>
+                  <td className={`r av-num ${mNetProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtPerBh(mNetProfit)}</td>
+                  <td className="pct av-num">{fmtPctRev(mNetProfit)}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Rate sensitivity ── (net margin / net figures: naked cost) */}
+      {canViewCosts && (
+        <div className="av-panel">
+          <div className="av-panel-h">
+            <h2>Rate sensitivity</h2>
+            <span className="av-hint">net margin @ ±150/BH</span>
+          </div>
+          <div className="av-card-b">
+            <div className="av-sens-grid">
+              {sens.map((s, i) => (
+                <div className={`av-sens-cell${s.cur ? ' cur' : ''}`} key={i}>
+                  <div className="sr av-num">{fmt(s.rate, 0)}</div>
+                  <div className="sm av-num" style={{ color: marginTone(s.m) }}>{(s.m * 100).toFixed(0)}%</div>
+                  <div className="sn av-num">{compact(s.net)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Drill-down build-up popover */}
       {drill && (() => {
@@ -916,12 +1001,6 @@ export function SummaryTable() {
           />
         )
       })()}
-
-      {isCalculating && (
-        <div className="px-2 py-1 text-[10px] text-indigo-600 dark:text-indigo-400 bg-[var(--bg-secondary)] text-center">
-          Calculating...
-        </div>
-      )}
     </div>
   )
 }

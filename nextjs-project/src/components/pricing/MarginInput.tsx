@@ -98,8 +98,8 @@ export function MarginInput() {
   }
 
   return (
-    <div className="flex items-center gap-4 bg-white dark:bg-gray-900 border border-[var(--border-primary)] rounded-lg px-4 py-3">
-      <label className="text-sm text-[var(--text-tertiary)] whitespace-nowrap">Margin:</label>
+    <div className="av-panel flex items-center gap-4 px-4 py-3">
+      <label className="text-sm whitespace-nowrap" style={{ color: 'var(--muted)' }}>Margin:</label>
       <input
         type="number"
         step="0.01"
@@ -107,11 +107,11 @@ export function MarginInput() {
         max="99"
         value={marginPercent}
         onChange={(e) => setMarginPercent(e.target.value)}
-        className="w-20 px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-[var(--border-secondary)] rounded text-[var(--text-primary)] text-sm text-right focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        className="av-input av-num w-20 text-sm text-right"
       />
-      <span className="text-sm text-[var(--text-tertiary)]">%</span>
-      <span className="text-sm text-[var(--text-muted)] mx-2">=&gt;</span>
-      <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+      <span className="text-sm" style={{ color: 'var(--muted)' }}>%</span>
+      <span className="text-sm mx-2" style={{ color: 'var(--muted-2)' }}>=&gt;</span>
+      <span className="av-num text-sm font-semibold whitespace-nowrap" style={{ color: 'var(--cyan-ink)' }}>
         Final Rate: EUR {finalRate}/BH
       </span>
     </div>

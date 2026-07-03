@@ -45,15 +45,12 @@ export default async function QuoteDetailPage({
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-        <Link
-          href="/quotes"
-          className="hover:text-gray-800 dark:text-gray-200 transition-colors"
-        >
+      <nav className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted)' }}>
+        <Link href="/quotes" className="av-link">
           Quotes
         </Link>
         <span>/</span>
-        <span className="text-gray-800 dark:text-gray-200">{quote.quote_number}</span>
+        <span className="av-num" style={{ color: 'var(--ink-2)' }}>{quote.quote_number}</span>
       </nav>
 
       <QuoteDetailClient quote={quote} />

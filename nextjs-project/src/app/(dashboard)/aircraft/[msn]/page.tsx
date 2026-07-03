@@ -57,14 +57,14 @@ export default async function AircraftDetailPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[18px]">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-[var(--text-tertiary)]">
-        <Link href="/aircraft" className="hover:text-[var(--text-primary)] transition-colors">
+      <nav className="flex items-center gap-2 text-[12.5px]" style={{ color: 'var(--muted)' }}>
+        <Link href="/aircraft" className="av-link">
           Aircraft
         </Link>
-        <span>/</span>
-        <span className="text-[var(--text-primary)]">MSN {msn}</span>
+        <span style={{ color: 'var(--muted-2)' }}>›</span>
+        <span style={{ color: 'var(--ink-2)' }}>MSN {msn}</span>
       </nav>
 
       <AircraftDetail aircraft={aircraft} isAdmin={isAdmin} />

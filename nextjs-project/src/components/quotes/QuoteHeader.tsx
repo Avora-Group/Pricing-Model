@@ -31,45 +31,49 @@ export function QuoteHeader({ quoteNumber, clientName, status, createdAt }: Quot
   return (
     <>
       {/* Quote header card */}
-      <div className="av-panel p-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="av-panel">
+        <div className="av-card-b flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="av-num text-xl font-semibold text-[var(--text-primary)]">
+              <h1 className="av-page-title av-num !text-[22px]">
                 {quoteNumber}
               </h1>
               <StatusBadge status={status} />
             </div>
-            <p className="text-[var(--text-secondary)]">{clientName}</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1">
+            <p style={{ color: 'var(--ink-2)' }}>{clientName}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
               Created {formatDate(createdAt)}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={() => router.push('/quotes')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="av-btn av-btn-ghost"
             >
               <ArrowLeft size={14} />
               Back to Quotes
             </button>
             <button
+              type="button"
               onClick={() => router.push('/calculation')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="av-btn av-btn-ghost"
             >
               <Calculator size={14} />
               Go to Calculation
             </button>
             <button
+              type="button"
               onClick={() => router.push('/pnl')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="av-btn av-btn-ghost"
             >
               <TrendingUp size={14} />
               Go to P&amp;L
             </button>
             <button
+              type="button"
               onClick={() => router.push('/calculation')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-500 transition-colors"
+              className="av-btn av-btn-primary"
             >
               <ExternalLink size={14} />
               Edit
@@ -79,7 +83,10 @@ export function QuoteHeader({ quoteNumber, clientName, status, createdAt }: Quot
       </div>
 
       {/* Edit info banner */}
-      <div className="bg-indigo-50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700 rounded-lg p-3 text-sm text-indigo-700 dark:text-indigo-200">
+      <div
+        className="av-panel px-4 py-3 text-sm"
+        style={{ color: 'var(--cyan-ink)', background: 'var(--cyan-soft)', borderColor: 'var(--cyan)' }}
+      >
         Click &quot;Edit&quot; to open this quote in Calculation. Saving there updates
         this same quote in place — it does not create a new one.
       </div>

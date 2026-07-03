@@ -15,121 +15,171 @@ interface MsnInputRowProps {
 }
 
 const inputCls = 'av-input av-num !py-1.5 !text-xs w-full'
-const selectCls = 'av-input !py-1.5 !text-xs w-full'
-const labelCls = 'text-[10px] font-semibold leading-none mb-1 block text-[var(--muted)]'
+const labelCls = 'text-[12.5px] font-semibold'
 
-/** Reusable per-season field grid */
-function SeasonFields({
-  data,
-  onFieldChange,
-  currencyLabel,
+/** Slider with an inline editable value — dynamic input, precise when needed. */
+function SliderField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  onChange,
 }: {
-  data: SeasonInput
-  onFieldChange: (field: keyof SeasonInput, value: string | number) => void
-  currencyLabel: string
+  label: string
+  value: string | number
+  min: number
+  max: number
+  step: number
+  unit?: string
+  onChange: (v: string) => void
+}) {
+  const v = String(value)
+  return (
+    <div className="av-field">
+      <div className="fl">
+        <label style={{ color: 'var(--ink-2)' }}>{label}</label>
+        <span className="flex items-center gap-1">
+          <input
+            type="number"
+            step={step}
+            value={v}
+            onChange={(e) => onChange(e.target.value)}
+            className="av-num"
+            style={{
+              width: 74,
+              textAlign: 'right',
+              border: '1px solid var(--line)',
+              borderRadius: 6,
+              padding: '2px 7px',
+              background: 'var(--card-2)',
+              color: 'var(--cyan-ink)',
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          />
+          {unit && <span className="text-[11px]" style={{ color: 'var(--muted)' }}>{unit}</span>}
+        </span>
+      </div>
+      <input
+        type="range"
+        className="av-slider"
+        min={min}
+        max={max}
+        step={step}
+        value={Number(v) || 0}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  )
+}
+
+/** Segmented toggle for a small set of options. */
+function SegField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
 }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      {/* MGH */}
-      <div>
-        <label className={labelCls}>MGH</label>
-        <input
-          type="number"
-          step="0.01"
-          value={data.mgh}
-          onChange={(e) => onFieldChange('mgh', e.target.value)}
-          className={inputCls}
-        />
-      </div>
-
-      {/* Cycle Ratio */}
-      <div>
-        <label className={labelCls}>FH:FC</label>
-        <input
-          type="number"
-          step="0.0001"
-          value={data.cycleRatio}
-          onChange={(e) => onFieldChange('cycleRatio', e.target.value)}
-          className={inputCls}
-        />
-      </div>
-
-      {/* ACMI Rate */}
-      <div>
-        <label className={labelCls}>ACMI Rate ({currencyLabel})</label>
-        <input
-          type="number"
-          step="0.01"
-          value={data.acmiRate}
-          onChange={(e) => onFieldChange('acmiRate', e.target.value)}
-          className={inputCls}
-        />
-      </div>
-
-      {/* Excess Hour Rate */}
-      <div>
-        <label className={labelCls}>Excess Rate ({currencyLabel})</label>
-        <input
-          type="number"
-          step="0.01"
-          value={data.excessHourRate}
-          onChange={(e) => onFieldChange('excessHourRate', e.target.value)}
-          className={inputCls}
-        />
-      </div>
-
-      {/* Period Start */}
-      <div>
-        <label className={labelCls}>Start Date</label>
-        <input
-          type="date"
-          value={data.periodStart.length === 7 ? `${data.periodStart}-01` : data.periodStart}
-          onChange={(e) => onFieldChange('periodStart', e.target.value)}
-          className={inputCls}
-        />
-      </div>
-
-      {/* Period End */}
-      <div>
-        <label className={labelCls}>End Date</label>
-        <input
-          type="date"
-          value={(() => {
-            if (data.periodEnd.length > 7) return data.periodEnd
-            const [y, m] = data.periodEnd.split('-').map(Number)
-            const lastDay = new Date(y, m, 0).getDate()
-            return `${data.periodEnd}-${String(lastDay).padStart(2, '0')}`
-          })()}
-          onChange={(e) => onFieldChange('periodEnd', e.target.value)}
-          className={inputCls}
-        />
-      </div>
-
-      {/* Excess BH */}
-      <div>
-        <label className={labelCls}>Excess Hour</label>
-        <input
-          type="number"
-          step="0.01"
-          value={data.excessBh}
-          onChange={(e) => onFieldChange('excessBh', e.target.value)}
-          className={inputCls}
-        />
-      </div>
-
-      {/* Crew Sets */}
-      <div>
-        <label className={labelCls}>Crew</label>
-        <input
-          type="number"
-          min={0.5}
-          step="0.1"
-          value={data.crewSets}
-          onChange={(e) => onFieldChange('crewSets', parseFloat(e.target.value) || 1)}
-          className={inputCls}
-        />
+    <div className="av-field">
+      <div className="fl"><label style={{ color: 'var(--ink-2)' }}>{label}</label></div>
+      <div className="av-seg">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            className={value === o.value ? 'on' : ''}
+            onClick={() => onChange(o.value)}
+          >
+            {o.label}
+          </button>
+        ))}
       </div>
     </div>
+  )
+}
+
+/** Precise number field (kept for ratios / dates / small values). */
+function NumField({
+  label,
+  value,
+  step = '0.01',
+  type = 'number',
+  onChange,
+}: {
+  label: string
+  value: string
+  step?: string
+  type?: 'number' | 'date'
+  onChange: (v: string) => void
+}) {
+  return (
+    <div>
+      <label className="text-[10px] font-semibold leading-none mb-1 block" style={{ color: 'var(--muted)' }}>
+        {label}
+      </label>
+      <input type={type} step={type === 'number' ? step : undefined} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} />
+    </div>
+  )
+}
+
+const ENV_OPTS = [
+  { value: 'benign', label: 'Benign' },
+  { value: 'hot', label: 'Hot' },
+]
+const LEASE_OPTS = [
+  { value: 'wet', label: 'Wet' },
+  { value: 'damp', label: 'Damp' },
+  { value: 'moist', label: 'Moist' },
+]
+
+function startDateValue(v: string) {
+  return v.length === 7 ? `${v}-01` : v
+}
+function endDateValue(v: string) {
+  if (v.length > 7) return v
+  const [y, m] = v.split('-').map(Number)
+  const lastDay = new Date(y, m, 0).getDate()
+  return `${v}-${String(lastDay).padStart(2, '0')}`
+}
+
+/** Utilisation + rate + term controls for one season (or the flat, non-seasonal case). */
+function RateControls({
+  data,
+  currencyLabel,
+  onChange,
+}: {
+  data: SeasonInput
+  currencyLabel: string
+  onChange: (field: keyof SeasonInput, value: string | number) => void
+}) {
+  return (
+    <>
+      <div className="av-in-sec-t">Utilisation &amp; rate</div>
+      <SliderField label="Min guaranteed hours" value={data.mgh} min={0} max={700} step={5} unit="BH/mo" onChange={(v) => onChange('mgh', v)} />
+      <SliderField label={`ACMI rate`} value={data.acmiRate} min={0} max={8000} step={25} unit={`${currencyLabel}/BH`} onChange={(v) => onChange('acmiRate', v)} />
+      <div className="av-field-row">
+        <NumField label="FH : FC" value={String(data.cycleRatio)} step="0.0001" onChange={(v) => onChange('cycleRatio', v)} />
+        <NumField label={`Excess rate (${currencyLabel})`} value={String(data.excessHourRate)} onChange={(v) => onChange('excessHourRate', v)} />
+      </div>
+      <div className="av-field-row" style={{ marginTop: 12 }}>
+        <NumField label="Excess hours" value={String(data.excessBh)} onChange={(v) => onChange('excessBh', v)} />
+        <div />
+      </div>
+
+      <div className="av-in-sec-t" style={{ marginTop: 18 }}>Term</div>
+      <div className="av-field-row">
+        <NumField label="Start date" type="date" value={startDateValue(data.periodStart)} onChange={(v) => onChange('periodStart', v)} />
+        <NumField label="End date" type="date" value={endDateValue(data.periodEnd)} onChange={(v) => onChange('periodEnd', v)} />
+      </div>
+    </>
   )
 }
 
@@ -138,10 +188,8 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
   const [activeTab, setActiveTab] = useState<'summer' | 'winter'>('summer')
   const { swapMsnAircraft, toggleSeasonality, updateSeasonInput } = usePricingStore()
 
-  // Aircraft available for swap: not already used, or is the current one
-  const swapOptions = aircraftList.filter(
-    (ac) => ac.msn === input.msn || !usedMsns.includes(ac.msn)
-  )
+  const swapOptions = aircraftList.filter((ac) => ac.msn === input.msn || !usedMsns.includes(ac.msn))
+  const currencyLabel = input.rateCurrency?.toUpperCase() || 'EUR'
 
   const handleSwap = (aircraftId: string) => {
     const ac = aircraftList.find((a) => a.id === Number(aircraftId))
@@ -170,26 +218,17 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
     setShowSwap(false)
   }
 
-  const handleSeasonFieldChange = (season: 'summer' | 'winter', field: keyof SeasonInput, value: string | number) => {
+  const handleSeasonFieldChange = (season: 'summer' | 'winter', field: keyof SeasonInput, value: string | number) =>
     updateSeasonInput(input.msn, season, field, value)
-  }
 
   return (
     <div>
       {/* Inputs header */}
       <div className="flex items-center justify-between gap-2 px-[18px] py-3.5 flex-wrap" style={{ borderBottom: '1px solid var(--line-2)' }}>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm font-bold" style={{ color: 'var(--ink)' }}>
-            MSN {input.msn}
-          </span>
-          <span className="text-xs font-semibold" style={{ color: 'var(--ink-2)' }}>
-            {input.aircraftType}
-          </span>
-          {input.registration && (
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>
-              ({input.registration})
-            </span>
-          )}
+          <span className="text-sm font-bold" style={{ color: 'var(--ink)' }}>MSN {input.msn}</span>
+          <span className="text-xs font-semibold" style={{ color: 'var(--ink-2)' }}>{input.aircraftType}</span>
+          {input.registration && <span className="text-xs" style={{ color: 'var(--muted)' }}>({input.registration})</span>}
           {showSwap ? (
             <select
               autoFocus
@@ -200,279 +239,77 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             >
               {swapOptions.map((ac) => (
                 <option key={ac.id} value={ac.id}>
-                  MSN {ac.msn} - {ac.aircraft_type}
-                  {ac.registration ? ` (${ac.registration})` : ''}
+                  MSN {ac.msn} - {ac.aircraft_type}{ac.registration ? ` (${ac.registration})` : ''}
                 </option>
               ))}
             </select>
           ) : (
-            <button
-              onClick={() => setShowSwap(true)}
-              className="p-1 rounded transition-colors"
-              style={{ color: 'var(--muted)' }}
-              aria-label="Change aircraft"
-              title="Change aircraft"
-            >
+            <button onClick={() => setShowSwap(true)} className="p-1 rounded transition-colors" style={{ color: 'var(--muted)' }} aria-label="Change aircraft" title="Change aircraft">
               <RefreshCw size={12} />
             </button>
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Seasonality toggle */}
           <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
-            <input
-              type="checkbox"
-              checked={input.seasonalityEnabled}
-              onChange={(e) => toggleSeasonality(input.msn, e.target.checked)}
-              className="w-3 h-3 rounded"
-              style={{ accentColor: 'var(--cyan)' }}
-            />
+            <input type="checkbox" checked={input.seasonalityEnabled} onChange={(e) => toggleSeasonality(input.msn, e.target.checked)} className="w-3 h-3 rounded" style={{ accentColor: 'var(--cyan)' }} />
             Seasonality
           </label>
-          {/* Rate currency toggle */}
           <div className="av-seg" style={{ flex: 'unset' }}>
-            <button className={input.rateCurrency === 'eur' ? 'on' : ''} onClick={() => onUpdate(input.msn, 'rateCurrency', 'eur')} style={{ padding: '4px 9px' }}>
-              EUR
-            </button>
-            <button className={input.rateCurrency === 'usd' ? 'on' : ''} onClick={() => onUpdate(input.msn, 'rateCurrency', 'usd')} style={{ padding: '4px 9px' }}>
-              USD
-            </button>
+            <button className={input.rateCurrency === 'eur' ? 'on' : ''} onClick={() => onUpdate(input.msn, 'rateCurrency', 'eur')} style={{ padding: '4px 9px' }}>EUR</button>
+            <button className={input.rateCurrency === 'usd' ? 'on' : ''} onClick={() => onUpdate(input.msn, 'rateCurrency', 'usd')} style={{ padding: '4px 9px' }}>USD</button>
           </div>
-          {/* Fixed Cost Coverage toggle */}
           <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
-            <input
-              type="checkbox"
-              checked={input.fixedCostCoverageEnabled}
-              onChange={(e) => onUpdate(input.msn, 'fixedCostCoverageEnabled', e.target.checked)}
-              className="w-3 h-3 rounded"
-              style={{ accentColor: 'var(--cyan)' }}
-            />
+            <input type="checkbox" checked={input.fixedCostCoverageEnabled} onChange={(e) => onUpdate(input.msn, 'fixedCostCoverageEnabled', e.target.checked)} className="w-3 h-3 rounded" style={{ accentColor: 'var(--cyan)' }} />
             FC Coverage
           </label>
-          <button
-            onClick={() => onRemove(input.msn)}
-            className="p-1 rounded transition-colors"
-            style={{ color: 'var(--muted)' }}
-            aria-label={`Remove MSN ${input.msn}`}
-          >
+          <button onClick={() => onRemove(input.msn)} className="p-1 rounded transition-colors" style={{ color: 'var(--muted)' }} aria-label={`Remove MSN ${input.msn}`}>
             <X size={13} />
           </button>
         </div>
       </div>
 
       <div className="av-in-sec">
-      {/* Seasonal tabs or flat inputs */}
-      {input.seasonalityEnabled && input.summer && input.winter ? (
-        <>
-          {/* Tab bar */}
-          <div className="av-seg mb-3" style={{ flex: 'unset', maxWidth: 200 }}>
-            <button className={activeTab === 'summer' ? 'on' : ''} onClick={() => setActiveTab('summer')}>
-              Summer
-            </button>
-            <button className={activeTab === 'winter' ? 'on' : ''} onClick={() => setActiveTab('winter')}>
-              Winter
-            </button>
-          </div>
-
-          {/* Per-season fields */}
-          <SeasonFields
-            data={activeTab === 'summer' ? input.summer : input.winter}
-            onFieldChange={(field, value) => handleSeasonFieldChange(activeTab, field, value)}
-            currencyLabel={input.rateCurrency?.toUpperCase() || 'EUR'}
-          />
-
-          {/* Shared fields below tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--line-2)' }}>
-            {/* Environment */}
-            <div>
-              <label className={labelCls}>Environment</label>
-              <select
-                value={input.environment}
-                onChange={(e) => onUpdate(input.msn, 'environment', e.target.value)}
-                className={selectCls}
-              >
-                <option value="benign">Benign</option>
-                <option value="hot">Hot</option>
-              </select>
+        {input.seasonalityEnabled && input.summer && input.winter ? (
+          <>
+            <div className="av-seg mb-3" style={{ flex: 'unset', maxWidth: 200 }}>
+              <button className={activeTab === 'summer' ? 'on' : ''} onClick={() => setActiveTab('summer')}>Summer</button>
+              <button className={activeTab === 'winter' ? 'on' : ''} onClick={() => setActiveTab('winter')}>Winter</button>
             </div>
 
-            {/* Lease Type */}
-            <div>
-              <label className={labelCls}>Lease Type</label>
-              <select
-                value={input.leaseType}
-                onChange={(e) => onUpdate(input.msn, 'leaseType', e.target.value)}
-                className={selectCls}
-              >
-                <option value="wet">Wet</option>
-                <option value="damp">Damp</option>
-                <option value="moist">Moist</option>
-              </select>
-            </div>
-          </div>
-        </>
-      ) : (
-        /* Non-seasonal: original flat input grid */
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {/* MGH */}
-          <div>
-            <label className={labelCls}>MGH</label>
-            <input
-              type="number"
-              step="0.01"
-              value={input.mgh}
-              onChange={(e) => onUpdate(input.msn, 'mgh', e.target.value)}
-              className={inputCls}
+            <RateControls
+              data={activeTab === 'summer' ? input.summer : input.winter}
+              currencyLabel={currencyLabel}
+              onChange={(field, value) => handleSeasonFieldChange(activeTab, field, value)}
             />
-          </div>
 
-          {/* Cycle Ratio */}
-          <div>
-            <label className={labelCls}>FH:FC</label>
-            <input
-              type="number"
-              step="0.0001"
-              value={input.cycleRatio}
-              onChange={(e) => onUpdate(input.msn, 'cycleRatio', e.target.value)}
-              className={inputCls}
+            {/* Shared operation controls */}
+            <div className="av-in-sec-t" style={{ marginTop: 18 }}>Operation</div>
+            <SliderField label="Crew complements" value={input.crewSets} min={0.5} max={8} step={0.5} unit="sets" onChange={(v) => onUpdate(input.msn, 'crewSets', parseFloat(v) || 1)} />
+            <SegField label="Operating environment" value={input.environment} options={ENV_OPTS} onChange={(v) => onUpdate(input.msn, 'environment', v)} />
+            <SegField label="Lease type" value={input.leaseType} options={LEASE_OPTS} onChange={(v) => onUpdate(input.msn, 'leaseType', v)} />
+          </>
+        ) : (
+          <>
+            <RateControls
+              data={input as unknown as SeasonInput}
+              currencyLabel={currencyLabel}
+              onChange={(field, value) => onUpdate(input.msn, field as keyof MsnInput, value)}
             />
-          </div>
 
-          {/* ACMI Rate */}
-          <div>
-            <label className={labelCls}>ACMI Rate ({input.rateCurrency?.toUpperCase() || 'EUR'})</label>
-            <input
-              type="number"
-              step="0.01"
-              value={input.acmiRate}
-              onChange={(e) => onUpdate(input.msn, 'acmiRate', e.target.value)}
-              className={inputCls}
-            />
-          </div>
+            <div className="av-in-sec-t" style={{ marginTop: 18 }}>Operation</div>
+            <SliderField label="Crew complements" value={input.crewSets} min={0.5} max={8} step={0.5} unit="sets" onChange={(v) => onUpdate(input.msn, 'crewSets', parseFloat(v) || 1)} />
+            <SegField label="Operating environment" value={input.environment} options={ENV_OPTS} onChange={(v) => onUpdate(input.msn, 'environment', v)} />
+            <SegField label="Lease type" value={input.leaseType} options={LEASE_OPTS} onChange={(v) => onUpdate(input.msn, 'leaseType', v)} />
+          </>
+        )}
 
-          {/* Excess Hour Rate */}
-          <div>
-            <label className={labelCls}>Excess Rate ({input.rateCurrency?.toUpperCase() || 'EUR'})</label>
-            <input
-              type="number"
-              step="0.01"
-              value={input.excessHourRate}
-              onChange={(e) => onUpdate(input.msn, 'excessHourRate', e.target.value)}
-              className={inputCls}
-            />
+        {/* Fixed Cost Coverage inputs */}
+        {input.fixedCostCoverageEnabled && (
+          <div className="av-field-row" style={{ marginTop: 18 }}>
+            <NumField label="Coverage %" value={String(input.fixedCostCoveragePercent)} step="1" onChange={(v) => onUpdate(input.msn, 'fixedCostCoveragePercent', v)} />
+            <NumField label="Coverage months" value={String(input.fixedCostCoverageMonths)} step="1" onChange={(v) => onUpdate(input.msn, 'fixedCostCoverageMonths', v)} />
           </div>
-
-          {/* Period Start */}
-          <div>
-            <label className={labelCls}>Start Date</label>
-            <input
-              type="date"
-              value={input.periodStart.length === 7 ? `${input.periodStart}-01` : input.periodStart}
-              onChange={(e) => onUpdate(input.msn, 'periodStart', e.target.value)}
-              className={inputCls}
-            />
-          </div>
-
-          {/* Period End */}
-          <div>
-            <label className={labelCls}>End Date</label>
-            <input
-              type="date"
-              value={(() => {
-                if (input.periodEnd.length > 7) return input.periodEnd
-                // YYYY-MM → append last day of month
-                const [y, m] = input.periodEnd.split('-').map(Number)
-                const lastDay = new Date(y, m, 0).getDate()
-                return `${input.periodEnd}-${String(lastDay).padStart(2, '0')}`
-              })()}
-              onChange={(e) => onUpdate(input.msn, 'periodEnd', e.target.value)}
-              className={inputCls}
-            />
-          </div>
-
-          {/* Excess BH */}
-          <div>
-            <label className={labelCls}>Excess Hour</label>
-            <input
-              type="number"
-              step="0.01"
-              value={input.excessBh}
-              onChange={(e) => onUpdate(input.msn, 'excessBh', e.target.value)}
-              className={inputCls}
-            />
-          </div>
-
-          {/* Environment */}
-          <div>
-            <label className={labelCls}>Environment</label>
-            <select
-              value={input.environment}
-              onChange={(e) => onUpdate(input.msn, 'environment', e.target.value)}
-              className={selectCls}
-            >
-              <option value="benign">Benign</option>
-              <option value="hot">Hot</option>
-            </select>
-          </div>
-
-          {/* Crew Sets */}
-          <div>
-            <label className={labelCls}>Crew</label>
-            <input
-              type="number"
-              min={0.5}
-              step="0.1"
-              value={input.crewSets}
-              onChange={(e) => onUpdate(input.msn, 'crewSets', parseFloat(e.target.value) || 1)}
-              className={inputCls}
-            />
-          </div>
-
-          {/* Lease Type */}
-          <div>
-            <label className={labelCls}>Lease Type</label>
-            <select
-              value={input.leaseType}
-              onChange={(e) => onUpdate(input.msn, 'leaseType', e.target.value)}
-              className={selectCls}
-            >
-              <option value="wet">Wet</option>
-              <option value="damp">Damp</option>
-              <option value="moist">Moist</option>
-            </select>
-          </div>
-        </div>
-      )}
-
-      {/* Fixed Cost Coverage inputs (shown when FC Coverage is toggled on) */}
-      {input.fixedCostCoverageEnabled && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--line-2)' }}>
-          <div>
-            <label className={labelCls}>Coverage %</label>
-            <input
-              type="number"
-              step="1"
-              min="0"
-              max="100"
-              value={input.fixedCostCoveragePercent}
-              onChange={(e) => onUpdate(input.msn, 'fixedCostCoveragePercent', e.target.value)}
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Coverage Months</label>
-            <input
-              type="number"
-              step="1"
-              min="1"
-              max="12"
-              value={input.fixedCostCoverageMonths}
-              onChange={(e) => onUpdate(input.msn, 'fixedCostCoverageMonths', e.target.value)}
-              className={inputCls}
-            />
-          </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   )

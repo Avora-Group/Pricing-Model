@@ -23,7 +23,7 @@ const navSections = [
     label: 'Workspace',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/calculation', label: 'Calculation', icon: Calculator },
+      { href: '/calculation', label: 'Pricing Workspace', icon: Calculator },
       { href: '/pnl', label: 'P&L', icon: TrendingUp },
       { href: '/sensitivity', label: 'Sensitivity', icon: BarChart3 },
       { href: '/quotes', label: 'Quotes', icon: FileText },

@@ -20,7 +20,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 const primaryTabs = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/calculation', label: 'Calculation', icon: Calculator },
+  { href: '/calculation', label: 'Pricing', icon: Calculator },
   { href: '/quotes', label: 'Quotes', icon: FileText },
   { href: '/admin', label: 'Admin', icon: Settings },
 ]

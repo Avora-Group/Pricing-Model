@@ -160,6 +160,7 @@ interface PricingStore {
   addMsnInput: (input: MsnInput) => void
   removeMsnInput: (msn: number) => void
   updateMsnInput: (msn: number, field: keyof MsnInput, value: string | number | boolean | null) => void
+  patchMsnInput: (msn: number, patch: Partial<MsnInput>) => void
   setSelectedMsn: (msn: number | null) => void
   setResults: (msnResults: MsnPnlResult[], total: ComponentBreakdown | null) => void
   setIsCalculating: (val: boolean) => void
@@ -255,6 +256,13 @@ export const usePricingStore = create<PricingStore>()((set) => ({
     set((state) => ({
       msnInputs: state.msnInputs.map((i) =>
         i.msn === msn ? { ...i, [field]: value } : i
+      ),
+    })),
+
+  patchMsnInput: (msn, patch) =>
+    set((state) => ({
+      msnInputs: state.msnInputs.map((i) =>
+        i.msn === msn ? { ...i, ...patch } : i
       ),
     })),
 

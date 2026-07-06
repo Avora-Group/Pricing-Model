@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
 import { useCrewConfigStore, type PayrollRow } from '@/stores/crew-config-store'
+import { useReadOnly } from '@/components/ui/ReadOnlyContext'
 import { PayrollSection } from './sections/PayrollSection'
 import { OtherCostTrainingSection } from './sections/OtherCostTrainingSection'
 import { PerDiemSummarySection } from './sections/PerDiemSummarySection'
@@ -12,6 +13,7 @@ import { PerDiemSummarySection } from './sections/PerDiemSummarySection'
 // ──────────────────────────────────────────────────────
 
 export function CrewConfigTable() {
+  const readOnly = useReadOnly()
   // ── State from Zustand store (all yellow editable cells) ──
   const payroll = useCrewConfigStore(s => s.payroll)
   const otherCost = useCrewConfigStore(s => s.otherCost)
@@ -110,10 +112,12 @@ export function CrewConfigTable() {
         className="flex flex-wrap items-center gap-5 px-4 py-2.5 rounded-xl text-[12px]"
         style={{ background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--muted)' }}
       >
-        <span className="flex items-center gap-2">
-          <span className="inline-block w-3 h-3 rounded-[3px]" style={{ background: 'var(--cyan-soft)', border: '1px solid var(--cyan)' }} />
-          Editable
-        </span>
+        {!readOnly && (
+          <span className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-[3px]" style={{ background: 'var(--cyan-soft)', border: '1px solid var(--cyan)' }} />
+            Editable
+          </span>
+        )}
         <span className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 rounded-[3px]" style={{ background: 'var(--pos-soft)', border: '1px solid var(--pos)' }} />
           BH rate &times; MGH ({mgh}h {msnInputs.length > 0 ? 'from Dashboard' : '— add MSN in Dashboard'})

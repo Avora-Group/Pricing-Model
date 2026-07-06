@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { fmt } from '@/lib/format'
+import { useReadOnly } from './ReadOnlyContext'
 
 /**
  * Inline-editable numeric cell used across Crew and Costs config tables.
@@ -28,6 +29,7 @@ export function EditableCell({
   className = '',
   allowNull = true,
 }: EditableCellProps) {
+  const readOnly = useReadOnly()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
 
@@ -36,6 +38,18 @@ export function EditableCell({
     : value !== null
       ? fmt(value, decimals)
       : '-'
+
+  // Read-only viewers (non-admins) see a plain, non-editable value.
+  if (readOnly) {
+    return (
+      <span
+        className={`av-num inline-block min-w-[60px] text-right px-2 py-0.5 ${className}`}
+        style={{ color: 'var(--ink-2)' }}
+      >
+        {displayValue}
+      </span>
+    )
+  }
 
   const startEdit = () => {
     setDraft(value !== null ? String(value) : '')

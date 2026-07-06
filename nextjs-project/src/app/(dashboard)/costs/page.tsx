@@ -1,15 +1,41 @@
+import { cookies } from 'next/headers'
 import { CostsConfigTable } from '@/components/costs/CostsConfigTable'
+import { ReadOnlyProvider } from '@/components/ui/ReadOnlyContext'
 
-export default function CostsPage() {
+const API_URL = process.env.API_URL ?? 'http://localhost:8000'
+
+async function getIsAdmin(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    return data.role === 'admin'
+  } catch {
+    return false
+  }
+}
+
+export default async function CostsPage() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+  const isAdmin = token ? await getIsAdmin(token) : false
+
   return (
     <div className="space-y-[18px]">
       <div>
         <h1 className="av-page-title">Cost Assumptions</h1>
         <p className="av-page-sub">
-          Maintenance, insurance, DOC, other COGS and overhead drivers
+          {isAdmin
+            ? 'Maintenance, insurance, DOC, other COGS and overhead drivers'
+            : 'Maintenance, insurance, DOC, other COGS and overhead drivers — read-only'}
         </p>
       </div>
-      <CostsConfigTable />
+      <ReadOnlyProvider readOnly={!isAdmin}>
+        <CostsConfigTable />
+      </ReadOnlyProvider>
     </div>
   )
 }

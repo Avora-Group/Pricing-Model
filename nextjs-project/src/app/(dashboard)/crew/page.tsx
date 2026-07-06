@@ -1,13 +1,41 @@
+import { cookies } from 'next/headers'
 import { CrewConfigTable } from '@/components/crew/CrewConfigTable'
+import { ReadOnlyProvider } from '@/components/ui/ReadOnlyContext'
 
-export default function CrewPage() {
+const API_URL = process.env.API_URL ?? 'http://localhost:8000'
+
+async function getIsAdmin(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    return data.role === 'admin'
+  } catch {
+    return false
+  }
+}
+
+export default async function CrewPage() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+  const isAdmin = token ? await getIsAdmin(token) : false
+
   return (
     <div className="space-y-[18px]">
       <div>
         <h1 className="av-page-title">Crew Cost Assumptions</h1>
-        <p className="av-page-sub">Payroll, per-diem and training parameters</p>
+        <p className="av-page-sub">
+          {isAdmin
+            ? 'Payroll, per-diem and training parameters'
+            : 'Payroll, per-diem and training parameters — read-only'}
+        </p>
       </div>
-      <CrewConfigTable />
+      <ReadOnlyProvider readOnly={!isAdmin}>
+        <CrewConfigTable />
+      </ReadOnlyProvider>
     </div>
   )
 }

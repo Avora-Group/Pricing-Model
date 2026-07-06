@@ -342,7 +342,6 @@ export function SummaryTable() {
   const costsOverhead = useCostsConfigStore((s) => s.overhead)
   const costsAvgAc = useCostsConfigStore((s) => s.avgAc)
 
-  const [displayMode, setDisplayMode] = useState<'eur' | 'eurPerBh'>('eur')
   const [currency, setCurrency] = useState<'eur' | 'usd'>('eur')
   const [seasonFilter, setSeasonFilter] = useState<'total' | 'summer' | 'winter'>('total')
   const [drill, setDrill] = useState<{ cat: string; rect: DOMRect } | null>(null)
@@ -577,7 +576,9 @@ export function SummaryTable() {
   const totalMgh = filteredMsnData.reduce((s, d) => s + d.mgh, 0)
 
   // ── EUR/BH helpers ──
-  const isPerBh = displayMode === 'eurPerBh'
+  // Per-BH display toggle removed; cost figures are always shown as monthly
+  // totals (the cost breakdown already has a dedicated per-BH column).
+  const isPerBh = false
   const isTotalView = selectedMsn === null
   const activeBh = isTotalView
     ? (totalMgh || 1)
@@ -789,15 +790,6 @@ export function SummaryTable() {
                   {c.toUpperCase()}
                 </button>
               ))}
-            </div>
-            {/* Absolute vs per-BH */}
-            <div className="av-seg" style={{ flex: 'unset' }}>
-              <button className={displayMode === 'eur' ? 'on' : ''} onClick={() => setDisplayMode('eur')} style={{ padding: '6px 12px' }}>
-                {currency.toUpperCase()}
-              </button>
-              <button className={displayMode === 'eurPerBh' ? 'on' : ''} onClick={() => setDisplayMode('eurPerBh')} style={{ padding: '6px 12px' }}>
-                {currency.toUpperCase()}/BH
-              </button>
             </div>
             {/* Season filter */}
             {msnInputs.some((i) => i.seasonalityEnabled) && (

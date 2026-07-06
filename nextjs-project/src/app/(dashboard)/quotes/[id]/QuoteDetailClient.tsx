@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuoteHydration } from '@/components/quotes/hooks/useQuoteHydration'
 import { QuoteHeader } from '@/components/quotes/QuoteHeader'
-import { QuoteMetrics } from '@/components/quotes/QuoteMetrics'
-import { QuoteMsnTable } from '@/components/quotes/QuoteMsnTable'
+import { SummaryTable } from '@/components/pricing/SummaryTable'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
 
 interface QuoteDetailClientProps {
@@ -14,7 +13,7 @@ interface QuoteDetailClientProps {
 }
 
 export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
-  const { loaded, msnSummaries } = useQuoteHydration(quote)
+  const { loaded } = useQuoteHydration(quote)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -35,20 +34,6 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
     )
   }
 
-  const dashState = quote.dashboard_state as Record<string, string> | null
-
-  // Compute EBITDA margin from MSN summaries (D&A is 0 in the model, so netProfit ≈ EBITDA)
-  const totals = msnSummaries.reduce(
-    (acc, s) => ({
-      totalRevenue: acc.totalRevenue + s.totalRevenue,
-      netProfit: acc.netProfit + s.netProfit,
-    }),
-    { totalRevenue: 0, netProfit: 0 },
-  )
-  const ebitdaMargin = totals.totalRevenue > 0
-    ? ((totals.netProfit / totals.totalRevenue) * 100).toFixed(1)
-    : '0.0'
-
   return (
     <div className="space-y-6">
       <QuoteHeader
@@ -58,17 +43,14 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
         createdAt={quote.created_at}
       />
 
-      <QuoteMetrics
-        exchangeRate={dashState?.exchangeRate ?? quote.exchange_rate}
-        ebitdaMargin={ebitdaMargin}
-        msnCount={quote.msn_list?.length ?? 0}
-      />
-
-      {loaded && quote.msn_snapshots && quote.msn_snapshots.length > 0 && (
-        <QuoteMsnTable
-          msnSnapshots={quote.msn_snapshots}
-          msnSummaries={msnSummaries}
-        />
+      {/* Same summary cards as the Pricing Workspace (metrics, ACMI cost
+          build-up, cost breakdown), driven by the hydrated pricing store. */}
+      {loaded ? (
+        <SummaryTable />
+      ) : (
+        <div className="flex items-center justify-center py-20 text-sm" style={{ color: 'var(--muted)' }}>
+          Loading {quote.quote_number}…
+        </div>
       )}
 
       {/* Navigation hint */}

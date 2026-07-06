@@ -7,6 +7,14 @@ import { ResetPasswordDialog } from './ResetPasswordDialog'
 
 const ROLES = ['admin', 'user', 'viewer'] as const
 
+// Permanent admins — kept in sync with the backend `protected_admin_emails`
+// setting. Their role cannot be changed (also enforced server-side).
+const PROTECTED_ADMIN_EMAILS = ['abukhair.alpyspayev@avora.aero']
+
+function isProtectedAdmin(email: string): boolean {
+  return PROTECTED_ADMIN_EMAILS.includes(email.toLowerCase())
+}
+
 const rolePillClass: Record<string, string> = {
   admin: 'av-pill av-pill-signed',
   viewer: 'av-pill av-pill-draft',
@@ -19,6 +27,18 @@ interface UserTableProps {
 
 function RoleSelect({ user }: { user: User }) {
   const [isPending, startTransition] = useTransition()
+
+  // Permanent admins cannot be demoted — show a fixed pill, no dropdown.
+  if (isProtectedAdmin(user.email)) {
+    return (
+      <span
+        className={`${rolePillClass.admin} capitalize`}
+        title="Permanent admin — role cannot be changed"
+      >
+        admin
+      </span>
+    )
+  }
 
   const handleChange = (newRole: string) => {
     startTransition(async () => {

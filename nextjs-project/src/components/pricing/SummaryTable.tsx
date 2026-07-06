@@ -57,6 +57,9 @@ function computeMsnCosts(
     airportChargesVal: number
     overheadPerMonth: number[]
   },
+  // When true (and the aircraft has naked rates), price the Aircraft component
+  // on the naked cost basis instead of current.
+  useNaked = false,
 ) {
   const mgh = parseFloat(input.mgh) || 0
   const excessBh = parseFloat(input.excessBh || '0')
@@ -75,14 +78,18 @@ function computeMsnCosts(
   const revenuePerMonth = (acmiRate * mgh) + (excessBh * excessHourRate)
 
   // ── Aircraft (Category A) ──
-  const dryLease = parseFloat(input.leaseRentEur || '0')
-  const maintReservesFixed = (parseFloat(input.sixYearCheckEur || '0')
-    + parseFloat(input.twelveYearCheckEur || '0')
-    + parseFloat(input.ldgEur || '0'))
-  const eprRate = interpolateEpr(input.eprMatrix ?? [], cycleRatio, input.environment)
+  // Pick current or naked rate fields. Naked only applies when the aircraft
+  // actually has naked rates; otherwise fall back to current.
+  const nk = useNaked && Boolean(input.hasNakedRates)
+  const dryLease = parseFloat((nk ? input.nakedLeaseRentEur : input.leaseRentEur) || '0')
+  const maintReservesFixed = (parseFloat((nk ? input.nakedSixYearCheckEur : input.sixYearCheckEur) || '0')
+    + parseFloat((nk ? input.nakedTwelveYearCheckEur : input.twelveYearCheckEur) || '0')
+    + parseFloat((nk ? input.nakedLdgEur : input.ldgEur) || '0'))
+  const eprSource = nk && input.nakedEprMatrix?.length ? input.nakedEprMatrix : (input.eprMatrix ?? [])
+  const eprRate = interpolateEpr(eprSource, cycleRatio, input.environment)
   const eprMr = eprRate * 2 * fh * exchangeRate
-  const llpMr = (parseFloat(input.llp1RateUsd || '0') + parseFloat(input.llp2RateUsd || '0')) * fc * exchangeRate
-  const apuMr = parseFloat(input.apuRateUsd || '0') * apuFh * exchangeRate
+  const llpMr = (parseFloat((nk ? input.nakedLlp1RateUsd : input.llp1RateUsd) || '0') + parseFloat((nk ? input.nakedLlp2RateUsd : input.llp2RateUsd) || '0')) * fc * exchangeRate
+  const apuMr = parseFloat((nk ? input.nakedApuRateUsd : input.apuRateUsd) || '0') * apuFh * exchangeRate
   const maintReservesVariable = eprMr + llpMr + apuMr
   const aircraft = dryLease + maintReservesFixed + maintReservesVariable
 
@@ -312,7 +319,11 @@ export function SummaryTable() {
     selectedMsn,
     setSelectedMsn,
     isCalculating,
+    rateBasis,
   } = usePricingStore()
+
+  // Naked cost basis is honored only for cost-access users.
+  const useNaked = canViewCosts && rateBasis === 'naked'
 
   // ── Crew config ──
   const crewPayroll = useCrewConfigStore((s) => s.payroll)
@@ -476,8 +487,8 @@ export function SummaryTable() {
         periodStart: input.winter.periodStart,
         periodEnd: input.winter.periodEnd,
       }
-      const s = computeMsnCosts(summerInput, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived)
-      const w = computeMsnCosts(winterInput, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived)
+      const s = computeMsnCosts(summerInput, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived, useNaked)
+      const w = computeMsnCosts(winterInput, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived, useNaked)
       const totalDuration = s.duration + w.duration
 
       // Weighted average per-month values (weight by duration)
@@ -536,7 +547,7 @@ export function SummaryTable() {
       }
       return combined
     }
-    return computeMsnCosts(input, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived)
+    return computeMsnCosts(input, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived, useNaked)
   })
 
   // ── Helper: pick season-filtered data for an MSN ──

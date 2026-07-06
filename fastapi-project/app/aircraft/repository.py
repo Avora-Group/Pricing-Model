@@ -12,7 +12,11 @@ class AircraftRepository(BaseRepository):
             SELECT a.id, a.msn, a.aircraft_type, a.registration,
                    r.lease_rent_usd, r.six_year_check_usd,
                    r.twelve_year_check_usd, r.ldg_usd,
-                   r.apu_rate_usd, r.llp1_rate_usd, r.llp2_rate_usd
+                   r.apu_rate_usd, r.llp1_rate_usd, r.llp2_rate_usd,
+                   r.has_naked_rates,
+                   r.naked_lease_rent_usd, r.naked_six_year_check_usd,
+                   r.naked_twelve_year_check_usd, r.naked_ldg_usd,
+                   r.naked_apu_rate_usd, r.naked_llp1_rate_usd, r.naked_llp2_rate_usd
             FROM aircraft a
             LEFT JOIN aircraft_rates r ON r.aircraft_id = a.id
         """

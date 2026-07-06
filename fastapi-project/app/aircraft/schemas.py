@@ -31,6 +31,23 @@ class AircraftListResponse(BaseModel):
     llp2_rate_eur: Decimal | None = None
     # EPR matrix
     epr_matrix: list[EprMatrixRow] = []
+    # --- Naked rates (only populated for cost-access users) ---
+    has_naked_rates: bool = False
+    naked_lease_rent_usd: Decimal | None = None
+    naked_six_year_check_usd: Decimal | None = None
+    naked_twelve_year_check_usd: Decimal | None = None
+    naked_ldg_usd: Decimal | None = None
+    naked_apu_rate_usd: Decimal | None = None
+    naked_llp1_rate_usd: Decimal | None = None
+    naked_llp2_rate_usd: Decimal | None = None
+    naked_lease_rent_eur: Decimal | None = None
+    naked_six_year_check_eur: Decimal | None = None
+    naked_twelve_year_check_eur: Decimal | None = None
+    naked_ldg_eur: Decimal | None = None
+    naked_apu_rate_eur: Decimal | None = None
+    naked_llp1_rate_eur: Decimal | None = None
+    naked_llp2_rate_eur: Decimal | None = None
+    naked_epr_matrix: list[EprMatrixRow] = []
 
 
 class EprMatrixRow(BaseModel):

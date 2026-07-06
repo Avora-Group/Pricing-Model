@@ -78,6 +78,20 @@ export function useAddAircraft(
         benignRate: parseFloat(r.benign_rate),
         hotRate: parseFloat(r.hot_rate),
       })),
+      // Naked rates (present only for cost-access users + aircraft with naked data)
+      hasNakedRates: Boolean(ac.has_naked_rates),
+      nakedLeaseRentEur: ac.naked_lease_rent_eur ?? undefined,
+      nakedSixYearCheckEur: ac.naked_six_year_check_eur ?? undefined,
+      nakedTwelveYearCheckEur: ac.naked_twelve_year_check_eur ?? undefined,
+      nakedLdgEur: ac.naked_ldg_eur ?? undefined,
+      nakedApuRateUsd: ac.naked_apu_rate_usd ?? undefined,
+      nakedLlp1RateUsd: ac.naked_llp1_rate_usd ?? undefined,
+      nakedLlp2RateUsd: ac.naked_llp2_rate_usd ?? undefined,
+      nakedEprMatrix: (ac.naked_epr_matrix ?? []).map((r) => ({
+        cycleRatio: parseFloat(r.cycle_ratio),
+        benignRate: parseFloat(r.benign_rate),
+        hotRate: parseFloat(r.hot_rate),
+      })),
       // Seasonality (off by default)
       seasonalityEnabled: false,
       // Fixed cost coverage (off by default)

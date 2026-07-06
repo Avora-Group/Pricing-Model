@@ -51,6 +51,17 @@ export interface MsnInput {
   llp2RateUsd: string // LLP #2 rate per FC
   // EPR matrix from Aircraft tab (USD per engine)
   eprMatrix: EprMatrixRow[]
+  // Naked rates (parallel cost basis; only populated for cost-access users +
+  // aircraft that have naked rates). Used when rateBasis === 'naked'.
+  hasNakedRates?: boolean
+  nakedLeaseRentEur?: string
+  nakedSixYearCheckEur?: string
+  nakedTwelveYearCheckEur?: string
+  nakedLdgEur?: string
+  nakedApuRateUsd?: string
+  nakedLlp1RateUsd?: string
+  nakedLlp2RateUsd?: string
+  nakedEprMatrix?: EprMatrixRow[]
   // Seasonality
   seasonalityEnabled: boolean
   summer?: SeasonInput

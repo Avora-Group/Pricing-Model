@@ -31,16 +31,33 @@ async def list_aircraft(
     db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """List all aircraft with rates and EPR matrices, optionally filtered."""
+    """List all aircraft with rates and EPR matrices, optionally filtered.
+
+    Naked rates/EPR are attached only for cost-access users; for everyone else
+    the naked_* fields are stripped server-side.
+    """
     repo = AircraftRepository(db)
     rows = await repo.list_aircraft(search)
-    # Build id→epr_matrix map in a single query
     aircraft_ids = [r["id"] for r in rows]
-    epr_map = await repo.fetch_epr_matrices_for_ids(aircraft_ids) if aircraft_ids else {}
+    epr_map = await repo.fetch_epr_matrices_for_ids(aircraft_ids, "current") if aircraft_ids else {}
+
+    can_view = user_can_view_costs(current_user)
+    naked_epr_map = (
+        await repo.fetch_epr_matrices_for_ids(aircraft_ids, "naked")
+        if aircraft_ids and can_view else {}
+    )
+
     result = []
     for r in rows:
         data = apply_eur_conversion(dict(r))
         data["epr_matrix"] = [dict(e) for e in epr_map.get(r["id"], [])]
+        if can_view and data.get("has_naked_rates"):
+            data["naked_epr_matrix"] = [dict(e) for e in naked_epr_map.get(r["id"], [])]
+        else:
+            for key in [k for k in list(data) if k.startswith("naked_")]:
+                data.pop(key, None)
+            data["has_naked_rates"] = False
+            data["naked_epr_matrix"] = []
         result.append(data)
     return result
 

@@ -29,6 +29,16 @@ export interface AircraftOption {
   llp1_rate_usd: string | null
   llp2_rate_usd: string | null
   epr_matrix: EprMatrixRowApi[]
+  // Naked rates — present only for cost-access users.
+  has_naked_rates?: boolean
+  naked_lease_rent_eur?: string | null
+  naked_six_year_check_eur?: string | null
+  naked_twelve_year_check_eur?: string | null
+  naked_ldg_eur?: string | null
+  naked_apu_rate_usd?: string | null
+  naked_llp1_rate_usd?: string | null
+  naked_llp2_rate_usd?: string | null
+  naked_epr_matrix?: EprMatrixRowApi[]
 }
 
 // ---- Converters ----

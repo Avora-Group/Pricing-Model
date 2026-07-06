@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
+import type { AircraftOption } from '@/lib/api-converters'
 import { QuoteDetailClient } from './QuoteDetailClient'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
@@ -23,6 +24,22 @@ async function getQuoteDetail(
   }
 }
 
+// Aircraft master data — used to backfill naked rates onto the quote's MSNs so
+// the Current/Naked toggle works on the quote view (naked included for
+// cost-access users only, gated server-side).
+async function getAircraftList(token: string): Promise<AircraftOption[]> {
+  try {
+    const res = await fetch(`${API_URL}/aircraft`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    return res.json()
+  } catch {
+    return []
+  }
+}
+
 export default async function QuoteDetailPage({
   params,
 }: {
@@ -36,7 +53,10 @@ export default async function QuoteDetailPage({
     notFound()
   }
 
-  const quote = await getQuoteDetail(id, token)
+  const [quote, aircraftList] = await Promise.all([
+    getQuoteDetail(id, token),
+    getAircraftList(token),
+  ])
 
   if (!quote) {
     notFound()
@@ -53,7 +73,7 @@ export default async function QuoteDetailPage({
         <span className="av-num" style={{ color: 'var(--ink-2)' }}>{quote.quote_number}</span>
       </nav>
 
-      <QuoteDetailClient quote={quote} />
+      <QuoteDetailClient quote={quote} aircraftList={aircraftList} />
     </div>
   )
 }

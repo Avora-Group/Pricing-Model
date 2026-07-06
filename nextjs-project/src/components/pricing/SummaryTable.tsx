@@ -12,6 +12,7 @@ import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { LineDetailPopover, type BreakdownItem } from './CostDetailPopover'
 import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
 import { Redacted } from '@/components/common/Redacted'
+import type { AircraftOption } from '@/lib/api-converters'
 
 
 /** Compute all monthly cost components for a single MSN (mirrors PnlTable.computeForMsn) */
@@ -309,7 +310,7 @@ function computeMsnCosts(
   }
 }
 
-export function SummaryTable() {
+export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOption[] } = {}) {
   const canViewCosts = useCanViewCosts()
   const {
     exchangeRate: globalExchangeRate,
@@ -320,10 +321,40 @@ export function SummaryTable() {
     setSelectedMsn,
     isCalculating,
     rateBasis,
+    setRateBasis,
+    patchMsnInput,
   } = usePricingStore()
 
   // Naked cost basis is honored only for cost-access users.
   const useNaked = canViewCosts && rateBasis === 'naked'
+
+  // Backfill naked rates onto MSNs that lack them (e.g. loaded from a saved
+  // quote) using the current aircraft master data, for cost-access users.
+  useEffect(() => {
+    if (!canViewCosts || aircraftList.length === 0) return
+    for (const input of msnInputs) {
+      if (input.hasNakedRates !== undefined) continue
+      const ac =
+        aircraftList.find((a) => a.id === input.aircraftId) ??
+        aircraftList.find((a) => a.msn === input.msn)
+      if (!ac) continue
+      patchMsnInput(input.msn, {
+        hasNakedRates: Boolean(ac.has_naked_rates),
+        nakedLeaseRentEur: ac.naked_lease_rent_eur ?? undefined,
+        nakedSixYearCheckEur: ac.naked_six_year_check_eur ?? undefined,
+        nakedTwelveYearCheckEur: ac.naked_twelve_year_check_eur ?? undefined,
+        nakedLdgEur: ac.naked_ldg_eur ?? undefined,
+        nakedApuRateUsd: ac.naked_apu_rate_usd ?? undefined,
+        nakedLlp1RateUsd: ac.naked_llp1_rate_usd ?? undefined,
+        nakedLlp2RateUsd: ac.naked_llp2_rate_usd ?? undefined,
+        nakedEprMatrix: (ac.naked_epr_matrix ?? []).map((r) => ({
+          cycleRatio: parseFloat(r.cycle_ratio),
+          benignRate: parseFloat(r.benign_rate),
+          hotRate: parseFloat(r.hot_rate),
+        })),
+      })
+    }
+  }, [msnInputs, aircraftList, canViewCosts, patchMsnInput])
 
   // ── Crew config ──
   const crewPayroll = useCrewConfigStore((s) => s.payroll)
@@ -791,6 +822,21 @@ export function SummaryTable() {
                 </button>
               ))}
             </div>
+            {/* Cost basis — cost-access users only */}
+            {canViewCosts && (
+              <div className="av-seg" style={{ flex: 'unset' }}>
+                {(['current', 'naked'] as const).map((b) => (
+                  <button
+                    key={b}
+                    className={rateBasis === b ? 'on' : ''}
+                    onClick={() => setRateBasis(b)}
+                    style={{ padding: '6px 12px', textTransform: 'capitalize' }}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            )}
             {/* Season filter */}
             {msnInputs.some((i) => i.seasonalityEnabled) && (
               <div className="av-seg" style={{ flex: 'unset' }}>

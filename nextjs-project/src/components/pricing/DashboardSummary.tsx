@@ -50,12 +50,10 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     lastError,
     setProjectName,
     setExchangeRate,
-    setRateBasis,
     setBhFhRatio,
     setApuFhRatio,
     removeMsnInput,
     updateMsnInput,
-    patchMsnInput,
     editingQuoteNumber,
     reset,
   } = usePricingStore()
@@ -115,35 +113,6 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
       setIsExporting(false)
     }
   }
-
-  // Backfill naked rates onto MSNs loaded from a saved quote (which don't carry
-  // them) using the current aircraft master data. Only for cost-access users;
-  // aircraft without naked data get flagged so we don't re-patch every render.
-  useEffect(() => {
-    if (!canViewCosts) return
-    for (const input of msnInputs) {
-      if (input.hasNakedRates !== undefined) continue
-      const ac =
-        aircraftList.find((a) => a.id === input.aircraftId) ??
-        aircraftList.find((a) => a.msn === input.msn)
-      if (!ac) continue
-      patchMsnInput(input.msn, {
-        hasNakedRates: Boolean(ac.has_naked_rates),
-        nakedLeaseRentEur: ac.naked_lease_rent_eur ?? undefined,
-        nakedSixYearCheckEur: ac.naked_six_year_check_eur ?? undefined,
-        nakedTwelveYearCheckEur: ac.naked_twelve_year_check_eur ?? undefined,
-        nakedLdgEur: ac.naked_ldg_eur ?? undefined,
-        nakedApuRateUsd: ac.naked_apu_rate_usd ?? undefined,
-        nakedLlp1RateUsd: ac.naked_llp1_rate_usd ?? undefined,
-        nakedLlp2RateUsd: ac.naked_llp2_rate_usd ?? undefined,
-        nakedEprMatrix: (ac.naked_epr_matrix ?? []).map((r) => ({
-          cycleRatio: parseFloat(r.cycle_ratio),
-          benignRate: parseFloat(r.benign_rate),
-          hotRate: parseFloat(r.hot_rate),
-        })),
-      })
-    }
-  }, [msnInputs, aircraftList, canViewCosts, patchMsnInput])
 
   // Debounced calculation side-effect
   useCalculation(msnInputs, exchangeRate, marginPercent, effectiveBasis)
@@ -291,34 +260,6 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
           />
         </div>
 
-        {/* Cost basis toggle — cost-access users only. Naked prices the 6 MSNs
-            that have naked rates on their reduced cost basis. */}
-        {canViewCosts && (
-          <div className="av-pb-field small">
-            <label>Cost basis</label>
-            <div className="inline-flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--line)' }}>
-              {(['current', 'naked'] as const).map((basis) => {
-                const active = effectiveBasis === basis
-                return (
-                  <button
-                    key={basis}
-                    type="button"
-                    onClick={() => setRateBasis(basis)}
-                    className="px-3 py-1.5 text-[12.5px] capitalize transition-colors"
-                    style={{
-                      background: active ? 'var(--cyan)' : 'transparent',
-                      color: active ? 'var(--on-cyan, #fff)' : 'var(--ink-2)',
-                      fontWeight: active ? 600 : 400,
-                    }}
-                    aria-pressed={active}
-                  >
-                    {basis}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Aircraft tabs + add-aircraft picker */}
@@ -387,7 +328,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
         </div>
 
         <div className="min-w-0">
-          <SummaryTable />
+          <SummaryTable aircraftList={aircraftList} />
         </div>
       </div>
 

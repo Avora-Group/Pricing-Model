@@ -7,12 +7,14 @@ import { useQuoteHydration } from '@/components/quotes/hooks/useQuoteHydration'
 import { QuoteHeader } from '@/components/quotes/QuoteHeader'
 import { SummaryTable } from '@/components/pricing/SummaryTable'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
+import type { AircraftOption } from '@/lib/api-converters'
 
 interface QuoteDetailClientProps {
   quote: QuoteDetailResponse
+  aircraftList?: AircraftOption[]
 }
 
-export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
+export function QuoteDetailClient({ quote, aircraftList = [] }: QuoteDetailClientProps) {
   const { loaded } = useQuoteHydration(quote)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -46,7 +48,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
       {/* Same summary cards as the Pricing Workspace (metrics, ACMI cost
           build-up, cost breakdown), driven by the hydrated pricing store. */}
       {loaded ? (
-        <SummaryTable />
+        <SummaryTable aircraftList={aircraftList} />
       ) : (
         <div className="flex items-center justify-center py-20 text-sm" style={{ color: 'var(--muted)' }}>
           Loading {quote.quote_number}…

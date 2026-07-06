@@ -62,30 +62,24 @@ export function Sidebar({ userRole = 'user' }: SidebarProps) {
     >
       {/* Brand */}
       <div className="flex items-center gap-2.5 h-[57px] px-4 border-b av-rail-bd">
-        <div className="w-[28px] h-[28px] rounded-lg bg-white grid place-items-center shrink-0 shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
-          <span
-            className="font-extrabold text-[15px] leading-none"
-            style={{ color: 'var(--navy)', fontFamily: 'var(--font-serif)' }}
+        {!collapsed ? (
+          /* Rail is always dark navy → use the white wordmark in both themes */
+          <img
+            src="/fly2sky_logo_white.png"
+            alt="Fly2Sky JSC"
+            className="h-[24px] w-auto object-contain shrink-0"
+          />
+        ) : (
+          <div
+            className="w-[28px] h-[28px] rounded-lg grid place-items-center shrink-0 font-extrabold text-[10px] text-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]"
+            style={{ background: 'var(--cyan)' }}
           >
-            A
-          </span>
-        </div>
-        {!collapsed && (
-          <div className="flex-1 min-w-0">
-            <div
-              className="text-white font-bold text-[15px] leading-tight tracking-tight"
-              style={{ fontFamily: 'var(--font-serif)' }}
-            >
-              Avora
-            </div>
-            <div className="text-[9.5px] uppercase tracking-[0.18em] opacity-60 leading-tight mt-0.5">
-              ACMI Pricing
-            </div>
+            F2S
           </div>
         )}
         <button
           onClick={toggle}
-          className="p-1 rounded-md hover:bg-white/10 transition-colors text-current"
+          className="ml-auto p-1 rounded-md hover:bg-white/10 transition-colors text-current"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <ChevronLeft

@@ -17,13 +17,13 @@
 
 /* ---------- Light (default) ---------- */
 :root {
-  /* brand */
-  --navy:        #182460;
-  --navy-700:    #20306e;
-  --navy-500:    #2c3f8a;
-  --cyan:        #18b4d8;
-  --cyan-soft:   #e6f7fc;
-  --cyan-ink:    #0e8bab;
+  /* brand — Fly2Sky wordmark palette (navy #032878 · azure #007bf2 · silver #d8d8d8) */
+  --navy:        #032878;
+  --navy-700:    #0a3aa0;
+  --navy-500:    #2f52b8;
+  --cyan:        #007bf2;
+  --cyan-soft:   #e6f1ff;
+  --cyan-ink:    #0a5fd0;
   --teal:        #0f8a7e;
 
   /* semantic */
@@ -52,8 +52,8 @@
   --brand-fg:    #ffffff;
 
   /* sidebar rail */
-  --rail-top:    #182460;
-  --rail-bot:    #131c4d;
+  --rail-top:    #032878;
+  --rail-bot:    #021c58;
   --rail-ink:    #c2cae6;
   --rail-muted:  #6f7bb0;
   --rail-line:   rgba(255,255,255,.07);
@@ -77,12 +77,12 @@
 
 /* ---------- Dark ---------- */
 .dark {
-  --navy:        #2c3f8a;
-  --navy-700:    #3a4ea0;
-  --navy-500:    #6f83d6;
-  --cyan:        #34c6e6;
-  --cyan-soft:   rgba(52,198,230,.14);
-  --cyan-ink:    #7fdcef;
+  --navy:        #3560c8;
+  --navy-700:    #4a73d8;
+  --navy-500:    #7f9be8;
+  --cyan:        #3d97ff;
+  --cyan-soft:   rgba(61,151,255,.16);
+  --cyan-ink:    #9fc2ff;
   --teal:        #3fb8aa;
 
   --pos:         #34d39e;
@@ -107,8 +107,8 @@
   --brand:       var(--cyan);
   --brand-fg:    #06121a;
 
-  --rail-top:    #0d142e;
-  --rail-bot:    #080d20;
+  --rail-top:    #04143f;
+  --rail-bot:    #020b26;
   --rail-ink:    #c2cae6;
   --rail-muted:  #6f7bb0;
   --rail-line:   rgba(255,255,255,.06);
@@ -128,6 +128,12 @@ body {
 }
 
 /* figures: tabular Inter, the pricing signature */
+/* Fly2Sky wordmark: navy version on light surfaces, white version on dark */
+.f2s-logo-light { display: block; }
+.f2s-logo-dark  { display: none; }
+.dark .f2s-logo-light { display: none; }
+.dark .f2s-logo-dark  { display: block; }
+
 .av-num { font-variant-numeric: tabular-nums; }
 .av-pos, .pos { color: var(--pos); }
 .av-neg, .neg { color: var(--neg); }
@@ -158,7 +164,7 @@ body {
 .av-btn svg { width: 15px; height: 15px; }
 .av-btn-primary { background: var(--navy); color: #fff; }
 .av-btn-primary:hover { background: var(--navy-700); }
-.av-btn-cyan { background: var(--cyan); color: #fff; box-shadow: 0 4px 12px rgba(24,180,216,.3); }
+.av-btn-cyan { background: var(--cyan); color: #fff; box-shadow: 0 4px 12px rgba(0,123,242,.3); }
 .av-btn-cyan:hover { filter: brightness(1.05); }
 .av-btn-ghost { background: var(--card); color: var(--ink-2); border-color: var(--line); }
 .av-btn-ghost:hover { border-color: var(--muted-2); background: var(--hover); }
@@ -238,14 +244,14 @@ body {
 
 /* ---------- Dashboard hero ---------- */
 .av-hero {
-  background: linear-gradient(120deg, var(--rail-top) 0%, #1c2a6e 55%, #213a86 100%);
+  background: linear-gradient(120deg, var(--rail-top) 0%, #0a2f96 55%, #0d3aae 100%);
   border-radius: var(--radius); padding: 24px 26px; color: #fff;
   position: relative; overflow: hidden; box-shadow: var(--shadow);
 }
 .av-hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 260px; height: 260px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(24,180,216,.28), transparent 68%); }
+  background: radial-gradient(circle, rgba(0,123,242,.28), transparent 68%); }
 .av-hero::before { content: ""; position: absolute; right: 120px; bottom: -80px; width: 220px; height: 220px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(24,180,216,.14), transparent 70%); }
+  background: radial-gradient(circle, rgba(0,123,242,.14), transparent 70%); }
 .av-hero-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; position: relative; z-index: 1; align-items: center; }
 .av-hero-eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: #9fb0e8; font-weight: 700; }
 .av-hero-val { font-family: var(--font-serif); font-size: 44px; font-weight: 700; letter-spacing: -.5px; margin-top: 8px; line-height: 1; }
@@ -269,9 +275,9 @@ body {
 .av-hbar-row { display: grid; grid-template-columns: 120px 1fr 92px; align-items: center; gap: 12px; padding: 8px 0; }
 .av-hbar-row .nm { font-size: 12.5px; font-weight: 600; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .av-hbar-track { height: 24px; background: var(--line-2); border-radius: 6px; overflow: hidden; position: relative; }
-.av-hbar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--cyan), #0f9dbf); transition: width .9s cubic-bezier(.22,1,.36,1); }
-.av-hbar-fill.sig { background: linear-gradient(90deg, #3f56b0, var(--navy)); }
-.av-hbar-fill.snt { background: linear-gradient(90deg, #22c3e0, var(--cyan)); }
+.av-hbar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--cyan), #0056d6); transition: width .9s cubic-bezier(.22,1,.36,1); }
+.av-hbar-fill.sig { background: linear-gradient(90deg, #2f52b8, var(--navy)); }
+.av-hbar-fill.snt { background: linear-gradient(90deg, #4aa3ff, var(--cyan)); }
 .av-hbar-row .vl { font-size: 12.5px; font-weight: 700; color: var(--brand); text-align: right; }
 .dark .av-hbar-row .vl { color: var(--ink); }
 
@@ -325,7 +331,7 @@ body {
 
 /* slider */
 .av-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 5px; border-radius: 4px; background: var(--line); outline: none; margin-top: 4px; }
-.av-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; background: var(--cyan); cursor: pointer; box-shadow: 0 2px 6px rgba(24,180,216,.4); border: 2px solid var(--card); }
+.av-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; background: var(--cyan); cursor: pointer; box-shadow: 0 2px 6px rgba(0,123,242,.4); border: 2px solid var(--card); }
 .av-slider::-moz-range-thumb { width: 17px; height: 17px; border-radius: 50%; background: var(--cyan); cursor: pointer; border: 2px solid var(--card); }
 
 /* segmented toggle */
@@ -391,6 +397,6 @@ body {
 .av-rail-bd { border-color: var(--rail-line) !important; }
 .av-rail-link { color: var(--rail-ink); border: 1px solid transparent; }
 .av-rail-link:hover { background: rgba(255,255,255,.06); color: #fff; }
-.av-rail-link.active { background: rgba(24,180,216,.16); color: #fff; }
+.av-rail-link.active { background: rgba(0,123,242,.20); color: #fff; }
 .av-rail-link.active .av-rail-ico { color: var(--cyan); opacity: 1; }
 .av-rail-label { color: var(--rail-muted); }

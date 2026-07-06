@@ -67,7 +67,7 @@ export function SensitivityChart({ data, paramLabel }: SensitivityChartProps) {
   void resolvedTheme
   const gridStroke = mounted ? cssVar('--line', '#e5e7eb') : '#e5e7eb'
   const axisStroke = mounted ? cssVar('--muted', '#6B7280') : '#6B7280'
-  const cyan = mounted ? cssVar('--cyan', '#18b4d8') : '#18b4d8'
+  const cyan = mounted ? cssVar('--cyan', '#007bf2') : '#007bf2'
   const brand = mounted ? cssVar('--brand', cyan) : cyan
 
   return (

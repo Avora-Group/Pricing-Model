@@ -27,42 +27,20 @@ function LoginContent() {
       <div className="av-card-b" style={{ padding: 32 }}>
         {/* Brand lockup */}
         <div className="flex flex-col items-center text-center mb-7">
+          {/* Card follows the theme → navy wordmark on light, white on dark */}
+          <img
+            src="/fly2sky_logo.png"
+            alt="Fly2Sky JSC"
+            className="f2s-logo-light mb-3"
+            style={{ height: 40, width: 'auto', objectFit: 'contain' }}
+          />
+          <img
+            src="/fly2sky_logo_white.png"
+            alt="Fly2Sky JSC"
+            className="f2s-logo-dark mb-3"
+            style={{ height: 40, width: 'auto', objectFit: 'contain' }}
+          />
           <div
-            className="flex items-center justify-center mb-4"
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              background: '#ffffff',
-              boxShadow: '0 4px 14px rgba(0,0,0,.10)',
-            }}
-          >
-            <span
-              style={{
-                fontFamily: 'var(--font-serif)',
-                color: 'var(--navy)',
-                fontSize: 32,
-                fontWeight: 700,
-                lineHeight: 1,
-              }}
-            >
-              A
-            </span>
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-serif)',
-              color: 'var(--ink)',
-              fontSize: 26,
-              fontWeight: 700,
-              letterSpacing: '-.5px',
-              lineHeight: 1,
-            }}
-          >
-            Avora
-          </div>
-          <div
-            className="mt-2"
             style={{
               color: 'var(--muted)',
               fontSize: 11,

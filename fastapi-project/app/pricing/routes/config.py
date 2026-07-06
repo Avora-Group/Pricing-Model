@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.auth.dependencies import get_current_user, require_admin
+from app.auth.dependencies import get_current_user, require_editor
 from app.db.database import get_db
 from app.pricing.repository import (
     CrewConfigRepository,
@@ -62,13 +62,13 @@ async def get_pricing_config_version(
 @router.put("/config", response_model=PricingConfigResponse)
 async def update_pricing_config(
     body: UpdatePricingConfigRequest,
-    admin_user: dict = Depends(require_admin),
+    editor_user: dict = Depends(require_editor),
     db: asyncpg.Connection = Depends(get_db),
 ):
     """Create a new pricing config version (admin only, append-only)."""
     repo = PricingConfigRepository(db)
     fields = body.model_dump(exclude_none=True)
-    new_config = await repo.create_version(created_by=admin_user["id"], **fields)
+    new_config = await repo.create_version(created_by=editor_user["id"], **fields)
     return new_config
 
 
@@ -89,7 +89,7 @@ async def get_crew_config(
 @router.put("/crew-config", response_model=CrewConfigResponse)
 async def update_crew_config(
     body: UpdateCrewConfigRequest,
-    admin_user: dict = Depends(require_admin),
+    editor_user: dict = Depends(require_editor),
     db: asyncpg.Connection = Depends(get_db),
 ):
     """Create a new crew config version for an aircraft type (admin only)."""
@@ -98,7 +98,7 @@ async def update_crew_config(
     aircraft_type = fields.pop("aircraft_type")
     new_config = await repo.create_version(
         aircraft_type=aircraft_type,
-        created_by=admin_user["id"],
+        created_by=editor_user["id"],
         **fields,
     )
     return new_config

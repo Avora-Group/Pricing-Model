@@ -9,7 +9,6 @@ import type { QuoteListItem } from '@/app/actions/quotes'
 
 interface QuoteListProps {
   initialQuotes: { items: QuoteListItem[]; total: number }
-  isAdmin?: boolean
   isViewer?: boolean
 }
 
@@ -17,7 +16,7 @@ const STATUSES = ['draft', 'sent', 'signed', 'active', 'completed', 'rejected']
 
 type QuoteSortKey = 'quote_number' | 'client_name' | 'status' | 'created_at'
 
-export function QuoteList({ initialQuotes, isAdmin = false, isViewer = false }: QuoteListProps) {
+export function QuoteList({ initialQuotes, isViewer = false }: QuoteListProps) {
   const [quotes, setQuotes] = useState(initialQuotes.items)
   const [total, setTotal] = useState(initialQuotes.total)
   const [search, setSearch] = useState('')
@@ -220,7 +219,7 @@ export function QuoteList({ initialQuotes, isAdmin = false, isViewer = false }: 
                             <Link href={`/quotes/${q.id}`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
                               Open
                             </Link>
-                            {isAdmin && (
+                            {!isViewer && (
                               <button
                                 type="button"
                                 onClick={() => handleDelete(q.id, q.quote_number)}

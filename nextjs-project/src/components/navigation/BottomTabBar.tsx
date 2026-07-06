@@ -44,14 +44,18 @@ export function BottomTabBar({ userRole }: BottomTabBarProps) {
   const [moreOpen, setMoreOpen] = useState(false)
 
   const isViewer = userRole === 'viewer'
+  // Admin tab is admin-only; users have all other rights.
+  const adminOk = (href: string) => href !== '/admin' || userRole === 'admin'
 
-  const visibleTabs = isViewer
+  const visibleTabs = (isViewer
     ? primaryTabs.filter((t) => viewerAllowedHrefs.has(t.href))
     : primaryTabs
+  ).filter((t) => adminOk(t.href))
 
-  const visibleMoreItems = isViewer
+  const visibleMoreItems = (isViewer
     ? moreItems.filter((t) => viewerAllowedHrefs.has(t.href))
     : moreItems
+  ).filter((t) => adminOk(t.href))
 
   const showMore = !isViewer // viewers have no "more" items
 

@@ -20,7 +20,7 @@ async function getAircraftDetail(msn: string, token: string): Promise<AircraftDe
   }
 }
 
-async function getIsAdmin(token: string): Promise<boolean> {
+async function getCanEdit(token: string): Promise<boolean> {
   try {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: { Cookie: `access_token=${token}` },
@@ -28,7 +28,8 @@ async function getIsAdmin(token: string): Promise<boolean> {
     })
     if (!res.ok) return false
     const data = await res.json()
-    return data.role === 'admin'
+    // Editors are admins and users (everyone except viewers).
+    return data.role === 'admin' || data.role === 'user'
   } catch {
     return false
   }
@@ -47,9 +48,9 @@ export default async function AircraftDetailPage({
     notFound()
   }
 
-  const [aircraft, isAdmin] = await Promise.all([
+  const [aircraft, canEdit] = await Promise.all([
     getAircraftDetail(msn, token),
-    getIsAdmin(token),
+    getCanEdit(token),
   ])
 
   if (!aircraft) {
@@ -67,7 +68,7 @@ export default async function AircraftDetailPage({
         <span style={{ color: 'var(--ink-2)' }}>MSN {msn}</span>
       </nav>
 
-      <AircraftDetail aircraft={aircraft} isAdmin={isAdmin} />
+      <AircraftDetail aircraft={aircraft} canEdit={canEdit} />
     </div>
   )
 }

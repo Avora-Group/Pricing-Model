@@ -1,6 +1,6 @@
 """Aircraft API router with list, detail, and update endpoints.
 
-All endpoints require authentication. Update (PUT) requires admin role.
+All endpoints require authentication. Writes (POST/PUT) require editor role (admin or user).
 EUR conversion is applied to all responses returning monetary values.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.db.database import get_db
-from app.auth.dependencies import get_current_user, require_admin, user_can_view_costs
+from app.auth.dependencies import get_current_user, require_editor, user_can_view_costs
 from app.aircraft.repository import AircraftRepository
 from app.aircraft.schemas import (
     AircraftDetailResponse,
@@ -66,9 +66,9 @@ async def list_aircraft(
 async def create_aircraft(
     body: CreateAircraftRequest,
     db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_editor),
 ):
-    """Create a new aircraft with rates (admin only).
+    """Create a new aircraft with rates (admin or user).
 
     Creates the aircraft row and upserts all rate fields in one operation.
     Returns the full aircraft detail with EUR conversions.
@@ -142,9 +142,9 @@ async def update_rates(
     msn: int,
     body: UpdateRatesRequest,
     db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_editor),
 ):
-    """Update aircraft cost parameters (admin only).
+    """Update aircraft cost parameters (admin or user).
 
     Accepts partial updates — only non-None fields are written.
     Returns the full aircraft detail with updated values.
@@ -172,9 +172,9 @@ async def update_epr_matrix(
     msn: int,
     body: UpdateEprMatrixRequest,
     db: asyncpg.Connection = Depends(get_db),
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_editor),
 ):
-    """Bulk replace the EPR matrix for an aircraft (admin only).
+    """Bulk replace the EPR matrix for an aircraft (admin or user).
 
     Deletes all existing rows and inserts the provided set.
     Returns the full aircraft detail.

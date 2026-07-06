@@ -22,7 +22,7 @@ async function getAircraft(): Promise<Aircraft[]> {
   }
 }
 
-async function getIsAdmin(token: string): Promise<boolean> {
+async function getCanEdit(token: string): Promise<boolean> {
   try {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: { Cookie: `access_token=${token}` },
@@ -30,7 +30,8 @@ async function getIsAdmin(token: string): Promise<boolean> {
     })
     if (!res.ok) return false
     const data = await res.json()
-    return data.role === 'admin'
+    // Editors are admins and users (everyone except viewers).
+    return data.role === 'admin' || data.role === 'user'
   } catch {
     return false
   }
@@ -40,9 +41,9 @@ export default async function AircraftPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get('access_token')?.value
 
-  const [aircraft, isAdmin] = await Promise.all([
+  const [aircraft, canEdit] = await Promise.all([
     getAircraft(),
-    token ? getIsAdmin(token) : Promise.resolve(false),
+    token ? getCanEdit(token) : Promise.resolve(false),
   ])
 
   return (
@@ -54,7 +55,7 @@ export default async function AircraftPage() {
             Master data and cost parameters — feeds the pricing model
           </p>
         </div>
-        {isAdmin && <CreateAircraftDialog />}
+        {canEdit && <CreateAircraftDialog />}
       </div>
       <AircraftTable aircraft={aircraft} />
     </div>

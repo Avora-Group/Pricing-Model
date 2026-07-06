@@ -60,10 +60,10 @@ function formatEscalation(value: string | number | null): string {
 
 export function AircraftDetail({
   aircraft,
-  isAdmin,
+  canEdit,
 }: {
   aircraft: AircraftDetailData
-  isAdmin: boolean
+  canEdit: boolean
 }) {
   const fixedRates: RateRow[] = [
     { label: 'Lease Rent', usd: aircraft.lease_rent_usd, eur: aircraft.lease_rent_eur, field: 'lease_rent_usd' },
@@ -112,7 +112,7 @@ export function AircraftDetail({
         title="Fixed Monthly Rates"
         rates={fixedRates}
         msn={aircraft.msn}
-        isAdmin={isAdmin}
+        canEdit={canEdit}
       />
 
       {/* Variable Rates (per engine) */}
@@ -120,7 +120,7 @@ export function AircraftDetail({
         title="Variable Rates (per engine)"
         rates={variableRates}
         msn={aircraft.msn}
-        isAdmin={isAdmin}
+        canEdit={canEdit}
       />
 
       {/* Escalation Rates */}
@@ -153,7 +153,7 @@ export function AircraftDetail({
       </div>
 
       {/* EPR Matrix */}
-      <EprMatrixTable eprMatrix={aircraft.epr_matrix} msn={aircraft.msn} isAdmin={isAdmin} />
+      <EprMatrixTable eprMatrix={aircraft.epr_matrix} msn={aircraft.msn} canEdit={canEdit} />
 
       {/* ── Naked Rates (cost-access only) ── */}
       {showNaked && (
@@ -169,8 +169,8 @@ export function AircraftDetail({
           </div>
 
           {/* Naked rates are read-only in the UI (seeded from the source workbook). */}
-          <RatesSection title="Naked — Fixed Monthly Rates" rates={nakedFixedRates} msn={aircraft.msn} isAdmin={false} />
-          <RatesSection title="Naked — Variable Rates (per engine)" rates={nakedVariableRates} msn={aircraft.msn} isAdmin={false} />
+          <RatesSection title="Naked — Fixed Monthly Rates" rates={nakedFixedRates} msn={aircraft.msn} canEdit={false} />
+          <RatesSection title="Naked — Variable Rates (per engine)" rates={nakedVariableRates} msn={aircraft.msn} canEdit={false} />
 
           <div className="av-panel">
             <div className="av-panel-h"><h2>Naked — Escalation Rates</h2></div>
@@ -200,7 +200,7 @@ export function AircraftDetail({
             </div>
           </div>
 
-          <EprMatrixTable eprMatrix={aircraft.naked_epr_matrix ?? []} msn={aircraft.msn} isAdmin={false} />
+          <EprMatrixTable eprMatrix={aircraft.naked_epr_matrix ?? []} msn={aircraft.msn} canEdit={false} />
         </>
       )}
     </div>

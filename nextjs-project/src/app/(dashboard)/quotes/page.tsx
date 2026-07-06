@@ -53,7 +53,6 @@ export default async function QuotesPage() {
       </div>
       <QuoteList
         initialQuotes={initialQuotes}
-        isAdmin={role === 'admin'}
         isViewer={role === 'viewer'}
       />
     </div>

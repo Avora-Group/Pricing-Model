@@ -4,7 +4,7 @@ import { ReadOnlyProvider } from '@/components/ui/ReadOnlyContext'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
 
-async function getIsAdmin(token: string): Promise<boolean> {
+async function getCanEdit(token: string): Promise<boolean> {
   try {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: { Cookie: `access_token=${token}` },
@@ -12,7 +12,8 @@ async function getIsAdmin(token: string): Promise<boolean> {
     })
     if (!res.ok) return false
     const data = await res.json()
-    return data.role === 'admin'
+    // Editors are admins and users (everyone except viewers).
+    return data.role === 'admin' || data.role === 'user'
   } catch {
     return false
   }
@@ -21,19 +22,19 @@ async function getIsAdmin(token: string): Promise<boolean> {
 export default async function CrewPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get('access_token')?.value
-  const isAdmin = token ? await getIsAdmin(token) : false
+  const canEdit = token ? await getCanEdit(token) : false
 
   return (
     <div className="space-y-[18px]">
       <div>
         <h1 className="av-page-title">Crew Cost Assumptions</h1>
         <p className="av-page-sub">
-          {isAdmin
+          {canEdit
             ? 'Payroll, per-diem and training parameters'
             : 'Payroll, per-diem and training parameters — read-only'}
         </p>
       </div>
-      <ReadOnlyProvider readOnly={!isAdmin}>
+      <ReadOnlyProvider readOnly={!canEdit}>
         <CrewConfigTable />
       </ReadOnlyProvider>
     </div>

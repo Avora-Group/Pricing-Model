@@ -16,7 +16,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import JSONResponse
 
-from app.auth.dependencies import get_current_user, require_admin, user_can_view_costs
+from app.auth.dependencies import get_current_user, require_editor, user_can_view_costs
 from app.db.database import get_db
 from app.pricing.redaction import redact_quote_detail
 from app.quotes.repository import QuoteRepository
@@ -149,7 +149,7 @@ async def update_quote(
     existing = await repo.get_quote(quote_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Quote not found")
-    if current_user["id"] != existing["created_by"] and current_user["role"] != "admin":
+    if current_user["id"] != existing["created_by"] and current_user["role"] not in ("admin", "user"):
         raise HTTPException(status_code=403, detail="Only the creator or an admin can edit a quote")
 
     exchange_rate = Decimal(str(body.dashboard_state.get("exchangeRate", "0.85")))
@@ -350,7 +350,7 @@ async def update_quote_status(
     if not quote:
         raise HTTPException(status_code=404, detail="Quote not found")
 
-    if current_user["id"] != quote["created_by"] and current_user["role"] != "admin":
+    if current_user["id"] != quote["created_by"] and current_user["role"] not in ("admin", "user"):
         raise HTTPException(
             status_code=403,
             detail="Only the quote creator or an admin can change status",
@@ -374,7 +374,7 @@ async def update_quote_status(
 @router.delete("/{quote_id}", status_code=204)
 async def delete_quote(
     quote_id: int,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_editor),
     db: asyncpg.Connection = Depends(get_db),
 ):
     """Delete a quote. Admin only.

@@ -14,7 +14,7 @@ interface RatesSectionProps {
   title: string
   rates: RateRow[]
   msn: number
-  isAdmin: boolean
+  canEdit: boolean
 }
 
 function formatValue(value: string | number | null): string {
@@ -27,7 +27,7 @@ function formatValue(value: string | number | null): string {
   })
 }
 
-export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) {
+export function RatesSection({ title, rates, msn, canEdit }: RatesSectionProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValues, setEditValues] = useState<Record<string, string>>({})
 
@@ -62,7 +62,7 @@ export function RatesSection({ title, rates, msn, isAdmin }: RatesSectionProps) 
     <div className="av-panel">
       <div className="av-panel-h">
         <h2>{title}</h2>
-        {isAdmin && !isEditing && (
+        {canEdit && !isEditing && (
           <button onClick={handleEdit} className="av-btn av-btn-ghost !py-1.5 !px-3">
             Edit
           </button>

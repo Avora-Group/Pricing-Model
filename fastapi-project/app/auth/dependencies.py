@@ -36,10 +36,22 @@ async def get_current_user(
 async def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     """Dependency that ensures the current user has admin role.
 
-    Raises HTTPException(403) if user is not an admin.
+    Raises HTTPException(403) if user is not an admin. Reserved for user
+    management (the Admin tab).
     """
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+
+async def require_editor(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency for write access to pricing data (admin or user roles).
+
+    Users have the same rights as admins except user management (Admin tab) and
+    implicit cost visibility. Viewers are read-only and are rejected with 403.
+    """
+    if current_user["role"] not in ("admin", "user"):
+        raise HTTPException(status_code=403, detail="Edit access required")
     return current_user
 
 

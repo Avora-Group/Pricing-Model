@@ -92,9 +92,11 @@ export function Sidebar({ userRole = 'user' }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 px-2.5 py-2 space-y-0.5 overflow-y-auto">
         {navSections.map((section) => {
-          const items = section.items.filter(
-            ({ href }) => userRole !== 'viewer' || viewerAllowedHrefs.has(href),
-          )
+          const items = section.items.filter(({ href }) => {
+            // Admin tab is admin-only; users have all other rights.
+            if (href === '/admin') return userRole === 'admin'
+            return userRole !== 'viewer' || viewerAllowedHrefs.has(href)
+          })
           if (items.length === 0) return null
           return (
             <div key={section.label}>

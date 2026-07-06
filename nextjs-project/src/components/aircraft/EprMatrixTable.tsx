@@ -17,10 +17,10 @@ export interface EprMatrixRow {
 interface EprMatrixTableProps {
   eprMatrix: EprMatrixRow[]
   msn: number
-  isAdmin: boolean
+  canEdit: boolean
 }
 
-export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps) {
+export function EprMatrixTable({ eprMatrix, msn, canEdit }: EprMatrixTableProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editRows, setEditRows] = useState<EprMatrixRow[]>([])
 
@@ -79,7 +79,7 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
       <div className="av-panel">
         <div className="av-panel-h">
           <h2>EPR Matrix</h2>
-          {isAdmin && (
+          {canEdit && (
             <button onClick={handleEdit} className="av-btn av-btn-ghost !py-1.5 !px-3">
               Edit
             </button>
@@ -96,7 +96,7 @@ export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps)
     <div className="av-panel">
       <div className="av-panel-h">
         <h2>EPR Matrix</h2>
-        {isAdmin && !isEditing && (
+        {canEdit && !isEditing && (
           <button onClick={handleEdit} className="av-btn av-btn-ghost !py-1.5 !px-3">
             Edit
           </button>

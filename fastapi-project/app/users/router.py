@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.config import settings
 from app.db.database import get_db
 from app.auth.schemas import UserResponse
 from app.auth.service import hash_password
@@ -11,6 +12,11 @@ from app.users.repository import UserRepository
 from app.users.schemas import CreateUserRequest, UpdateUserRequest, ResetPasswordRequest
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def is_protected_admin(email: str | None) -> bool:
+    """True if this email is a permanent admin (cannot be demoted/deactivated)."""
+    return bool(email) and email.lower() in settings.protected_admin_email_set
 
 
 @router.post("/users", response_model=UserResponse, status_code=201)
@@ -88,6 +94,23 @@ async def update_user(
     if not fields:
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    target = await user_repo.fetch_by_id(user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Permanent admins cannot be demoted or deactivated (by anyone, incl. admins).
+    if is_protected_admin(target["email"]):
+        if fields.get("role") not in (None, "admin"):
+            raise HTTPException(
+                status_code=403,
+                detail="This account is a permanent admin and cannot be demoted.",
+            )
+        if fields.get("is_active") is False:
+            raise HTTPException(
+                status_code=403,
+                detail="This account is a permanent admin and cannot be deactivated.",
+            )
+
     user = await user_repo.update_user(user_id, **fields)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -125,4 +148,9 @@ async def delete_user(
     user = await user_repo.fetch_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if is_protected_admin(user["email"]):
+        raise HTTPException(
+            status_code=403,
+            detail="This account is a permanent admin and cannot be deactivated.",
+        )
     await user_repo.deactivate_user(user_id)

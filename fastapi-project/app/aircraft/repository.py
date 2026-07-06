@@ -27,13 +27,18 @@ class AircraftRepository(BaseRepository):
         return await self.fetch_many(query)
 
     async def fetch_by_msn(self, msn: int) -> dict | None:
-        """Fetch aircraft with full rates by MSN."""
+        """Fetch aircraft with full rates by MSN (current + naked)."""
         return await self.fetch_one(
             """
             SELECT a.*, r.lease_rent_usd, r.six_year_check_usd,
                    r.twelve_year_check_usd, r.ldg_usd,
                    r.apu_rate_usd, r.llp1_rate_usd, r.llp2_rate_usd,
-                   r.epr_escalation, r.llp_escalation, r.af_apu_escalation
+                   r.epr_escalation, r.llp_escalation, r.af_apu_escalation,
+                   r.has_naked_rates,
+                   r.naked_lease_rent_usd, r.naked_six_year_check_usd,
+                   r.naked_twelve_year_check_usd, r.naked_ldg_usd,
+                   r.naked_apu_rate_usd, r.naked_llp1_rate_usd, r.naked_llp2_rate_usd,
+                   r.naked_epr_escalation, r.naked_llp_escalation, r.naked_af_apu_escalation
             FROM aircraft a
             LEFT JOIN aircraft_rates r ON r.aircraft_id = a.id
             WHERE a.msn = $1
@@ -47,19 +52,22 @@ class AircraftRepository(BaseRepository):
             "SELECT * FROM aircraft WHERE id = $1", aircraft_id
         )
 
-    async def fetch_epr_matrix(self, aircraft_id: int) -> list[dict]:
-        """Fetch EPR matrix rows for an aircraft, ordered by cycle ratio."""
+    async def fetch_epr_matrix(self, aircraft_id: int, rate_type: str = "current") -> list[dict]:
+        """Fetch EPR matrix rows for an aircraft/rate_type, ordered by cycle ratio."""
         return await self.fetch_many(
             """
             SELECT cycle_ratio, benign_rate, hot_rate
             FROM epr_matrix_rows
-            WHERE aircraft_id = $1
+            WHERE aircraft_id = $1 AND rate_type = $2
             ORDER BY cycle_ratio
             """,
             aircraft_id,
+            rate_type,
         )
 
-    async def fetch_epr_matrices_for_ids(self, aircraft_ids: list[int]) -> dict[int, list[dict]]:
+    async def fetch_epr_matrices_for_ids(
+        self, aircraft_ids: list[int], rate_type: str = "current"
+    ) -> dict[int, list[dict]]:
         """Fetch EPR matrix rows for multiple aircraft in one query.
 
         Returns a dict mapping aircraft_id → list of EPR rows (sorted by cycle_ratio).
@@ -70,10 +78,11 @@ class AircraftRepository(BaseRepository):
             """
             SELECT aircraft_id, cycle_ratio, benign_rate, hot_rate
             FROM epr_matrix_rows
-            WHERE aircraft_id = ANY($1)
+            WHERE aircraft_id = ANY($1) AND rate_type = $2
             ORDER BY aircraft_id, cycle_ratio
             """,
             aircraft_ids,
+            rate_type,
         )
         result: dict[int, list[dict]] = {}
         for r in rows:
@@ -144,50 +153,55 @@ class AircraftRepository(BaseRepository):
         cycle_ratio,
         benign_rate,
         hot_rate,
+        rate_type: str = "current",
     ) -> dict | None:
         """Insert or update a single EPR matrix row."""
         return await self.fetch_one(
             """
-            INSERT INTO epr_matrix_rows (aircraft_id, cycle_ratio, benign_rate, hot_rate)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (aircraft_id, cycle_ratio) DO UPDATE SET
+            INSERT INTO epr_matrix_rows (aircraft_id, rate_type, cycle_ratio, benign_rate, hot_rate)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (aircraft_id, rate_type, cycle_ratio) DO UPDATE SET
                 benign_rate = EXCLUDED.benign_rate,
                 hot_rate = EXCLUDED.hot_rate
             RETURNING *
             """,
             aircraft_id,
+            rate_type,
             cycle_ratio,
             benign_rate,
             hot_rate,
         )
 
-    async def delete_epr_rows(self, aircraft_id: int) -> str:
-        """Delete ALL EPR matrix rows for an aircraft."""
+    async def delete_epr_rows(self, aircraft_id: int, rate_type: str = "current") -> str:
+        """Delete EPR matrix rows for an aircraft/rate_type."""
         return await self.execute(
-            "DELETE FROM epr_matrix_rows WHERE aircraft_id = $1",
+            "DELETE FROM epr_matrix_rows WHERE aircraft_id = $1 AND rate_type = $2",
             aircraft_id,
+            rate_type,
         )
 
     async def bulk_replace_epr_matrix(
         self,
         aircraft_id: int,
         rows: list[tuple],
+        rate_type: str = "current",
     ) -> list[dict]:
-        """Replace the entire EPR matrix for an aircraft.
+        """Replace the entire EPR matrix for an aircraft/rate_type.
 
-        Deletes all existing rows, then inserts the new set.
+        Deletes all existing rows for that rate_type, then inserts the new set.
         Each tuple is (cycle_ratio, benign_rate, hot_rate).
         """
-        await self.delete_epr_rows(aircraft_id)
+        await self.delete_epr_rows(aircraft_id, rate_type)
         results = []
         for cycle_ratio, benign_rate, hot_rate in rows:
             row = await self.fetch_one(
                 """
-                INSERT INTO epr_matrix_rows (aircraft_id, cycle_ratio, benign_rate, hot_rate)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO epr_matrix_rows (aircraft_id, rate_type, cycle_ratio, benign_rate, hot_rate)
+                VALUES ($1, $2, $3, $4, $5)
                 RETURNING *
                 """,
                 aircraft_id,
+                rate_type,
                 cycle_ratio,
                 benign_rate,
                 hot_rate,

@@ -13,6 +13,7 @@ import { useCalculation } from './hooks/useCalculation'
 import { useAddAircraft } from './hooks/useAddAircraft'
 import { downloadCalculationWorkbook } from '@/lib/excel-export'
 import type { AircraftOption } from '@/lib/api-converters'
+import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
 
 interface DashboardSummaryProps {
   aircraftList: AircraftOption[]
@@ -40,6 +41,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     projectName,
     exchangeRate,
     marginPercent,
+    rateBasis,
     bhFhRatio,
     apuFhRatio,
     msnInputs,
@@ -48,6 +50,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     lastError,
     setProjectName,
     setExchangeRate,
+    setRateBasis,
     setBhFhRatio,
     setApuFhRatio,
     removeMsnInput,
@@ -56,6 +59,12 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     reset,
   } = usePricingStore()
   const isEditing = editingQuoteNumber !== null
+
+  // Naked cost basis toggle is only available to users with cost access.
+  const canViewCosts = useCanViewCosts()
+  // Guard: if a non-cost-access user somehow has naked selected, fall back.
+  const effectiveBasis: 'current' | 'naked' =
+    canViewCosts && rateBasis === 'naked' ? 'naked' : 'current'
 
   // Full crew & costs config — needed to build the formula-driven Excel export.
   const crewConfig = useCrewConfigStore()
@@ -107,7 +116,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
   }
 
   // Debounced calculation side-effect
-  useCalculation(msnInputs, exchangeRate, marginPercent)
+  useCalculation(msnInputs, exchangeRate, marginPercent, effectiveBasis)
 
   // Aircraft addition logic
   const {
@@ -251,6 +260,35 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
             className="av-input av-num"
           />
         </div>
+
+        {/* Cost basis toggle — cost-access users only. Naked prices the 6 MSNs
+            that have naked rates on their reduced cost basis. */}
+        {canViewCosts && (
+          <div className="av-pb-field small">
+            <label>Cost basis</label>
+            <div className="inline-flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--line)' }}>
+              {(['current', 'naked'] as const).map((basis) => {
+                const active = effectiveBasis === basis
+                return (
+                  <button
+                    key={basis}
+                    type="button"
+                    onClick={() => setRateBasis(basis)}
+                    className="px-3 py-1.5 text-[12.5px] capitalize transition-colors"
+                    style={{
+                      background: active ? 'var(--cyan)' : 'transparent',
+                      color: active ? 'var(--on-cyan, #fff)' : 'var(--ink-2)',
+                      fontWeight: active ? 600 : 400,
+                    }}
+                    aria-pressed={active}
+                  >
+                    {basis}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Aircraft tabs + add-aircraft picker */}

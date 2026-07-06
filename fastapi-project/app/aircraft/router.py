@@ -11,7 +11,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.db.database import get_db
-from app.auth.dependencies import get_current_user, require_admin
+from app.auth.dependencies import get_current_user, require_admin, user_can_view_costs
 from app.aircraft.repository import AircraftRepository
 from app.aircraft.schemas import (
     AircraftDetailResponse,
@@ -95,14 +95,28 @@ async def get_aircraft(
     db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get aircraft detail with full rates and EPR matrix."""
+    """Get aircraft detail with full rates and EPR matrix.
+
+    Naked rates are only included for users with cost access; otherwise all
+    ``naked_*`` fields are stripped server-side so they never reach the client.
+    """
     repo = AircraftRepository(db)
     aircraft = await repo.fetch_by_msn(msn)
     if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found")
-    epr_rows = await repo.fetch_epr_matrix(aircraft["id"])
+    epr_rows = await repo.fetch_epr_matrix(aircraft["id"], "current")
     data = apply_eur_conversion(dict(aircraft))
     data["epr_matrix"] = [dict(r) for r in epr_rows]
+
+    if user_can_view_costs(current_user) and data.get("has_naked_rates"):
+        naked_epr = await repo.fetch_epr_matrix(aircraft["id"], "naked")
+        data["naked_epr_matrix"] = [dict(r) for r in naked_epr]
+    else:
+        # Strip every naked_* field for users without cost access.
+        for key in [k for k in data if k.startswith("naked_")]:
+            data.pop(key, None)
+        data["has_naked_rates"] = False
+        data["naked_epr_matrix"] = []
     return data
 
 

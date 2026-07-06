@@ -31,6 +31,9 @@ class CalculateRequest(BaseModel):
     exchange_rate: Decimal
     margin_percent: Decimal = Decimal("0")
     msn_inputs: list[PricingInputs]
+    # Which cost basis to price on: "current" (default) or "naked". Naked is only
+    # honored for users with cost access; otherwise it falls back to current.
+    rate_basis: str = "current"
 
 
 # ---- Component Breakdown ----

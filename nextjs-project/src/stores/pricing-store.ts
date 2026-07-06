@@ -126,6 +126,7 @@ interface PricingStore {
   projectName: string
   exchangeRate: string // Default "0.85"
   marginPercent: string // Default "0"
+  rateBasis: 'current' | 'naked' // Cost basis for pricing (cost-access only)
   bhFhRatio: string // Global BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
   apuFhRatio: string // Global APU FH:FH ratio — APU FH = FH * apuFhRatio (default 0.7)
   msnInputs: MsnInput[]
@@ -142,6 +143,7 @@ interface PricingStore {
   setProjectName: (name: string) => void
   setExchangeRate: (rate: string) => void
   setMarginPercent: (margin: string) => void
+  setRateBasis: (basis: 'current' | 'naked') => void
   setBhFhRatio: (ratio: string) => void
   setApuFhRatio: (ratio: string) => void
   addMsnInput: (input: MsnInput) => void
@@ -198,6 +200,7 @@ const initialState = {
   projectName: '',
   exchangeRate: '0.85',
   marginPercent: '0',
+  rateBasis: 'current' as 'current' | 'naked',
   bhFhRatio: '1.2',
   apuFhRatio: '0.7',
   msnInputs: [] as MsnInput[],
@@ -215,6 +218,7 @@ export const usePricingStore = create<PricingStore>()((set) => ({
   setProjectName: (name) => set({ projectName: name }),
   setExchangeRate: (rate) => set({ exchangeRate: rate }),
   setMarginPercent: (margin) => set({ marginPercent: margin }),
+  setRateBasis: (basis) => set({ rateBasis: basis }),
   setBhFhRatio: (ratio) =>
     set((state) => ({
       bhFhRatio: ratio,

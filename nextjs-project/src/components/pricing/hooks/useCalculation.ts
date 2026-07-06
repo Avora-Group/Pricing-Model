@@ -17,6 +17,7 @@ export function useCalculation(
   msnInputs: MsnInput[],
   exchangeRate: string,
   marginPercent: string,
+  rateBasis: 'current' | 'naked' = 'current',
 ): void {
   const { setResults, setIsCalculating, setLastError } = usePricingStore()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -71,6 +72,7 @@ export function useCalculation(
       const result = await calculatePnlAction({
         exchange_rate: exchangeRate,
         margin_percent: marginPercent,
+        rate_basis: rateBasis,
         msn_inputs: expandedInputs,
       })
 
@@ -137,5 +139,5 @@ export function useCalculation(
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [msnInputs, exchangeRate, marginPercent])
+  }, [msnInputs, exchangeRate, marginPercent, rateBasis])
 }

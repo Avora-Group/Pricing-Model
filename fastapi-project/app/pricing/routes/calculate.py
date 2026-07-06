@@ -78,6 +78,11 @@ async def calculate(
         average_active_fleet=pricing_config_row["average_active_fleet"],
     )
 
+    # Naked cost basis is only honored for users with cost access; otherwise we
+    # silently fall back to current rates. Per aircraft, naked is only applied
+    # when that aircraft actually has a naked rate set.
+    want_naked = body.rate_basis == "naked" and user_can_view_costs(current_user)
+
     msn_results = []
 
     for msn_input in body.msn_inputs:
@@ -89,8 +94,13 @@ async def calculate(
                 detail=f"Aircraft with MSN {msn_input.msn} not found",
             )
 
-        # Fetch EPR matrix
-        epr_rows = await aircraft_repo.fetch_epr_matrix(aircraft["id"])
+        use_naked = want_naked and bool(aircraft.get("has_naked_rates"))
+        rate_prefix = "naked_" if use_naked else ""
+
+        # Fetch EPR matrix for the selected basis
+        epr_rows = await aircraft_repo.fetch_epr_matrix(
+            aircraft["id"], "naked" if use_naked else "current"
+        )
 
         # Build EPR matrix tuples and interpolate
         rate_key = "benign_rate" if msn_input.environment == "benign" else "hot_rate"
@@ -121,15 +131,19 @@ async def calculate(
             uniform_total_budget=crew_config_row["uniform_total_budget"],
         )
 
-        # Build aircraft costs dataclass with interpolated EPR rate
+        # Build aircraft costs dataclass with interpolated EPR rate.
+        # rate_prefix selects the current ("") or naked ("naked_") columns.
+        def _rate(name: str) -> Decimal:
+            return aircraft.get(f"{rate_prefix}{name}") or Decimal("0")
+
         ac = AircraftCosts(
-            lease_rent_usd=aircraft.get("lease_rent_usd", Decimal("0")) or Decimal("0"),
-            six_year_check_usd=aircraft.get("six_year_check_usd", Decimal("0")) or Decimal("0"),
-            twelve_year_check_usd=aircraft.get("twelve_year_check_usd", Decimal("0")) or Decimal("0"),
-            ldg_usd=aircraft.get("ldg_usd", Decimal("0")) or Decimal("0"),
-            apu_rate_usd=aircraft.get("apu_rate_usd", Decimal("0")) or Decimal("0"),
-            llp1_rate_usd=aircraft.get("llp1_rate_usd", Decimal("0")) or Decimal("0"),
-            llp2_rate_usd=aircraft.get("llp2_rate_usd", Decimal("0")) or Decimal("0"),
+            lease_rent_usd=_rate("lease_rent_usd"),
+            six_year_check_usd=_rate("six_year_check_usd"),
+            twelve_year_check_usd=_rate("twelve_year_check_usd"),
+            ldg_usd=_rate("ldg_usd"),
+            apu_rate_usd=_rate("apu_rate_usd"),
+            llp1_rate_usd=_rate("llp1_rate_usd"),
+            llp2_rate_usd=_rate("llp2_rate_usd"),
             epr_rate=epr_rate,
         )
 

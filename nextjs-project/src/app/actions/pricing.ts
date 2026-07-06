@@ -110,6 +110,7 @@ function authHeaders(token: string): Record<string, string> {
 export async function calculatePnlAction(inputs: {
   exchange_rate: string
   margin_percent: string
+  rate_basis?: 'current' | 'naked'
   msn_inputs: {
     msn: number
     mgh: string

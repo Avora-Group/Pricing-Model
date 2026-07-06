@@ -12,7 +12,7 @@ from decimal import Decimal
 # Phase 2 hardcoded; Phase 3 moves to pricing_config table.
 DEFAULT_ADJ_RATE = Decimal("0.85")
 
-# All USD fields that should have EUR companions
+# All USD fields that should have EUR companions (current + naked)
 _USD_FIELDS = [
     "lease_rent_usd",
     "six_year_check_usd",
@@ -21,6 +21,13 @@ _USD_FIELDS = [
     "apu_rate_usd",
     "llp1_rate_usd",
     "llp2_rate_usd",
+    "naked_lease_rent_usd",
+    "naked_six_year_check_usd",
+    "naked_twelve_year_check_usd",
+    "naked_ldg_usd",
+    "naked_apu_rate_usd",
+    "naked_llp1_rate_usd",
+    "naked_llp2_rate_usd",
 ]
 
 

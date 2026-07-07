@@ -9,14 +9,23 @@ import type { QuoteListItem } from '@/app/actions/quotes'
 
 interface QuoteListProps {
   initialQuotes: { items: QuoteListItem[]; total: number }
+  financials?: Record<number, { totalMgh: string | null; eurPerBh: string | null }>
   isViewer?: boolean
+}
+
+/** Compact number formatter for MGH / rate cells. */
+function fmtNum(v: string | null | undefined): string {
+  if (v == null) return '—'
+  const n = parseFloat(v)
+  if (isNaN(n)) return '—'
+  return Math.round(n).toLocaleString('en-US')
 }
 
 const STATUSES = ['draft', 'sent', 'signed', 'active', 'completed', 'rejected']
 
 type QuoteSortKey = 'quote_number' | 'client_name' | 'status' | 'created_at'
 
-export function QuoteList({ initialQuotes, isViewer = false }: QuoteListProps) {
+export function QuoteList({ initialQuotes, financials = {}, isViewer = false }: QuoteListProps) {
   const [quotes, setQuotes] = useState(initialQuotes.items)
   const [total, setTotal] = useState(initialQuotes.total)
   const [search, setSearch] = useState('')
@@ -177,8 +186,9 @@ export function QuoteList({ initialQuotes, isViewer = false }: QuoteListProps) {
                     <th onClick={() => handleSort('quote_number')} className="av-th cursor-pointer select-none">Quote{sortIndicator('quote_number')}</th>
                     <th onClick={() => handleSort('client_name')} className="av-th cursor-pointer select-none">Client{sortIndicator('client_name')}</th>
                     <th onClick={() => handleSort('status')} className="av-th cursor-pointer select-none">Status{sortIndicator('status')}</th>
-                    <th className="av-th r hidden sm:table-cell">USD/EUR</th>
                     <th className="av-th hidden sm:table-cell">MSN</th>
+                    <th className="av-th r hidden sm:table-cell">MGH</th>
+                    <th className="av-th r hidden sm:table-cell">ACMI €/BH</th>
                     <th onClick={() => handleSort('created_at')} className="av-th r cursor-pointer select-none">Created{sortIndicator('created_at')}</th>
                     {!isViewer && <th className="av-th r hidden sm:table-cell">Actions</th>}
                   </tr>
@@ -193,9 +203,6 @@ export function QuoteList({ initialQuotes, isViewer = false }: QuoteListProps) {
                       </td>
                       <td className="av-td font-semibold" style={{ color: 'var(--ink)' }}>{q.client_name}</td>
                       <td className="av-td"><StatusBadge status={q.status} /></td>
-                      <td className="av-td av-num r hidden sm:table-cell" style={{ color: 'var(--ink-2)' }}>
-                        {q.exchange_rate ? parseFloat(q.exchange_rate).toFixed(4) : '—'}
-                      </td>
                       <td className="av-td hidden sm:table-cell">
                         {q.msn_list?.length ? (
                           <span className="flex flex-wrap gap-1">
@@ -203,6 +210,12 @@ export function QuoteList({ initialQuotes, isViewer = false }: QuoteListProps) {
                             {q.msn_list.length > 4 && <span className="text-[11px] self-center" style={{ color: 'var(--muted)' }}>+{q.msn_list.length - 4}</span>}
                           </span>
                         ) : '—'}
+                      </td>
+                      <td className="av-td av-num r hidden sm:table-cell" style={{ color: 'var(--ink-2)' }}>
+                        {fmtNum(financials[q.id]?.totalMgh)}
+                      </td>
+                      <td className="av-td av-num r hidden sm:table-cell" style={{ color: 'var(--ink-2)' }}>
+                        {fmtNum(financials[q.id]?.eurPerBh)}
                       </td>
                       <td className="av-td av-num r whitespace-nowrap" style={{ color: 'var(--muted)' }}>{formatDate(q.created_at)}</td>
                       {!isViewer && (

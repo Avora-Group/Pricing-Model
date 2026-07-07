@@ -43,18 +43,20 @@ export interface AircraftOption {
 
 // ---- Converters ----
 
-/** Convert API snake_case breakdown to camelCase store format */
+/** Convert API snake_case breakdown to camelCase store format.
+ *  Cost/margin fields may be null (server redaction for non-cost-access users);
+ *  each is guarded with `?? '0'` below. */
 export function toStoreBreakdown(api: {
-  aircraft_eur_per_bh: string
-  crew_eur_per_bh: string
-  maintenance_eur_per_bh: string
-  insurance_eur_per_bh: string
-  doc_eur_per_bh: string
-  other_cogs_eur_per_bh: string
-  overhead_eur_per_bh: string
-  total_cost_per_bh: string
+  aircraft_eur_per_bh: string | null
+  crew_eur_per_bh: string | null
+  maintenance_eur_per_bh: string | null
+  insurance_eur_per_bh: string | null
+  doc_eur_per_bh: string | null
+  other_cogs_eur_per_bh: string | null
+  overhead_eur_per_bh: string | null
+  total_cost_per_bh: string | null
   revenue_per_bh: string
-  margin_percent: string
+  margin_percent: string | null
   final_rate_per_bh: string
 }): ComponentBreakdown {
   return {
@@ -78,8 +80,9 @@ export function toStoreMsnResult(api: CalculateResponse['msn_results'][number]):
     msn: api.msn,
     aircraftType: api.aircraft_type,
     breakdown: toStoreBreakdown(api.breakdown),
-    monthlyCost: api.monthly_cost,
-    monthlyRevenue: api.monthly_revenue,
-    monthlyPnl: api.monthly_pnl,
+    // Null for users without cost access (server redaction) — default to '0'.
+    monthlyCost: api.monthly_cost ?? '0',
+    monthlyRevenue: api.monthly_revenue ?? '0',
+    monthlyPnl: api.monthly_pnl ?? '0',
   }
 }

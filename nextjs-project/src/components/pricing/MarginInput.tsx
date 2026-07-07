@@ -10,17 +10,19 @@ import { computePeriodMonths } from '@/stores/pricing-store'
 
 function mapBreakdown(api: CalculateResponse['msn_results'][number]['breakdown']): ComponentBreakdown {
   return {
-    aircraftEurPerBh: api.aircraft_eur_per_bh,
-    crewEurPerBh: api.crew_eur_per_bh,
-    maintenanceEurPerBh: api.maintenance_eur_per_bh,
-    insuranceEurPerBh: api.insurance_eur_per_bh,
-    docEurPerBh: api.doc_eur_per_bh,
-    otherCogsEurPerBh: api.other_cogs_eur_per_bh,
-    overheadEurPerBh: api.overhead_eur_per_bh,
-    totalCostPerBh: api.total_cost_per_bh,
-    revenuePerBh: api.revenue_per_bh,
-    marginPercent: api.margin_percent,
-    finalRatePerBh: api.final_rate_per_bh,
+    // Cost/margin fields are null for users without cost access (server
+    // redaction) — fall back to '0' so downstream string math never sees null.
+    aircraftEurPerBh: api.aircraft_eur_per_bh ?? '0',
+    crewEurPerBh: api.crew_eur_per_bh ?? '0',
+    maintenanceEurPerBh: api.maintenance_eur_per_bh ?? '0',
+    insuranceEurPerBh: api.insurance_eur_per_bh ?? '0',
+    docEurPerBh: api.doc_eur_per_bh ?? '0',
+    otherCogsEurPerBh: api.other_cogs_eur_per_bh ?? '0',
+    overheadEurPerBh: api.overhead_eur_per_bh ?? '0',
+    totalCostPerBh: api.total_cost_per_bh ?? '0',
+    revenuePerBh: api.revenue_per_bh ?? '0',
+    marginPercent: api.margin_percent ?? '0',
+    finalRatePerBh: api.final_rate_per_bh ?? '0',
   }
 }
 
@@ -74,9 +76,9 @@ export function MarginInput() {
         msn: r.msn,
         aircraftType: r.aircraft_type,
         breakdown: mapBreakdown(r.breakdown),
-        monthlyCost: r.monthly_cost,
-        monthlyRevenue: r.monthly_revenue,
-        monthlyPnl: r.monthly_pnl,
+        monthlyCost: r.monthly_cost ?? '0',
+        monthlyRevenue: r.monthly_revenue ?? '0',
+        monthlyPnl: r.monthly_pnl ?? '0',
       }))
 
       const total = result.total ? mapBreakdown(result.total) : null

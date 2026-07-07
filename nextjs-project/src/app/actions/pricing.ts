@@ -7,16 +7,18 @@ const API_URL = process.env.API_URL ?? 'http://localhost:8000'
 // ---- Types ----
 
 interface ComponentBreakdownApi {
-  aircraft_eur_per_bh: string
-  crew_eur_per_bh: string
-  maintenance_eur_per_bh: string
-  insurance_eur_per_bh: string
-  doc_eur_per_bh: string
-  other_cogs_eur_per_bh: string
-  overhead_eur_per_bh: string
-  total_cost_per_bh: string
+  // Cost / margin fields are null for users without cost access (server-side
+  // redaction). Revenue and the sell rate are always present.
+  aircraft_eur_per_bh: string | null
+  crew_eur_per_bh: string | null
+  maintenance_eur_per_bh: string | null
+  insurance_eur_per_bh: string | null
+  doc_eur_per_bh: string | null
+  other_cogs_eur_per_bh: string | null
+  overhead_eur_per_bh: string | null
+  total_cost_per_bh: string | null
   revenue_per_bh: string
-  margin_percent: string
+  margin_percent: string | null
   final_rate_per_bh: string
 }
 
@@ -24,9 +26,9 @@ interface MsnPnlResultApi {
   msn: number
   aircraft_type: string
   breakdown: ComponentBreakdownApi
-  monthly_cost: string
+  monthly_cost: string | null
   monthly_revenue: string
-  monthly_pnl: string
+  monthly_pnl: string | null
 }
 
 export interface CalculateResponse {

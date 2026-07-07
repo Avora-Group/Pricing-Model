@@ -56,10 +56,23 @@ async def require_editor(current_user: dict = Depends(get_current_user)) -> dict
 
 
 def user_can_view_costs(user: dict) -> bool:
-    """Naked-cost access rule (single source of truth).
+    """Base cost visibility — current-rate cost / margin / profit figures.
 
-    Only admins and users explicitly granted ``can_view_costs`` may see actual
-    cost figures and profit margins. Everyone else gets cost/margin fields
-    omitted from API responses (enforced server-side, never client-only).
+    Visible to admins and users; viewers are read-only and get cost/margin
+    fields omitted from API responses (enforced server-side, never client-only).
     """
-    return user.get("role") == "admin" or bool(user.get("can_view_costs"))
+    return user.get("role") in ("admin", "user")
+
+
+def user_can_view_naked(user: dict) -> bool:
+    """Naked-rate access — the reduced 'naked' cost basis, its toggle, and any
+    naked-derived figures.
+
+    Admins implicitly; ``user`` role only when explicitly granted
+    ``can_view_costs``. Viewers never get naked access. This is strictly
+    narrower than base cost visibility.
+    """
+    role = user.get("role")
+    if role == "admin":
+        return True
+    return role == "user" and bool(user.get("can_view_costs"))

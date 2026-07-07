@@ -4,7 +4,7 @@ import { RatesSection } from '@/components/aircraft/RatesSection'
 import { EprMatrixTable } from '@/components/aircraft/EprMatrixTable'
 import type { RateRow } from '@/components/aircraft/RatesSection'
 import type { EprMatrixRow } from '@/components/aircraft/EprMatrixTable'
-import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
+import { useCanViewNaked } from '@/providers/CostVisibilityProvider'
 
 export interface AircraftDetailData {
   id: number
@@ -78,8 +78,8 @@ export function AircraftDetail({
     { label: 'LLP #2 Rate', usd: aircraft.llp2_rate_usd, eur: aircraft.llp2_rate_eur, field: 'llp2_rate_usd' },
   ]
 
-  const canViewCosts = useCanViewCosts()
-  const showNaked = canViewCosts && Boolean(aircraft.has_naked_rates)
+  const canViewNaked = useCanViewNaked()
+  const showNaked = canViewNaked && Boolean(aircraft.has_naked_rates)
 
   const nakedFixedRates: RateRow[] = [
     { label: 'Lease Rent', usd: aircraft.naked_lease_rent_usd ?? '', eur: aircraft.naked_lease_rent_eur ?? '', field: 'naked_lease_rent_usd' },

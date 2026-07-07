@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
 import { calculatePnlAction } from '@/app/actions/pricing'
 import type { CalculateResponse } from '@/app/actions/pricing'
-import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
+import { useCanViewNaked } from '@/providers/CostVisibilityProvider'
 import type { MsnPnlResult, ComponentBreakdown } from '@/stores/pricing-store'
 import { computePeriodMonths } from '@/stores/pricing-store'
 
@@ -37,9 +37,9 @@ export function MarginInput() {
   const msnResults = usePricingStore((s) => s.msnResults)
   const selectedMsn = usePricingStore((s) => s.selectedMsn)
   const rateBasis = usePricingStore((s) => s.rateBasis)
-  const canViewCosts = useCanViewCosts()
+  const canViewNaked = useCanViewNaked()
   const effectiveBasis: 'current' | 'naked' =
-    canViewCosts && rateBasis === 'naked' ? 'naked' : 'current'
+    canViewNaked && rateBasis === 'naked' ? 'naked' : 'current'
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 

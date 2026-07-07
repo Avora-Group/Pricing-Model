@@ -10,7 +10,7 @@ from decimal import Decimal
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.auth.dependencies import get_current_user, user_can_view_costs
+from app.auth.dependencies import get_current_user, user_can_view_costs, user_can_view_naked
 from app.db.database import get_db
 from app.pricing.redaction import redact_calculate_response
 from app.aircraft.repository import AircraftRepository
@@ -81,7 +81,7 @@ async def calculate(
     # Naked cost basis is only honored for users with cost access; otherwise we
     # silently fall back to current rates. Per aircraft, naked is only applied
     # when that aircraft actually has a naked rate set.
-    want_naked = body.rate_basis == "naked" and user_can_view_costs(current_user)
+    want_naked = body.rate_basis == "naked" and user_can_view_naked(current_user)
 
     msn_results = []
 

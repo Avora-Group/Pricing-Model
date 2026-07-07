@@ -9,22 +9,25 @@ const API_URL = process.env.API_URL ?? 'http://localhost:8000'
 
 async function getUser(
   token: string,
-): Promise<{ role: string; email?: string; canViewCosts: boolean }> {
+): Promise<{ role: string; email?: string; canViewCosts: boolean; canViewNaked: boolean }> {
   try {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: { Cookie: `access_token=${token}` },
       cache: 'no-store',
     })
-    if (!res.ok) return { role: 'user', canViewCosts: false }
+    if (!res.ok) return { role: 'user', canViewCosts: false, canViewNaked: false }
     const user = await res.json()
+    const role = user.role ?? 'user'
     return {
-      role: user.role ?? 'user',
+      role,
       email: user.email,
-      // Admins implicitly always have cost access.
-      canViewCosts: user.role === 'admin' || Boolean(user.can_view_costs),
+      // Base cost figures: admins and users (viewers restricted).
+      canViewCosts: role === 'admin' || role === 'user',
+      // Naked rates: admins implicitly; 'user' role only if granted; never viewers.
+      canViewNaked: role === 'admin' || (role === 'user' && Boolean(user.can_view_costs)),
     }
   } catch {
-    return { role: 'user', canViewCosts: false }
+    return { role: 'user', canViewCosts: false, canViewNaked: false }
   }
 }
 
@@ -39,10 +42,10 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  const { role: userRole, email: userEmail, canViewCosts } = await getUser(session.token)
+  const { role: userRole, email: userEmail, canViewCosts, canViewNaked } = await getUser(session.token)
 
   return (
-    <CostVisibilityProvider value={canViewCosts}>
+    <CostVisibilityProvider value={{ canViewCosts, canViewNaked }}>
       <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
         <Sidebar userRole={userRole} />
         <div className="flex-1 flex flex-col min-w-0">

@@ -10,7 +10,7 @@ import { fmt } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { LineDetailPopover, type BreakdownItem } from './CostDetailPopover'
-import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
+import { useCanViewCosts, useCanViewNaked } from '@/providers/CostVisibilityProvider'
 import { Redacted } from '@/components/common/Redacted'
 import type { AircraftOption } from '@/lib/api-converters'
 
@@ -312,6 +312,7 @@ function computeMsnCosts(
 
 export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOption[] } = {}) {
   const canViewCosts = useCanViewCosts()
+  const canViewNaked = useCanViewNaked()
   const {
     exchangeRate: globalExchangeRate,
     bhFhRatio: globalBhFhRatio,
@@ -325,13 +326,13 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
     patchMsnInput,
   } = usePricingStore()
 
-  // Naked cost basis is honored only for cost-access users.
-  const useNaked = canViewCosts && rateBasis === 'naked'
+  // Naked cost basis is honored only for users with naked access.
+  const useNaked = canViewNaked && rateBasis === 'naked'
 
   // Backfill naked rates onto MSNs that lack them (e.g. loaded from a saved
-  // quote) using the current aircraft master data, for cost-access users.
+  // quote) using the current aircraft master data, for naked-access users.
   useEffect(() => {
-    if (!canViewCosts || aircraftList.length === 0) return
+    if (!canViewNaked || aircraftList.length === 0) return
     for (const input of msnInputs) {
       if (input.hasNakedRates !== undefined) continue
       const ac =
@@ -354,7 +355,7 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
         })),
       })
     }
-  }, [msnInputs, aircraftList, canViewCosts, patchMsnInput])
+  }, [msnInputs, aircraftList, canViewNaked, patchMsnInput])
 
   // ── Crew config ──
   const crewPayroll = useCrewConfigStore((s) => s.payroll)
@@ -822,8 +823,8 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
                 </button>
               ))}
             </div>
-            {/* Cost basis — cost-access users only */}
-            {canViewCosts && (
+            {/* Cost basis — naked-access users only */}
+            {canViewNaked && (
               <div className="av-seg" style={{ flex: 'unset' }}>
                 {(['current', 'naked'] as const).map((b) => (
                   <button

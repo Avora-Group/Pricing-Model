@@ -11,7 +11,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.db.database import get_db
-from app.auth.dependencies import get_current_user, require_editor, user_can_view_costs
+from app.auth.dependencies import get_current_user, require_editor, user_can_view_naked
 from app.aircraft.repository import AircraftRepository
 from app.aircraft.schemas import (
     AircraftDetailResponse,
@@ -41,7 +41,7 @@ async def list_aircraft(
     aircraft_ids = [r["id"] for r in rows]
     epr_map = await repo.fetch_epr_matrices_for_ids(aircraft_ids, "current") if aircraft_ids else {}
 
-    can_view = user_can_view_costs(current_user)
+    can_view = user_can_view_naked(current_user)
     naked_epr_map = (
         await repo.fetch_epr_matrices_for_ids(aircraft_ids, "naked")
         if aircraft_ids and can_view else {}
@@ -125,7 +125,7 @@ async def get_aircraft(
     data = apply_eur_conversion(dict(aircraft))
     data["epr_matrix"] = [dict(r) for r in epr_rows]
 
-    if user_can_view_costs(current_user) and data.get("has_naked_rates"):
+    if user_can_view_naked(current_user) and data.get("has_naked_rates"):
         naked_epr = await repo.fetch_epr_matrix(aircraft["id"], "naked")
         data["naked_epr_matrix"] = [dict(r) for r in naked_epr]
     else:

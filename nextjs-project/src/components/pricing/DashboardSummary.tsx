@@ -13,7 +13,7 @@ import { useCalculation } from './hooks/useCalculation'
 import { useAddAircraft } from './hooks/useAddAircraft'
 import { downloadCalculationWorkbook } from '@/lib/excel-export'
 import type { AircraftOption } from '@/lib/api-converters'
-import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
+import { useCanViewNaked } from '@/providers/CostVisibilityProvider'
 
 interface DashboardSummaryProps {
   aircraftList: AircraftOption[]
@@ -59,11 +59,11 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
   } = usePricingStore()
   const isEditing = editingQuoteNumber !== null
 
-  // Naked cost basis toggle is only available to users with cost access.
-  const canViewCosts = useCanViewCosts()
-  // Guard: if a non-cost-access user somehow has naked selected, fall back.
+  // Naked cost basis is only available to users with naked access.
+  const canViewNaked = useCanViewNaked()
+  // Guard: if a user without naked access somehow has naked selected, fall back.
   const effectiveBasis: 'current' | 'naked' =
-    canViewCosts && rateBasis === 'naked' ? 'naked' : 'current'
+    canViewNaked && rateBasis === 'naked' ? 'naked' : 'current'
 
   // Full crew & costs config — needed to build the formula-driven Excel export.
   const crewConfig = useCrewConfigStore()

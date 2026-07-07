@@ -3,21 +3,34 @@
 import { createContext, useContext } from 'react'
 
 /**
- * Naked-cost visibility context.
+ * Cost / naked visibility context.
  *
- * Holds whether the current user may see naked cost / profit / margin figures
- * (admins and users with `can_view_costs`). This is a *cosmetic* gate only —
- * the server is the security boundary and omits the sensitive fields for
- * unpermitted users. Components use `useCanViewCosts()` to hide cost UI so the
- * page doesn't render em-dash / NaN storms for already-omitted data.
+ * Two independent gates:
+ *  - `canViewCosts`  — base current-rate cost / margin / profit figures.
+ *    Visible to admins and users; hidden from viewers.
+ *  - `canViewNaked`  — the reduced "naked" cost basis, its toggle, and any
+ *    naked-derived figures. Admins implicitly; other users only when granted
+ *    `can_view_costs`. Strictly narrower than `canViewCosts`.
+ *
+ * These are *cosmetic* gates — the server is the security boundary and omits
+ * the corresponding fields for unpermitted users. Components use the hooks to
+ * hide UI so the page doesn't render em-dash / NaN storms for omitted data.
  */
-const CostVisibilityContext = createContext<boolean>(false)
+interface CostVisibility {
+  canViewCosts: boolean
+  canViewNaked: boolean
+}
+
+const CostVisibilityContext = createContext<CostVisibility>({
+  canViewCosts: false,
+  canViewNaked: false,
+})
 
 export function CostVisibilityProvider({
   value,
   children,
 }: {
-  value: boolean
+  value: CostVisibility
   children: React.ReactNode
 }) {
   return (
@@ -27,7 +40,12 @@ export function CostVisibilityProvider({
   )
 }
 
-/** Returns true when the current user may see naked cost / profit / margin. */
+/** True when the user may see base current-rate cost / margin / profit. */
 export function useCanViewCosts(): boolean {
-  return useContext(CostVisibilityContext)
+  return useContext(CostVisibilityContext).canViewCosts
+}
+
+/** True when the user may see naked rates / the naked cost basis toggle. */
+export function useCanViewNaked(): boolean {
+  return useContext(CostVisibilityContext).canViewNaked
 }

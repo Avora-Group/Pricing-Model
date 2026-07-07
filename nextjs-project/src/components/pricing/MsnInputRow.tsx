@@ -140,12 +140,15 @@ const LEASE_OPTS = [
   { value: 'moist', label: 'Moist' },
 ]
 
-function startDateValue(v: string) {
+function startDateValue(v: string | null | undefined) {
+  if (!v) return ''
   return v.length === 7 ? `${v}-01` : v
 }
-function endDateValue(v: string) {
+function endDateValue(v: string | null | undefined) {
+  if (!v) return ''
   if (v.length > 7) return v
   const [y, m] = v.split('-').map(Number)
+  if (!y || !m) return v
   const lastDay = new Date(y, m, 0).getDate()
   return `${v}-${String(lastDay).padStart(2, '0')}`
 }

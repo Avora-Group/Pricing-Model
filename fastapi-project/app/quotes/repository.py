@@ -84,22 +84,49 @@ class QuoteRepository(BaseRepository):
         monthly_cost: Decimal | None,
         monthly_revenue: Decimal | None,
     ) -> dict:
-        """Insert a per-MSN snapshot for a quote. Returns the created row."""
+        """Insert a per-MSN snapshot for a quote. Returns the created row.
+
+        The main inputs are also written to dedicated columns (extracted from
+        msn_input) so they're directly queryable in the database.
+        """
+        def _num(v):
+            try:
+                return Decimal(str(v)) if v not in (None, "") else None
+            except Exception:
+                return None
+
+        # For seasonal MSNs the per-month figures live under summer/winter; fall
+        # back to those so the columns aren't blank.
+        season = msn_input.get("summer") if msn_input.get("seasonalityEnabled") else None
+        def _field(key):
+            v = msn_input.get(key)
+            if (v in (None, "")) and isinstance(season, dict):
+                v = season.get(key)
+            return v
+
         return await self.fetch_one(
             """INSERT INTO quote_msn_snapshots (
                 quote_id, msn, aircraft_type, aircraft_id,
                 msn_input, breakdown, monthly_pnl,
-                monthly_cost, monthly_revenue
+                monthly_cost, monthly_revenue,
+                mgh, acmi_rate, cycle_ratio, environment,
+                crew_sets, lease_type, rate_currency, mgh_mode
             ) VALUES (
                 $1, $2, $3, $4,
                 $5::jsonb, $6::jsonb, $7::jsonb,
-                $8, $9
+                $8, $9,
+                $10, $11, $12, $13,
+                $14, $15, $16, $17
             ) RETURNING *""",
             quote_id, msn, aircraft_type, aircraft_id,
             msn_input,
             breakdown,
             monthly_pnl,
             monthly_cost, monthly_revenue,
+            _num(_field("mgh")), _num(_field("acmiRate")), _num(_field("cycleRatio")),
+            msn_input.get("environment"),
+            _num(msn_input.get("crewSets")), msn_input.get("leaseType"),
+            msn_input.get("rateCurrency"), msn_input.get("mghMode"),
         )
 
     async def list_quotes(

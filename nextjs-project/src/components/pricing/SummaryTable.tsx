@@ -904,21 +904,18 @@ export function SummaryTable({
         <div className="av-verdict-top">
           {canViewCosts && (
             <div className="av-vcell">
-              {/* Project name (inline-editable, static look) + MGH */}
-              <div className="flex items-baseline gap-2 mb-1.5 flex-wrap">
+              {/* Project name (inline-editable, static look) */}
+              <div className="mb-1.5">
                 <input
                   type="text"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   readOnly={!editable}
                   placeholder="Untitled project"
-                  className="av-num bg-transparent border-0 p-0 focus:outline-none font-semibold"
-                  style={{ color: 'var(--ink)', fontSize: 13, minWidth: 0, flex: '1 1 auto' }}
+                  className="av-num bg-transparent border-0 p-0 focus:outline-none font-semibold w-full"
+                  style={{ color: 'var(--ink)', fontSize: 13, minWidth: 0 }}
                   title="Project name"
                 />
-                <span className="text-[11px] av-num whitespace-nowrap" style={{ color: 'var(--muted)' }}>
-                  {fmt(isTotalView ? totalMgh : activeMsn.mgh, 0)} MGH
-                </span>
               </div>
               <div className="vlab">Net profit · monthly</div>
               <div className="vval av-num" style={mNetProfit < 0 ? { color: 'var(--neg)' } : undefined}>

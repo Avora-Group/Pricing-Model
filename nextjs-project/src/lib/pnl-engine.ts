@@ -416,8 +416,10 @@ export function computeMsnPnlSummarySeasonal(
     excessHourRate: input.summer.excessHourRate,
     excessBh: input.summer.excessBh,
     crewSets: input.summer.crewSets,
-    periodStart: input.summer.periodStart,
-    periodEnd: input.summer.periodEnd,
+    // Season periods can be null/absent on quote-loaded MSNs — fall back to the
+    // MSN's top-level period so downstream date parsing never sees null.
+    periodStart: input.summer.periodStart || input.periodStart,
+    periodEnd: input.summer.periodEnd || input.periodEnd,
   }
   const winterInput: MsnInput = {
     ...input,
@@ -427,8 +429,8 @@ export function computeMsnPnlSummarySeasonal(
     excessHourRate: input.winter.excessHourRate,
     excessBh: input.winter.excessBh,
     crewSets: input.winter.crewSets,
-    periodStart: input.winter.periodStart,
-    periodEnd: input.winter.periodEnd,
+    periodStart: input.winter.periodStart || input.periodStart,
+    periodEnd: input.winter.periodEnd || input.periodEnd,
   }
 
   const s = computeMsnPnlSummary(summerInput, crew, costs, exchangeRate)

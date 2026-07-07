@@ -73,7 +73,8 @@ export interface MsnInput {
 }
 
 /** Compute period in months from start/end strings (YYYY-MM or YYYY-MM-DD, inclusive) */
-export function computePeriodMonths(start: string, end: string): number {
+export function computePeriodMonths(start: string | null | undefined, end: string | null | undefined): number {
+  if (!start || !end) return 1
   const sp = start.split('-').map(Number)
   const ep = end.split('-').map(Number)
   const sy = sp[0], sm = sp[1], ey = ep[0], em = ep[1]
@@ -84,7 +85,8 @@ export function computePeriodMonths(start: string, end: string): number {
 
 /** Generate an array of {year, month} for each month from start to end (inclusive).
  *  Accepts both YYYY-MM and YYYY-MM-DD — only year and month are used. */
-export function generateMonthRange(start: string, end: string): { year: number; month: number; label: string }[] {
+export function generateMonthRange(start: string | null | undefined, end: string | null | undefined): { year: number; month: number; label: string }[] {
+  if (!start || !end) return []
   const sp = start.split('-').map(Number)
   const ep = end.split('-').map(Number)
   const sy = sp[0], sm = sp[1], ey = ep[0], em = ep[1]

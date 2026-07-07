@@ -20,12 +20,13 @@ export function daysInMonth(year: number, month: number): number {
  * Parse a period string that may be YYYY-MM or YYYY-MM-DD.
  * Returns { year, month, day } where day defaults to -1 if YYYY-MM (no day component).
  */
-export function parsePeriod(period: string): {
+export function parsePeriod(period: string | null | undefined): {
   year: number
   month: number
   day: number
   hasDay: boolean
 } {
+  if (!period) return { year: NaN, month: NaN, day: 1, hasDay: false }
   const parts = period.split('-').map(Number)
   const hasDay = parts.length >= 3 && !isNaN(parts[2])
   return {
@@ -45,8 +46,8 @@ export function parsePeriod(period: string): {
  */
 export function buildMonthDayInfos(
   months: { year: number; month: number }[],
-  periodStart: string,
-  periodEnd: string,
+  periodStart: string | null | undefined,
+  periodEnd: string | null | undefined,
 ): MonthDayInfo[] {
   const start = parsePeriod(periodStart)
   const end = parsePeriod(periodEnd)

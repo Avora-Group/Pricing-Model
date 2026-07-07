@@ -133,11 +133,17 @@ function buildMsnMonthlyData(
   nfdDays: number,
 ): Record<string, number[]> {
   if (input.seasonalityEnabled && input.summer && input.winter) {
+    // Season period fields can be null/absent on MSNs loaded from a saved quote;
+    // fall back to the MSN's top-level period so string ops never see null.
+    const sSummerStart = input.summer.periodStart || input.periodStart || ''
+    const sSummerEnd = input.summer.periodEnd || input.periodEnd || ''
+    const sWinterStart = input.winter.periodStart || input.periodStart || ''
+    const sWinterEnd = input.winter.periodEnd || input.periodEnd || ''
     // Determine effective period for each season (YYYY-MM from periodStart)
-    const summerStart = input.summer.periodStart.substring(0, 7)
-    const summerEnd = input.summer.periodEnd.substring(0, 7)
-    const winterStart = input.winter.periodStart.substring(0, 7)
-    const winterEnd = input.winter.periodEnd.substring(0, 7)
+    const summerStart = sSummerStart.substring(0, 7)
+    const summerEnd = sSummerEnd.substring(0, 7)
+    const winterStart = sWinterStart.substring(0, 7)
+    const winterEnd = sWinterEnd.substring(0, 7)
 
     // Build virtual MsnInput for each season by overlaying season fields
     const makeSeasonal = (s: typeof input.summer): MsnInput => ({
@@ -157,8 +163,8 @@ function buildMsnMonthlyData(
     const winterR = computeMsnConfig(winterInput, crew, costs, exchangeRate, fdDays, nfdDays)
 
     // Build monthly data for each season config across the full month range
-    const summerMdi = buildMonthDayInfos(months, input.summer.periodStart, input.summer.periodEnd)
-    const winterMdi = buildMonthDayInfos(months, input.winter.periodStart, input.winter.periodEnd)
+    const summerMdi = buildMonthDayInfos(months, sSummerStart, sSummerEnd)
+    const winterMdi = buildMonthDayInfos(months, sWinterStart, sWinterEnd)
 
     const summerData = buildMonthlyData(
       months, summerR.mgh, summerR.acmiRate, summerR.excessBh, summerR.excessHourRate,

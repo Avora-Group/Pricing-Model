@@ -16,6 +16,7 @@ import type {
 } from '@/stores/costs-config-store'
 import type { MsnInput, EprMatrixRow } from '@/stores/pricing-store'
 import { interpolateEpr } from './pnl-engine'
+import { pickAircraftRates } from './aircraft-rate-basis'
 import type { PnlLineConfig } from './pnl-monthly-builder'
 
 // ---- Crew derived values ----
@@ -235,7 +236,10 @@ export function computeMsnConfig(
   exchangeRate: number,
   fdDays: number = 18,
   nfdDays: number = 10,
+  useNaked: boolean = false,
 ): MsnComputeResult {
+  // Current vs naked aircraft cost basis (single source of truth).
+  const ar = pickAircraftRates(input, useNaked)
   const msnMgh = parseFloat(input.mgh) || 0
   const rateToEur = input.rateCurrency === 'usd' ? exchangeRate : 1
   const msnAcmiRate = parseFloat(input.acmiRate || '0') * rateToEur
@@ -297,10 +301,10 @@ export function computeMsnConfig(
   const msnFh = msnBhFhRatio > 0 ? msnTotalBh / msnBhFhRatio : 0
   const msnFc = msnCycleRatio > 0 ? msnFh / msnCycleRatio : 0
   const msnApuFh = msnFh * msnApuFhRatio
-  const msnEprRate = interpolateEpr(input.eprMatrix ?? [], msnCycleRatio, msnEnvironment)
+  const msnEprRate = interpolateEpr(ar.eprMatrix, msnCycleRatio, msnEnvironment)
   const msnEprMr = msnEprRate * 2 * msnFh * exchangeRate
-  const msnLlpMr = (parseFloat(input.llp1RateUsd || '0') + parseFloat(input.llp2RateUsd || '0')) * msnFc * exchangeRate
-  const msnApuMr = parseFloat(input.apuRateUsd || '0') * msnApuFh * exchangeRate
+  const msnLlpMr = (ar.llp1RateUsd + ar.llp2RateUsd) * msnFc * exchangeRate
+  const msnApuMr = ar.apuRateUsd * msnApuFh * exchangeRate
   const msnMaintReservesVariable = msnEprMr + msnLlpMr + msnApuMr
 
   // Spare parts = totalBH x spare parts rate + tires/wheels fixed
@@ -308,10 +312,10 @@ export function computeMsnConfig(
   const msnSpareParts_tiresWheels = costs.tiresWheelsCost
   const msnSpareParts = msnSpareParts_bh + msnSpareParts_tiresWheels
 
-  // Sum of 6yr + 12yr + LDG from MsnInput
-  const msnMaintReservesFixed_6yr = parseFloat(input.sixYearCheckEur || '0')
-  const msnMaintReservesFixed_12yr = parseFloat(input.twelveYearCheckEur || '0')
-  const msnMaintReservesFixed_ldg = parseFloat(input.ldgEur || '0')
+  // Sum of 6yr + 12yr + LDG (current or naked basis)
+  const msnMaintReservesFixed_6yr = ar.sixYearCheckEur
+  const msnMaintReservesFixed_12yr = ar.twelveYearCheckEur
+  const msnMaintReservesFixed_ldg = ar.ldgEur
   const maintReservesFixedEur = msnMaintReservesFixed_6yr + msnMaintReservesFixed_12yr + msnMaintReservesFixed_ldg
 
   const cfg: PnlLineConfig = {
@@ -319,7 +323,7 @@ export function computeMsnConfig(
     eprMr: msnEprMr,
     llpMr: msnLlpMr,
     apuMr: msnApuMr,
-    leaseRentEur: parseFloat(input.leaseRentEur || '0'),
+    leaseRentEur: ar.leaseRentEur,
     maintReservesFixedEur,
     pilotPerDiem: msnPilotPerDiem,
     cabinCrewPerDiem: msnCabinCrewPerDiem,

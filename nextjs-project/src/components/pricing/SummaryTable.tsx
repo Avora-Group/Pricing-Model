@@ -8,6 +8,7 @@ import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { fmt } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
+import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { LineDetailPopover, type BreakdownItem } from './CostDetailPopover'
 import { useCanViewCosts, useCanViewNaked } from '@/providers/CostVisibilityProvider'
@@ -79,18 +80,14 @@ function computeMsnCosts(
   const revenuePerMonth = (acmiRate * mgh) + (excessBh * excessHourRate)
 
   // ── Aircraft (Category A) ──
-  // Pick current or naked rate fields. Naked only applies when the aircraft
-  // actually has naked rates; otherwise fall back to current.
-  const nk = useNaked && Boolean(input.hasNakedRates)
-  const dryLease = parseFloat((nk ? input.nakedLeaseRentEur : input.leaseRentEur) || '0')
-  const maintReservesFixed = (parseFloat((nk ? input.nakedSixYearCheckEur : input.sixYearCheckEur) || '0')
-    + parseFloat((nk ? input.nakedTwelveYearCheckEur : input.twelveYearCheckEur) || '0')
-    + parseFloat((nk ? input.nakedLdgEur : input.ldgEur) || '0'))
-  const eprSource = nk && input.nakedEprMatrix?.length ? input.nakedEprMatrix : (input.eprMatrix ?? [])
-  const eprRate = interpolateEpr(eprSource, cycleRatio, input.environment)
+  // Current vs naked aircraft cost basis (shared with the P&L engine).
+  const ar = pickAircraftRates(input, useNaked)
+  const dryLease = ar.leaseRentEur
+  const maintReservesFixed = ar.sixYearCheckEur + ar.twelveYearCheckEur + ar.ldgEur
+  const eprRate = interpolateEpr(ar.eprMatrix, cycleRatio, input.environment)
   const eprMr = eprRate * 2 * fh * exchangeRate
-  const llpMr = (parseFloat((nk ? input.nakedLlp1RateUsd : input.llp1RateUsd) || '0') + parseFloat((nk ? input.nakedLlp2RateUsd : input.llp2RateUsd) || '0')) * fc * exchangeRate
-  const apuMr = parseFloat((nk ? input.nakedApuRateUsd : input.apuRateUsd) || '0') * apuFh * exchangeRate
+  const llpMr = (ar.llp1RateUsd + ar.llp2RateUsd) * fc * exchangeRate
+  const apuMr = ar.apuRateUsd * apuFh * exchangeRate
   const maintReservesVariable = eprMr + llpMr + apuMr
   const aircraft = dryLease + maintReservesFixed + maintReservesVariable
 
@@ -607,6 +604,20 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
 
   const totalMgh = filteredMsnData.reduce((s, d) => s + d.mgh, 0)
 
+  const isTotalView0 = selectedMsn === null
+  // Contract term (months) — denominator for the average-monthly figures below.
+  const periodMonths = isTotalView0 ? totalProjectDuration : activeMsn.duration
+
+  // Prorated PROJECT TOTALS per category (partial months already day-scaled in
+  // `.total`, identical to the P&L engine). The displayed "monthly" figures are
+  // derived as total / periodMonths so that monthly × months === project total
+  // === P&L. For full-month projects this equals the plain monthly figure.
+  const totOf = (pick: (t: (typeof filteredMsnData)[number]['total']) => number): number =>
+    isTotalView0
+      ? filteredMsnData.reduce((s, d) => s + pick(d.total), 0)
+      : pick(activeMsn.total)
+  const perMo = (v: number) => (periodMonths > 0 ? v / periodMonths : 0)
+
   // ── EUR/BH helpers ──
   // Per-BH display toggle removed; cost figures are always shown as monthly
   // totals (the cost breakdown already has a dedicated per-BH column).
@@ -616,22 +627,23 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
     ? (totalMgh || 1)
     : (activeMsn.bhActual || 1)
 
-  // ── Per-month values: use weighted average across MSNs in total view ──
-  const mRevenue = isTotalView
-    ? filteredMsnData.reduce((s, d) => s + d.revenuePerMonth, 0)
-    : activeMsn.revenuePerMonth
-  const mAircraft = isTotalView ? filteredMsnData.reduce((s, d) => s + d.aircraft, 0) : activeMsn.aircraft
-  const mCrew = isTotalView ? filteredMsnData.reduce((s, d) => s + d.crew, 0) : activeMsn.crew
-  const mMaint = isTotalView ? filteredMsnData.reduce((s, d) => s + d.maintenance, 0) : activeMsn.maintenance
-  const mInsurance = isTotalView ? filteredMsnData.reduce((s, d) => s + d.insurance, 0) : activeMsn.insurance
-  const mDoc = isTotalView ? filteredMsnData.reduce((s, d) => s + d.doc, 0) : activeMsn.doc
-  const mAcmiCost = isTotalView ? filteredMsnData.reduce((s, d) => s + d.acmiCost, 0) : activeMsn.acmiCost
-  const mTotalCost = isTotalView ? filteredMsnData.reduce((s, d) => s + d.totalCost, 0) : activeMsn.totalCost
-  const mOverhead = isTotalView ? filteredMsnData.reduce((s, d) => s + d.overhead, 0) : activeMsn.overhead
-  const mGrossProfit = mRevenue - mTotalCost
+  // ── Per-month values = prorated project total / periodMonths ──
+  // (Average monthly over the term; matches P&L because monthly × months uses
+  //  the same day-prorated totals. Full-month projects are unchanged.)
+  const mRevenue = perMo(totOf((t) => t.revenue))
+  const mAircraft = perMo(totOf((t) => t.aircraft))
+  const mCrew = perMo(totOf((t) => t.crew))
+  const mMaint = perMo(totOf((t) => t.maintenance))
+  const mInsurance = perMo(totOf((t) => t.insurance))
+  const mDoc = perMo(totOf((t) => t.doc))
+  const mAcmiCost = perMo(totOf((t) => t.acmiCost))
+  const mOverhead = perMo(totOf((t) => t.overhead))
+  // totalCost excludes overhead (ACMI cost only), matching `.total.totalCost`.
+  const mTotalCost = mAcmiCost
+  const mGrossProfit = mRevenue - mAcmiCost
   const mNetProfit = mGrossProfit - mOverhead
-  const mBhActual = isTotalView ? filteredMsnData.reduce((s, d) => s + d.bhActual, 0) : activeMsn.bhActual
-  const mFc = isTotalView ? filteredMsnData.reduce((s, d) => s + d.fc, 0) : activeMsn.fc
+  const mBhActual = perMo(totOf((t) => t.bhActual))
+  const mFc = perMo(totOf((t) => t.fc))
 
   // Blended ACMI rate (weighted by MGH) for the Total view; a single MSN uses its own rate.
   const totalAcmiWeighted = (() => {
@@ -641,9 +653,7 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
   })()
   const acmiRateDisplay = isTotalView ? totalAcmiWeighted : activeMsn.acmiRate
 
-  const mOtherCogs = isTotalView
-    ? filteredMsnData.reduce((s, d) => s + d.otherCogs, 0)
-    : activeMsn.otherCogs
+  const mOtherCogs = perMo(totOf((t) => t.otherCogs))
 
   // Sub-component build-up for the active scope (summed across MSNs in Total view).
   const scopeParts: Record<string, Record<string, number>> = (() => {
@@ -686,8 +696,7 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
     }
   }
 
-  // ── Period months (contract term) for the "Project total" column ──
-  const periodMonths = isTotalView ? totalProjectDuration : activeMsn.duration
+  // (periodMonths computed above — contract term / denominator for monthly figures)
 
   // ── Monthly block hours (MGH-based, incl. excess) for the "Per BH" column ──
   const monthlyBh = mBhActual

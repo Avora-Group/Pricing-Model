@@ -13,11 +13,12 @@ import { ALL_DATA_KEYS as ALL_KEYS_IMPORT } from '@/lib/pnl-row-defs'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
 import type { CrewDerivedValues, CostsDerivedValues } from '@/lib/pnl-msn-config'
 import { interpolateEpr } from '@/lib/pnl-engine'
+import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import type { MsnInput } from '@/stores/pricing-store'
 import { LineDetailPopover } from './CostDetailPopover'
 import type { BreakdownItem, ParamItem } from './CostDetailPopover'
-import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
+import { useCanViewCosts, useCanViewNaked } from '@/providers/CostVisibilityProvider'
 
 // ---- Clickable row definitions ----
 
@@ -131,6 +132,7 @@ function buildMsnMonthlyData(
   exchangeRate: number,
   fdDays: number,
   nfdDays: number,
+  useNaked: boolean = false,
 ): Record<string, number[]> {
   if (input.seasonalityEnabled && input.summer && input.winter) {
     // Season period fields can be null/absent on MSNs loaded from a saved quote;
@@ -159,8 +161,8 @@ function buildMsnMonthlyData(
     const summerInput = makeSeasonal(input.summer)
     const winterInput = makeSeasonal(input.winter)
 
-    const summerR = computeMsnConfig(summerInput, crew, costs, exchangeRate, fdDays, nfdDays)
-    const winterR = computeMsnConfig(winterInput, crew, costs, exchangeRate, fdDays, nfdDays)
+    const summerR = computeMsnConfig(summerInput, crew, costs, exchangeRate, fdDays, nfdDays, useNaked)
+    const winterR = computeMsnConfig(winterInput, crew, costs, exchangeRate, fdDays, nfdDays, useNaked)
 
     // Build monthly data for each season config across the full month range
     const summerMdi = buildMonthDayInfos(months, sSummerStart, sSummerEnd)
@@ -199,7 +201,7 @@ function buildMsnMonthlyData(
   }
 
   // Non-seasonal: original logic
-  const r = computeMsnConfig(input, crew, costs, exchangeRate, fdDays, nfdDays)
+  const r = computeMsnConfig(input, crew, costs, exchangeRate, fdDays, nfdDays, useNaked)
   const mdi = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
   return buildMonthlyData(
     months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
@@ -227,12 +229,16 @@ interface PopoverState {
 
 export function PnlTable() {
   const canViewCosts = useCanViewCosts()
+  const canViewNaked = useCanViewNaked()
   const selectedMsn = usePricingStore((s) => s.selectedMsn)
   const msnResults = usePricingStore((s) => s.msnResults)
   const totalResult = usePricingStore((s) => s.totalResult)
   const isCalculating = usePricingStore((s) => s.isCalculating)
   const msnInputs = usePricingStore((s) => s.msnInputs)
+  const rateBasis = usePricingStore((s) => s.rateBasis)
   const exchangeRate = parseFloat(usePricingStore((s) => s.exchangeRate) || '0.85')
+  // Match the Summary's cost basis: naked only when permitted + selected.
+  const useNaked = canViewNaked && rateBasis === 'naked'
 
   // -- Crew config store --
   const crewPayroll = useCrewConfigStore((s) => s.payroll)
@@ -345,7 +351,7 @@ export function PnlTable() {
     // Single MSN view
     const input = msnInputs.find((i) => i.msn === selectedMsn)
     if (input) {
-      monthlyData = buildMsnMonthlyData(input, months, crew, costs, exchangeRate, crewFdDays, crewNfdDays)
+      monthlyData = buildMsnMonthlyData(input, months, crew, costs, exchangeRate, crewFdDays, crewNfdDays, useNaked)
     } else {
       // No input data — produce zeros
       monthlyData = {}
@@ -361,7 +367,7 @@ export function PnlTable() {
     }
 
     for (const input of msnInputs) {
-      const msnData = buildMsnMonthlyData(input, months, crew, costs, exchangeRate, crewFdDays, crewNfdDays)
+      const msnData = buildMsnMonthlyData(input, months, crew, costs, exchangeRate, crewFdDays, crewNfdDays, useNaked)
 
       // Zero out months outside this MSN's active period (accounting for seasonality)
       const ep = getEffectivePeriod(input)
@@ -456,10 +462,11 @@ export function PnlTable() {
         let eprF: string | undefined, llpF: string | undefined, apuF: string | undefined
         if (msnInput) {
           const cr = parseFloat(msnInput.cycleRatio || '1')
-          const eprRate = interpolateEpr(msnInput.eprMatrix ?? [], cr, msnInput.environment)
-          const llp1 = parseFloat(msnInput.llp1RateUsd || '0')
-          const llp2 = parseFloat(msnInput.llp2RateUsd || '0')
-          const apuRate = parseFloat(msnInput.apuRateUsd || '0')
+          const ar = pickAircraftRates(msnInput, useNaked)
+          const eprRate = interpolateEpr(ar.eprMatrix, cr, msnInput.environment)
+          const llp1 = ar.llp1RateUsd
+          const llp2 = ar.llp2RateUsd
+          const apuRate = ar.apuRateUsd
           eprF = `${fn(eprRate, 2)} \u00d7 2 \u00d7 ${fn(v('fh'), 1)} FH \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
           llpF = `(${fn(llp1, 2)} + ${fn(llp2, 2)}) \u00d7 ${fn(v('fc'), 1)} FC \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
           apuF = `${fn(apuRate, 2)} \u00d7 ${fn(v('apuFh'), 1)} APU FH \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`

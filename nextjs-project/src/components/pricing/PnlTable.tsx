@@ -15,6 +15,7 @@ import type { CrewDerivedValues, CostsDerivedValues } from '@/lib/pnl-msn-config
 import { interpolateEpr } from '@/lib/pnl-engine'
 import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
+import { periodBhWeightsFromStrings } from '@/lib/mgh-distribution'
 import type { MsnInput } from '@/stores/pricing-store'
 import { LineDetailPopover } from './CostDetailPopover'
 import type { BreakdownItem, ParamItem } from './CostDetailPopover'
@@ -168,13 +169,17 @@ function buildMsnMonthlyData(
     const summerMdi = buildMonthDayInfos(months, sSummerStart, sSummerEnd)
     const winterMdi = buildMonthDayInfos(months, sWinterStart, sWinterEnd)
 
+    const isPeriod = (input.mghMode ?? 'month') === 'period'
+    const summerWeights = isPeriod ? periodBhWeightsFromStrings(months, sSummerStart, sSummerEnd) : undefined
+    const winterWeights = isPeriod ? periodBhWeightsFromStrings(months, sWinterStart, sWinterEnd) : undefined
+
     const summerData = buildMonthlyData(
       months, summerR.mgh, summerR.acmiRate, summerR.excessBh, summerR.excessHourRate,
-      summerR.cycleRatio, summerR.bhFhRatio, summerR.apuFhRatio, summerR.cfg, summerMdi,
+      summerR.cycleRatio, summerR.bhFhRatio, summerR.apuFhRatio, summerR.cfg, summerMdi, summerWeights,
     )
     const winterData = buildMonthlyData(
       months, winterR.mgh, winterR.acmiRate, winterR.excessBh, winterR.excessHourRate,
-      winterR.cycleRatio, winterR.bhFhRatio, winterR.apuFhRatio, winterR.cfg, winterMdi,
+      winterR.cycleRatio, winterR.bhFhRatio, winterR.apuFhRatio, winterR.cfg, winterMdi, winterWeights,
     )
 
     // For each month, pick the correct season's data
@@ -203,9 +208,12 @@ function buildMsnMonthlyData(
   // Non-seasonal: original logic
   const r = computeMsnConfig(input, crew, costs, exchangeRate, fdDays, nfdDays, useNaked)
   const mdi = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
+  const bhWeights = (input.mghMode ?? 'month') === 'period'
+    ? periodBhWeightsFromStrings(months, input.periodStart, input.periodEnd)
+    : undefined
   return buildMonthlyData(
     months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
-    r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg, mdi,
+    r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg, mdi, bhWeights,
   )
 }
 

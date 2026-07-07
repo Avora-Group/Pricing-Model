@@ -35,6 +35,12 @@ export interface MsnInput {
   leaseType: 'wet' | 'damp' | 'moist'
   crewSets: number
   rateCurrency: 'eur' | 'usd' // Currency of ACMI rate and excess hour rate
+  // MGH interpretation: 'month' = the mgh value is per calendar month (default);
+  // 'period' = mgh is the TOTAL block hours for the whole term, distributed
+  // across months by 30/360 day-weights. In period mode a month's distributed
+  // BH is final (drives revenue + BH-variable directly); fixed costs still
+  // prorate by actual calendar days.
+  mghMode?: 'month' | 'period'
   acmiRate: string // per BH — revenue = (acmiRate × MGH) + (excessBh × excessHourRate)
   excessBh: string // Excess BH above MGH (default 0)
   excessHourRate: string // per excess BH (default 0)

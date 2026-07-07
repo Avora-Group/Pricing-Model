@@ -30,6 +30,7 @@ export function reconstructMsnInput(snap: QuoteMsnSnapshot): MsnInput {
     leaseType: (input.leaseType as 'wet' | 'damp' | 'moist') ?? 'wet',
     crewSets: (input.crewSets as number) ?? 4,
     rateCurrency: (input.rateCurrency as 'eur' | 'usd') ?? 'eur',
+    mghMode: (input.mghMode as 'month' | 'period') ?? 'month',
     acmiRate: String(input.acmiRate ?? '0'),
     excessBh: String(input.excessBh ?? '0'),
     excessHourRate: String(input.excessHourRate ?? '0'),

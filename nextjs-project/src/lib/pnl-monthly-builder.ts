@@ -96,6 +96,11 @@ export function buildMonthlyData(
   apuFhRatio: number,
   cfg: PnlLineConfig,
   monthDayInfos?: MonthDayInfo[],
+  // Per-month BH weights for 'period' MGH mode (sum = 1). When provided, `mgh`
+  // is the TOTAL for the term and each month's BH = mgh × weight[m], used as-is
+  // (no calendar-day proration) for revenue + BH-variable costs. Fixed/DOC/crew
+  // costs still prorate by the calendar day fraction. Omit for 'month' mode.
+  bhWeights?: number[],
 ): Record<string, number[]> {
   const monthCount = months.length
   const data: Record<string, number[]> = {}
@@ -120,9 +125,13 @@ export function buildMonthlyData(
     const cdf = (isPartial && workingDays > 0) // crewDayFraction for pilot/cabin per diems
       ? info!.activeDays / workingDays
       : 1.0
+    // BH-side factor: in 'period' mode the month's share of the total (already
+    // final, not further day-prorated); in 'month' mode it equals df.
+    const bhFactor = bhWeights ? bhWeights[m] : df
 
-    // Prorated month values
-    const monthMgh = mgh * df
+    // Prorated month values. MGH block hours use bhFactor; excess stays a
+    // per-month value prorated by calendar days.
+    const monthMgh = mgh * bhFactor
     const monthExcessBh = excessBh * df
     const monthTotalBh = monthMgh + monthExcessBh
     const monthRevenue = acmiRate * monthMgh + monthExcessBh * excessHourRate
@@ -134,24 +143,24 @@ export function buildMonthlyData(
     data['totalRevenue'][m] = monthRevenue
 
     // -- VARIABLE COST (prorated) --
-    // A: reserves variable — BH-proportional (scale by dayFraction)
-    data['maintReservesVariable'][m] = cfg.maintReservesVariable * df
-    data['maintReservesVariable_epr'][m] = cfg.eprMr * df
-    data['maintReservesVariable_llp'][m] = cfg.llpMr * df
-    data['maintReservesVariable_apu'][m] = cfg.apuMr * df
+    // A: reserves variable — BH-proportional (scale by BH factor)
+    data['maintReservesVariable'][m] = cfg.maintReservesVariable * bhFactor
+    data['maintReservesVariable_epr'][m] = cfg.eprMr * bhFactor
+    data['maintReservesVariable_llp'][m] = cfg.llpMr * bhFactor
+    data['maintReservesVariable_apu'][m] = cfg.apuMr * bhFactor
     data['assetMgmtFee'][m] = 0
 
-    // C: per diems — crew day fraction for per diem, BH fraction for BH bonus
+    // C: per diems — crew day fraction for per diem, BH factor for BH bonus
     data['pilotPerDiem_perDiem'][m] = cfg.pilotPerDiem_perDiem * cdf
-    data['pilotPerDiem_bhBonus'][m] = cfg.pilotPerDiem_bhBonus * df
+    data['pilotPerDiem_bhBonus'][m] = cfg.pilotPerDiem_bhBonus * bhFactor
     data['pilotPerDiem'][m] = data['pilotPerDiem_perDiem'][m] + data['pilotPerDiem_bhBonus'][m]
     data['cabinCrewPerDiem_cabinAtt'][m] = cfg.cabinCrewPerDiem_cabinAtt * cdf
     data['cabinCrewPerDiem_seniorAtt'][m] = cfg.cabinCrewPerDiem_seniorAtt * cdf
     data['cabinCrewPerDiem'][m] = data['cabinCrewPerDiem_cabinAtt'][m] + data['cabinCrewPerDiem_seniorAtt'][m]
     data['accomTravelC'][m] = cfg.accomTravelC * df
 
-    // M: variable maintenance — BH-proportional + day-proportional
-    data['spareParts_bh'][m] = cfg.spareParts_bh * df
+    // M: variable maintenance — spare parts BH-proportional; tires/wheels fixed
+    data['spareParts_bh'][m] = cfg.spareParts_bh * bhFactor
     data['spareParts_tiresWheels'][m] = cfg.spareParts_tiresWheels * df
     data['spareParts'][m] = data['spareParts_bh'][m] + data['spareParts_tiresWheels'][m]
     data['maintPersonnelPerDiem'][m] = cfg.maintPersonnelPerDiem * df

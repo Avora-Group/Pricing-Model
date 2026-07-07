@@ -10,6 +10,7 @@ import { fmt } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
 import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
+import { periodBhWeightsFromStrings } from '@/lib/mgh-distribution'
 import { LineDetailPopover, type BreakdownItem } from './CostDetailPopover'
 import { useCanViewCosts, useCanViewNaked } from '@/providers/CostVisibilityProvider'
 import { Redacted } from '@/components/common/Redacted'
@@ -158,6 +159,11 @@ function computeMsnCosts(
   const months = generateMonthRange(input.periodStart, input.periodEnd)
   const monthDayInfos = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
   const workingDays = crew.fdDays + crew.nfdDays
+  // Period MGH mode: per-month BH weights (else BH-side prorates by day fraction,
+  // identical to the P&L engine). Kept in lock-step with buildMonthlyData.
+  const bhWeights = (input.mghMode ?? 'month') === 'period'
+    ? periodBhWeightsFromStrings(months, input.periodStart, input.periodEnd)
+    : undefined
 
   // Split per-diem components for correct proration
   const pilotPerDiem_perDiem = crew.pilotPerDiemPerSet * crewSets
@@ -174,28 +180,36 @@ function computeMsnCosts(
     const isPartial = info.activeDays < info.totalDays
     const df = isPartial ? info.activeDays / info.totalDays : 1.0
     const cdf = (isPartial && workingDays > 0) ? info.activeDays / workingDays : 1.0
-    const monthBh = totalBh * df
+    // BH-side factor: period-mode month share (final), else the day fraction.
+    const bhFactor = bhWeights ? bhWeights[m] : df
 
-    tRevenue += revenuePerMonth * df
-    tBhSold += mgh * df
-    tBhActual += totalBh * df
-    tFh += fh * df
-    tFc += fc * df
+    // MGH block hours scale by bhFactor; excess is a per-month value by days.
+    const monthMgh = mgh * bhFactor
+    const monthExcess = excessBh * df
+    const monthTotalBh = monthMgh + monthExcess
+    const monthFh = bhFhRatio > 0 ? monthTotalBh / bhFhRatio : 0
 
-    // All costs prorate by the day fraction for partial months (same as the
-    // P&L engine): a project starting on the 22nd of a 30-day month bears 9/30.
-    // Aircraft: fixed (dryLease, maintReservesFixed) + variable, all * df
-    tAircraft += (dryLease + maintReservesFixed + maintReservesVariable) * df
+    tRevenue += acmiRate * monthMgh + monthExcess * excessHourRate
+    tBhSold += monthMgh
+    tBhActual += monthTotalBh
+    tFh += monthFh
+    tFc += cycleRatio > 0 ? monthFh / cycleRatio : 0
 
-    // Crew: fixed salaries/uniform/training * df + per diems (crew day fraction)
+    // Aircraft: fixed (dryLease, maintReservesFixed) by day fraction; reserves
+    // variable (BH-proportional) by bhFactor.
+    tAircraft += (dryLease + maintReservesFixed) * df + maintReservesVariable * bhFactor
+
+    // Crew: fixed salaries/uniform/training * df + per diems (crew day fraction);
+    // the BH bonus is BH-proportional.
     tCrew += crewFixed * df
-      + pilotPerDiem_perDiem * cdf + pilotPerDiem_bhBonus * df
+      + pilotPerDiem_perDiem * cdf + pilotPerDiem_bhBonus * bhFactor
       + cabinCrewPerDiem * cdf
       + crew.accomTravelCPerMonth * df
 
-    // Maintenance: fixed (line, base, salary, training, cCheck) + variable, all * df
+    // Maintenance: fixed (line, base, salary, training, cCheck) * df; spare parts
+    // BH-proportional; tires/wheels + personnel per-diem by day fraction.
     tMaint += maintFixed * df
-      + totalBh * costs.sparePartsRatePerBh * df + costs.tiresWheelsCost * df
+      + totalBh * costs.sparePartsRatePerBh * bhFactor + costs.tiresWheelsCost * df
       + costs.maintPerDiemVal * df
 
     // Insurance: fixed, prorated by days
@@ -208,7 +222,7 @@ function computeMsnCosts(
     // Commissions: BH-proportional with season
     const calMonth = months[m].month
     const isSummer = calMonth >= 5 && calMonth <= 10
-    tOtherCogs += (isSummer ? costs.commissionWinterRate : costs.commissionSummerRate) * monthBh
+    tOtherCogs += (isSummer ? costs.commissionWinterRate : costs.commissionSummerRate) * monthTotalBh
 
     // Overhead: prorated by days. Scaling (_baseOverhead + MXC×fullBh) by df
     // prorates fixed personnel and charges MXC on the prorated BH (= monthBh).

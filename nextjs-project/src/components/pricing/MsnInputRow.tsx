@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { X, RefreshCw } from 'lucide-react'
 import type { MsnInput, SeasonInput } from '@/stores/pricing-store'
 import { usePricingStore } from '@/stores/pricing-store'
@@ -26,6 +27,7 @@ function SliderField({
   step,
   unit,
   onChange,
+  extra,
 }: {
   label: string
   value: string | number
@@ -34,13 +36,16 @@ function SliderField({
   step: number
   unit?: string
   onChange: (v: string) => void
+  /** Optional control rendered inline, just left of the editable value (e.g. a unit/currency toggle). */
+  extra?: ReactNode
 }) {
   const v = String(value)
   return (
     <div className="av-field">
       <div className="fl">
         <label style={{ color: 'var(--ink-2)' }}>{label}</label>
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
+          {extra}
           <input
             type="number"
             step={step}
@@ -153,24 +158,88 @@ function endDateValue(v: string | null | undefined) {
   return `${v}-${String(lastDay).padStart(2, '0')}`
 }
 
+/** Tiny inline segmented toggle for the slider `extra` slot. */
+function MiniSeg({
+  value,
+  options,
+  onChange,
+}: {
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="av-seg" style={{ flex: 'unset' }}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          className={value === o.value ? 'on' : ''}
+          onClick={() => onChange(o.value)}
+          style={{ padding: '3px 8px', fontSize: 11 }}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const MGH_MODE_OPTS = [
+  { value: 'month', label: '/mo' },
+  { value: 'period', label: '/period' },
+]
+const CURRENCY_OPTS = [
+  { value: 'eur', label: 'EUR' },
+  { value: 'usd', label: 'USD' },
+]
+
 /** Utilisation + rate + term controls for one season (or the flat, non-seasonal case). */
 function RateControls({
   data,
   currencyLabel,
+  rateCurrency,
+  onCurrencyChange,
+  mghMode,
+  onMghModeChange,
   onChange,
 }: {
   data: SeasonInput
   currencyLabel: string
+  rateCurrency: string
+  onCurrencyChange: (v: string) => void
+  mghMode: 'month' | 'period'
+  onMghModeChange: (v: string) => void
   onChange: (field: keyof SeasonInput, value: string | number) => void
 }) {
+  const isPeriod = mghMode === 'period'
   return (
     <>
       <div className="av-in-sec-t">Utilisation &amp; rate</div>
-      <SliderField label="Min guaranteed hours" value={data.mgh} min={0} max={700} step={5} unit="BH/mo" onChange={(v) => onChange('mgh', v)} />
-      <SliderField label={`ACMI rate`} value={data.acmiRate} min={0} max={8000} step={25} unit={`${currencyLabel}/BH`} onChange={(v) => onChange('acmiRate', v)} />
+      <SliderField
+        label={isPeriod ? 'Guaranteed hours (period)' : 'Min guaranteed hours'}
+        value={data.mgh}
+        min={0}
+        max={isPeriod ? 5000 : 700}
+        step={5}
+        unit={isPeriod ? 'BH total' : 'BH/mo'}
+        onChange={(v) => onChange('mgh', v)}
+        extra={<MiniSeg value={mghMode} options={MGH_MODE_OPTS} onChange={onMghModeChange} />}
+      />
+      <SliderField
+        label="ACMI rate"
+        value={data.acmiRate}
+        min={0}
+        max={8000}
+        step={25}
+        unit={`${currencyLabel}/BH`}
+        onChange={(v) => onChange('acmiRate', v)}
+        extra={<MiniSeg value={rateCurrency} options={CURRENCY_OPTS} onChange={onCurrencyChange} />}
+      />
+      <SliderField label="FH : FC" value={data.cycleRatio} min={0} max={5} step={0.05} onChange={(v) => onChange('cycleRatio', v)} />
       <div className="av-field-row">
-        <NumField label="FH : FC" value={String(data.cycleRatio)} step="0.0001" onChange={(v) => onChange('cycleRatio', v)} />
         <NumField label={`Excess rate (${currencyLabel})`} value={String(data.excessHourRate)} onChange={(v) => onChange('excessHourRate', v)} />
+        <div />
       </div>
       <div className="av-field-row" style={{ marginTop: 12 }}>
         <NumField label="Excess hours" value={String(data.excessBh)} onChange={(v) => onChange('excessBh', v)} />
@@ -257,10 +326,6 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             <input type="checkbox" checked={input.seasonalityEnabled} onChange={(e) => toggleSeasonality(input.msn, e.target.checked)} className="w-3 h-3 rounded" style={{ accentColor: 'var(--cyan)' }} />
             Seasonality
           </label>
-          <div className="av-seg" style={{ flex: 'unset' }}>
-            <button className={input.rateCurrency === 'eur' ? 'on' : ''} onClick={() => onUpdate(input.msn, 'rateCurrency', 'eur')} style={{ padding: '4px 9px' }}>EUR</button>
-            <button className={input.rateCurrency === 'usd' ? 'on' : ''} onClick={() => onUpdate(input.msn, 'rateCurrency', 'usd')} style={{ padding: '4px 9px' }}>USD</button>
-          </div>
           <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
             <input type="checkbox" checked={input.fixedCostCoverageEnabled} onChange={(e) => onUpdate(input.msn, 'fixedCostCoverageEnabled', e.target.checked)} className="w-3 h-3 rounded" style={{ accentColor: 'var(--cyan)' }} />
             FC Coverage
@@ -282,6 +347,10 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             <RateControls
               data={activeTab === 'summer' ? input.summer : input.winter}
               currencyLabel={currencyLabel}
+              rateCurrency={input.rateCurrency ?? 'eur'}
+              onCurrencyChange={(v) => onUpdate(input.msn, 'rateCurrency', v)}
+              mghMode={input.mghMode ?? 'month'}
+              onMghModeChange={(v) => onUpdate(input.msn, 'mghMode', v)}
               onChange={(field, value) => handleSeasonFieldChange(activeTab, field, value)}
             />
 
@@ -296,6 +365,10 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             <RateControls
               data={input as unknown as SeasonInput}
               currencyLabel={currencyLabel}
+              rateCurrency={input.rateCurrency ?? 'eur'}
+              onCurrencyChange={(v) => onUpdate(input.msn, 'rateCurrency', v)}
+              mghMode={input.mghMode ?? 'month'}
+              onMghModeChange={(v) => onUpdate(input.msn, 'mghMode', v)}
               onChange={(field, value) => onUpdate(input.msn, field as keyof MsnInput, value)}
             />
 

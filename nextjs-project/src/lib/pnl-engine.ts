@@ -9,6 +9,7 @@
 
 import { generateMonthRange } from '@/stores/pricing-store'
 import { buildMonthDayInfos } from './pnl-proration'
+import { periodBhWeightsFromStrings } from './mgh-distribution'
 import type { MsnInput, EprMatrixRow } from '@/stores/pricing-store'
 import type { PayrollRow, CostRow, TrainingRow } from '@/stores/crew-config-store'
 import type {
@@ -299,6 +300,10 @@ export function computeMsnPnlSummary(
   // ── Proration info ──
   const monthDayInfos = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
   const workingDays = crew.fdDays + crew.nfdDays // e.g. 28
+  // Period MGH mode: per-month BH weights (else BH-side prorates by day fraction).
+  const bhWeights = (input.mghMode ?? 'month') === 'period'
+    ? periodBhWeightsFromStrings(months, input.periodStart, input.periodEnd)
+    : undefined
 
   // Per-diem split: day-based vs BH-based for pilot per diem
   const pilotPerDiem_perDiem = pilotPerDiemPerSet * crewSets
@@ -315,9 +320,13 @@ export function computeMsnPnlSummary(
     const isPartial = info.activeDays < info.totalDays
     const df = isPartial ? info.activeDays / info.totalDays : 1.0
     const cdf = (isPartial && workingDays > 0) ? info.activeDays / workingDays : 1.0
-    const monthBh = totalBhPerMonth * df
+    // BH-side factor: period-mode month share (final), else the day fraction.
+    const bhFactor = bhWeights ? bhWeights[m] : df
+    const monthMgh = mgh * bhFactor
+    const monthExcess = excessBh * df
+    const monthBh = monthMgh + monthExcess
 
-    sumRevenue += revenuePerMonth * df
+    sumRevenue += acmiRate * monthMgh + monthExcess * excessHourRate
     sumBh += monthBh
 
     // Commission depends on calendar month (May–Oct = summer → winter rate)
@@ -326,14 +335,15 @@ export function computeMsnPnlSummary(
     const commissions =
       (isSummer ? commissionWinterRate : commissionSummerRate) * monthBh
 
-    // Variable costs (prorated)
+    // Variable costs. BH-proportional lines scale by bhFactor; day-based lines
+    // (per-diems, DOC, tires/wheels, maint per-diem) by the day fraction.
     const totalVariable =
-      maintReservesVariable * df +
+      maintReservesVariable * bhFactor +
       0 /* assetMgmtFee */ +
-      pilotPerDiem_perDiem * cdf + pilotPerDiem_bhBonus * df +
+      pilotPerDiem_perDiem * cdf + pilotPerDiem_bhBonus * bhFactor +
       cabinCrewPerDiem * cdf +
       accomTravelCPerMonth * df +
-      (totalBhPerMonth * sparePartsRatePerBh * df + tiresWheelsCost * df) +
+      (totalBhPerMonth * sparePartsRatePerBh * bhFactor + tiresWheelsCost * df) +
       maintPerDiemVal * df +
       0 /* accomTravelM */ +
       0 /* otherMaintV */ +

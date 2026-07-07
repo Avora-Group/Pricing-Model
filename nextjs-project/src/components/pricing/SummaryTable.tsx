@@ -915,7 +915,7 @@ export function SummaryTable({
                   readOnly={!editable}
                   placeholder="Untitled project"
                   className="av-num bg-transparent border-0 p-0 focus:outline-none font-semibold"
-                  style={{ color: 'var(--ink-2)', fontSize: 11, minWidth: 0, flex: '1 1 auto' }}
+                  style={{ color: 'var(--ink-2)', fontSize: 13, minWidth: 0, flex: '1 1 auto' }}
                   title="Project name"
                 />
               </div>

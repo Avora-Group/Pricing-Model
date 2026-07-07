@@ -5,6 +5,7 @@ import {
   useCostsConfigStore,
   type MaintPersonnel,
 } from '@/stores/costs-config-store'
+import { usePricingStore } from '@/stores/pricing-store'
 import { EditableCell } from '@/components/ui/EditableCell'
 import { MaintPersonnelSection } from './sections/MaintPersonnelSection'
 import { MaintCostsSection } from './sections/MaintCostsSection'
@@ -32,6 +33,13 @@ export function CostsConfigTable() {
   const updateOtherCogs = useCostsConfigStore((s) => s.updateOtherCogs)
   const updateOverhead = useCostsConfigStore((s) => s.updateOverhead)
   const setAvgAc = useCostsConfigStore((s) => s.setAvgAc)
+
+  // Global utilisation ratios live in the pricing store (shared with the
+  // workspace) but are edited here alongside Average A/C.
+  const bhFhRatio = usePricingStore((s) => s.bhFhRatio)
+  const apuFhRatio = usePricingStore((s) => s.apuFhRatio)
+  const setBhFhRatio = usePricingStore((s) => s.setBhFhRatio)
+  const setApuFhRatio = usePricingStore((s) => s.setApuFhRatio)
 
   // ---- Computed values ----
 
@@ -91,6 +99,24 @@ export function CostsConfigTable() {
       >
         <label className="text-[13px] whitespace-nowrap" style={{ color: 'var(--muted)' }}>Average A/C:</label>
         <EditableCell value={avgAc} onChange={(v) => setAvgAc(v ?? 0)} decimals={2} allowNull={false} className="w-28" />
+
+        <label className="text-[13px] whitespace-nowrap ml-4" style={{ color: 'var(--muted)' }}>BH : FH:</label>
+        <EditableCell
+          value={parseFloat(bhFhRatio || '1.2')}
+          onChange={(v) => setBhFhRatio(String(v ?? 0))}
+          decimals={2}
+          allowNull={false}
+          className="w-24"
+        />
+
+        <label className="text-[13px] whitespace-nowrap ml-4" style={{ color: 'var(--muted)' }}>APU FH : FH:</label>
+        <EditableCell
+          value={parseFloat(apuFhRatio || '0.7')}
+          onChange={(v) => setApuFhRatio(String(v ?? 0))}
+          decimals={2}
+          allowNull={false}
+          className="w-24"
+        />
       </div>
 
       {/* 1. Maintenance Personnel Cost */}

@@ -50,8 +50,6 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     lastError,
     setProjectName,
     setExchangeRate,
-    setBhFhRatio,
-    setApuFhRatio,
     removeMsnInput,
     updateMsnInput,
     editingQuoteNumber,
@@ -211,57 +209,6 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
         </div>
       </div>
 
-      {/* Project bar — name + global assumptions */}
-      <div className="av-proj-bar">
-        <div className="av-pb-field name">
-          <label>Project name</label>
-          <input
-            type="text"
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            placeholder="Untitled project"
-            className="av-input"
-          />
-        </div>
-        <div className="av-pb-field small">
-          <label>USD / EUR</label>
-          <input
-            type="number"
-            step="0.0001"
-            value={exchangeRate}
-            onChange={(e) => setExchangeRate(e.target.value)}
-            readOnly={isViewer}
-            tabIndex={isViewer ? -1 : undefined}
-            className="av-input av-num"
-          />
-        </div>
-        <div className="av-pb-field small">
-          <label>BH : FH</label>
-          <input
-            type="number"
-            step="0.01"
-            value={bhFhRatio}
-            onChange={(e) => setBhFhRatio(e.target.value)}
-            readOnly={isViewer}
-            tabIndex={isViewer ? -1 : undefined}
-            className="av-input av-num"
-          />
-        </div>
-        <div className="av-pb-field small">
-          <label>APU FH : FH</label>
-          <input
-            type="number"
-            step="0.01"
-            value={apuFhRatio}
-            onChange={(e) => setApuFhRatio(e.target.value)}
-            readOnly={isViewer}
-            tabIndex={isViewer ? -1 : undefined}
-            className="av-input av-num"
-          />
-        </div>
-
-      </div>
-
       {/* Aircraft tabs + add-aircraft picker */}
       <div className="av-ac-tabs">
         {msnInputs.map((input) => {
@@ -305,6 +252,33 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
             <Plus size={14} />
             Add aircraft
           </button>
+        </div>
+      </div>
+
+      {/* Project bar — name + exchange rate (sits between the aircraft tabs and
+          the summary). BH:FH and APU FH:FH now live on the Costs tab. */}
+      <div className="av-proj-bar">
+        <div className="av-pb-field name">
+          <label>Project name</label>
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            placeholder="Untitled project"
+            className="av-input"
+          />
+        </div>
+        <div className="av-pb-field small">
+          <label>USD / EUR</label>
+          <input
+            type="number"
+            step="0.0001"
+            value={exchangeRate}
+            onChange={(e) => setExchangeRate(e.target.value)}
+            readOnly={isViewer}
+            tabIndex={isViewer ? -1 : undefined}
+            className="av-input av-num"
+          />
         </div>
       </div>
 

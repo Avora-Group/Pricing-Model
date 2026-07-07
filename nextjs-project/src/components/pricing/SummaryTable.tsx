@@ -321,13 +321,23 @@ function computeMsnCosts(
   }
 }
 
-export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOption[] } = {}) {
+export function SummaryTable({
+  aircraftList = [],
+  editable = true,
+}: {
+  aircraftList?: AircraftOption[]
+  /** When false (e.g. viewers), the exchange rate + project name render read-only. */
+  editable?: boolean
+} = {}) {
   const canViewCosts = useCanViewCosts()
   const canViewNaked = useCanViewNaked()
   const {
     exchangeRate: globalExchangeRate,
     bhFhRatio: globalBhFhRatio,
     apuFhRatio: globalApuFhRatio,
+    projectName,
+    setProjectName,
+    setExchangeRate,
     msnInputs,
     selectedMsn,
     setSelectedMsn,
@@ -838,6 +848,30 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
           </div>
 
           <div className="ml-auto flex items-center gap-2 flex-wrap">
+            {/* Season filter */}
+            {msnInputs.some((i) => i.seasonalityEnabled) && (
+              <div className="av-seg" style={{ flex: 'unset' }}>
+                {(['total', 'summer', 'winter'] as const).map((f) => (
+                  <button key={f} className={seasonFilter === f ? 'on' : ''} onClick={() => setSeasonFilter(f)} style={{ padding: '6px 12px' }}>
+                    {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* USD / EUR exchange rate */}
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: 'var(--muted)' }}>
+              USD/EUR
+              <input
+                type="number"
+                step="0.0001"
+                value={globalExchangeRate}
+                onChange={(e) => setExchangeRate(e.target.value)}
+                readOnly={!editable}
+                tabIndex={editable ? undefined : -1}
+                className="av-input av-num"
+                style={{ width: 76, padding: '5px 8px' }}
+              />
+            </label>
             {/* Currency */}
             <div className="av-seg" style={{ flex: 'unset' }}>
               {(['eur', 'usd'] as const).map((c) => (
@@ -861,16 +895,6 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
                 ))}
               </div>
             )}
-            {/* Season filter */}
-            {msnInputs.some((i) => i.seasonalityEnabled) && (
-              <div className="av-seg" style={{ flex: 'unset' }}>
-                {(['total', 'summer', 'winter'] as const).map((f) => (
-                  <button key={f} className={seasonFilter === f ? 'on' : ''} onClick={() => setSeasonFilter(f)} style={{ padding: '6px 12px' }}>
-                    {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -880,6 +904,22 @@ export function SummaryTable({ aircraftList = [] }: { aircraftList?: AircraftOpt
         <div className="av-verdict-top">
           {canViewCosts && (
             <div className="av-vcell">
+              {/* Project name (inline-editable, static look) + MGH */}
+              <div className="flex items-baseline gap-2 mb-1.5 flex-wrap">
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  readOnly={!editable}
+                  placeholder="Untitled project"
+                  className="av-num bg-transparent border-0 p-0 focus:outline-none font-semibold"
+                  style={{ color: 'var(--ink)', fontSize: 13, minWidth: 0, flex: '1 1 auto' }}
+                  title="Project name"
+                />
+                <span className="text-[11px] av-num whitespace-nowrap" style={{ color: 'var(--muted)' }}>
+                  {fmt(isTotalView ? totalMgh : activeMsn.mgh, 0)} MGH
+                </span>
+              </div>
               <div className="vlab">Net profit · monthly</div>
               <div className="vval av-num" style={mNetProfit < 0 ? { color: 'var(--neg)' } : undefined}>
                 {fmt(cur(mNetProfit), 0)} {bdUnit}

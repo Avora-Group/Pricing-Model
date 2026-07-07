@@ -48,8 +48,6 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     msnResults,
     isCalculating,
     lastError,
-    setProjectName,
-    setExchangeRate,
     removeMsnInput,
     updateMsnInput,
     editingQuoteNumber,
@@ -255,33 +253,6 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
         </div>
       </div>
 
-      {/* Project bar — name + exchange rate (sits between the aircraft tabs and
-          the summary). BH:FH and APU FH:FH now live on the Costs tab. */}
-      <div className="av-proj-bar">
-        <div className="av-pb-field name">
-          <label>Project name</label>
-          <input
-            type="text"
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            placeholder="Untitled project"
-            className="av-input"
-          />
-        </div>
-        <div className="av-pb-field small">
-          <label>USD / EUR</label>
-          <input
-            type="number"
-            step="0.0001"
-            value={exchangeRate}
-            onChange={(e) => setExchangeRate(e.target.value)}
-            readOnly={isViewer}
-            tabIndex={isViewer ? -1 : undefined}
-            className="av-input av-num"
-          />
-        </div>
-      </div>
-
       {/* Work grid: inputs (left) · live results (right) */}
       <div className="av-work-grid">
         <div className="av-panel overflow-hidden">
@@ -302,7 +273,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
         </div>
 
         <div className="min-w-0">
-          <SummaryTable aircraftList={aircraftList} />
+          <SummaryTable aircraftList={aircraftList} editable={!isViewer} />
         </div>
       </div>
 

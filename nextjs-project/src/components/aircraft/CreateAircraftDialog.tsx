@@ -99,7 +99,7 @@ export function CreateAircraftDialog() {
                 <h3 className="text-[10.5px] font-bold uppercase tracking-[0.09em] mb-3" style={{ color: 'var(--muted)' }}>
                   Aircraft Identity
                 </h3>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] mb-1" style={{ color: 'var(--muted)' }}>
                       MSN *

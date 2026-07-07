@@ -400,3 +400,38 @@ body {
 .av-rail-link.active { background: rgba(0,123,242,.20); color: #fff; }
 .av-rail-link.active .av-rail-ico { color: var(--cyan); opacity: 1; }
 .av-rail-label { color: var(--rail-muted); }
+
+/* ============================================================
+   Responsive — collapse the fixed multi-column grids so the app
+   works on iPad (≤1024) and phones (≤640). The app shell already
+   swaps the sidebar for a bottom tab bar at the md (768px) breakpoint.
+   ============================================================ */
+
+/* iPad portrait/landscape and narrow laptops */
+@media (max-width: 1024px) {
+  /* Pricing workspace: stack the input panel above the live summary */
+  .av-work-grid { grid-template-columns: 1fr; }
+  .av-hero-grid { grid-template-columns: 1fr; gap: 20px; }
+  .av-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .av-detail-stats { grid-template-columns: repeat(3, 1fr); }
+  .av-sens-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Phones */
+@media (max-width: 640px) {
+  .av-kpi-row { grid-template-columns: 1fr; }
+  /* Stack the NET PROFIT / NET MARGIN / MONTHLY REVENUE metric cards */
+  .av-verdict-top { grid-template-columns: 1fr; }
+  .av-hstat-grid { grid-template-columns: 1fr; }
+  .av-field-row { grid-template-columns: 1fr; }
+  .av-detail-stats { grid-template-columns: repeat(2, 1fr); }
+  .av-sens-grid { grid-template-columns: repeat(2, 1fr); }
+  .av-hbar-row { grid-template-columns: 84px 1fr 64px; gap: 8px; }
+  .av-proj-bar { gap: 12px; padding: 12px 14px; }
+  /* Waterfall: let the 8 bars scroll horizontally instead of crushing */
+  .av-wf { height: 180px; gap: 6px; padding: 12px 10px 0; overflow-x: auto; }
+  .av-wf-col { min-width: 34px; }
+  /* Wide numeric tables scroll (inside their overflow-x-auto wrapper) rather
+     than crushing their columns unreadably. */
+  .av-bd-tbl { min-width: 560px; }
+}

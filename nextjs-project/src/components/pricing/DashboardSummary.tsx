@@ -18,6 +18,8 @@ import { useCanViewNaked } from '@/providers/CostVisibilityProvider'
 interface DashboardSummaryProps {
   aircraftList: AircraftOption[]
   isViewer?: boolean
+  /** Called after a quote is saved/updated — lets a hosting modal close + refresh. */
+  onSaved?: (quoteNumber: string) => void
 }
 
 /** Missing / implausible inputs for an MSN, surfaced as a warning on its tab. */
@@ -36,7 +38,7 @@ function msnIssues(i: MsnInput): string[] {
   return issues
 }
 
-export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSummaryProps) {
+export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: DashboardSummaryProps) {
   const {
     projectName,
     exchangeRate,
@@ -297,6 +299,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
         onSaved={(quoteNumber) => {
           setSavedNotice(quoteNumber)
           setTimeout(() => setSavedNotice(null), 5000)
+          onSaved?.(quoteNumber)
         }}
       />
     </div>

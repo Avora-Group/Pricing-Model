@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { QuoteList } from '@/components/quotes/QuoteList'
 import type { QuoteListItem, QuoteDetailResponse } from '@/app/actions/quotes'
+import type { AircraftOption } from '@/lib/api-converters'
 import { computeQuoteFinancials } from '@/lib/quote-financials'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
@@ -62,13 +63,26 @@ async function getUserRole(token: string): Promise<string> {
   }
 }
 
+async function getAircraftList(token: string): Promise<AircraftOption[]> {
+  try {
+    const res = await fetch(`${API_URL}/aircraft`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    return res.json()
+  } catch {
+    return []
+  }
+}
+
 export default async function QuotesPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get('access_token')?.value
 
-  const [initialQuotes, role] = token
-    ? await Promise.all([getQuotes(token), getUserRole(token)])
-    : [{ items: [], total: 0 }, 'user']
+  const [initialQuotes, role, aircraftList] = token
+    ? await Promise.all([getQuotes(token), getUserRole(token), getAircraftList(token)])
+    : [{ items: [], total: 0 }, 'user', [] as AircraftOption[]]
 
   const financials = token ? await getFinancials(initialQuotes.items, token) : {}
 
@@ -86,6 +100,7 @@ export default async function QuotesPage() {
         initialQuotes={initialQuotes}
         financials={financials}
         isViewer={role === 'viewer'}
+        aircraftList={aircraftList}
       />
     </div>
   )

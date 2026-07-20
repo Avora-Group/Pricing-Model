@@ -2,7 +2,10 @@
 
 import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { Search, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, Trash2, Plus } from 'lucide-react'
+import { NewQuoteModal } from './NewQuoteModal'
+import type { AircraftOption } from '@/lib/api-converters'
 import { StatusBadge } from './StatusBadge'
 import { listQuotesAction, updateQuoteStatusAction, deleteQuoteAction } from '@/app/actions/quotes'
 import type { QuoteListItem } from '@/app/actions/quotes'
@@ -11,6 +14,7 @@ interface QuoteListProps {
   initialQuotes: { items: QuoteListItem[]; total: number }
   financials?: Record<number, { totalMgh: string | null; eurPerBh: string | null }>
   isViewer?: boolean
+  aircraftList?: AircraftOption[]
 }
 
 /** Compact number formatter for MGH / rate cells. */
@@ -25,7 +29,7 @@ const STATUSES = ['draft', 'sent', 'signed', 'active', 'completed', 'rejected']
 
 type QuoteSortKey = 'quote_number' | 'client_name' | 'status' | 'created_at'
 
-export function QuoteList({ initialQuotes, financials = {}, isViewer = false }: QuoteListProps) {
+export function QuoteList({ initialQuotes, financials = {}, isViewer = false, aircraftList = [] }: QuoteListProps) {
   const [quotes, setQuotes] = useState(initialQuotes.items)
   const [total, setTotal] = useState(initialQuotes.total)
   const [search, setSearch] = useState('')
@@ -35,6 +39,8 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false }: 
   const [sortKey, setSortKey] = useState<QuoteSortKey>('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showNewQuote, setShowNewQuote] = useState(false)
+  const router = useRouter()
 
   const handleSort = (key: QuoteSortKey) => {
     if (key === sortKey) {
@@ -171,6 +177,16 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false }: 
               <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
           </select>
+          {!isViewer && (
+            <button
+              type="button"
+              onClick={() => setShowNewQuote(true)}
+              className="av-btn av-btn-cyan !text-xs !py-1.5"
+            >
+              <Plus size={12} />
+              New Quote
+            </button>
+          )}
         </div>
 
         {quotes.length === 0 ? (
@@ -259,6 +275,18 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false }: 
           </>
         )}
       </div>
+      <NewQuoteModal
+        isOpen={showNewQuote}
+        onClose={() => setShowNewQuote(false)}
+        aircraftList={aircraftList}
+        onSaved={() => {
+          setShowNewQuote(false)
+          // The list is client state seeded from a server prop — re-fetch it
+          // directly, and refresh the route so server-computed financials update.
+          fetchQuotes(search, statusFilter)
+          router.refresh()
+        }}
+      />
     </div>
   )
 }

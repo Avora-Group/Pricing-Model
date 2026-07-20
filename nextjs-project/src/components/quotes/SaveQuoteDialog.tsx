@@ -150,7 +150,7 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div data-dialog="save-quote" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div
         className="av-panel w-full max-w-md"
         style={{ boxShadow: '0 20px 50px rgba(0,0,0,.3)' }}

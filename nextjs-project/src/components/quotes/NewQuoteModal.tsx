@@ -3,6 +3,8 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
+import { useCrewConfigStore } from '@/stores/crew-config-store'
+import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { DashboardSummary } from '@/components/pricing/DashboardSummary'
 import type { AircraftOption } from '@/lib/api-converters'
 
@@ -21,9 +23,14 @@ interface NewQuoteModalProps {
  * inputs aren't lost to a stray click.
  */
 export function NewQuoteModal({ isOpen, onClose, onSaved, aircraftList }: NewQuoteModalProps) {
-  // Fresh blank workspace on every open.
+  // Fully clean slate on every open: pricing state cleared and crew/costs
+  // config restored to company defaults, so a previously viewed quote's
+  // snapshot (loaded into those global config stores) no longer leaks in.
   useEffect(() => {
-    if (isOpen) usePricingStore.getState().reset()
+    if (!isOpen) return
+    usePricingStore.getState().reset()
+    useCrewConfigStore.getState().resetToDefaults()
+    useCostsConfigStore.getState().resetToDefaults()
   }, [isOpen])
 
   // Close on Escape — unless the nested Save Quote dialog is on top.

@@ -76,8 +76,11 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
   // Master-detail: which MSN bookmark tab is open.
   const [activeMsn, setActiveMsn] = useState<number | null>(null)
 
+  // Save/export require at least one committed (non-draft) aircraft.
+  const committedCount = msnInputs.filter((i) => !i.isDraft).length
+
   async function handleExport() {
-    if (msnInputs.length === 0 || isExporting) return
+    if (committedCount === 0 || isExporting) return
     setIsExporting(true)
     setExportError(null)
     try {
@@ -87,7 +90,7 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
         marginPercent: parseFloat(marginPercent || '0'),
         bhFhRatio: parseFloat(bhFhRatio || '1.2'),
         apuFhRatio: parseFloat(apuFhRatio || '0.7'),
-        msnInputs,
+        msnInputs: msnInputs.filter((i) => !i.isDraft),
         crew: {
           payroll: crewConfig.payroll,
           otherCost: crewConfig.otherCost,
@@ -152,9 +155,6 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
 
   const activeInput = msnInputs.find((i) => i.msn === activeMsn) ?? null
 
-  // Save requires at least one committed (non-draft) aircraft.
-  const committedCount = msnInputs.filter((i) => !i.isDraft).length
-
   // Per-MSN monthly margin, for the tab badges.
   const marginByMsn = new Map<number, number>()
   for (const r of msnResults) {
@@ -201,7 +201,7 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
           )}
           <button
             onClick={handleExport}
-            disabled={msnInputs.length === 0 || isExporting}
+            disabled={committedCount === 0 || isExporting}
             title="Download the calculation as an Excel workbook (Calculation, P&L, Aircraft, Crew, Costs)"
             className="av-btn av-btn-ghost !text-xs !py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >

@@ -120,6 +120,8 @@ interface CostsConfigStore {
   updateOtherCogs: (idx: number, field: 'perMonth' | 'total', value: number) => void
   updateOverhead: (idx: number, value: number) => void
   setAvgAc: (v: number) => void
+  /** Restore all cost tables and the average-AC scalar to their seed defaults. */
+  resetToDefaults: () => void
   loadFromSnapshot: (snapshot: {
     maintPersonnel: MaintPersonnel[]
     maintCosts: MaintCostItem[]
@@ -171,6 +173,17 @@ export const useCostsConfigStore = create<CostsConfigStore>()((set) => ({
     })),
 
   setAvgAc: (v) => set({ avgAc: v }),
+
+  resetToDefaults: () =>
+    set({
+      maintPersonnel: INITIAL_MAINT_PERSONNEL,
+      maintCosts: INITIAL_MAINT_COSTS,
+      insurance: INITIAL_INSURANCE,
+      doc: INITIAL_DOC,
+      otherCogs: INITIAL_OTHER_COGS,
+      overhead: INITIAL_OVERHEAD,
+      avgAc: 10.166667,
+    }),
 
   loadFromSnapshot: (snapshot) => set({ ...snapshot }),
 }))

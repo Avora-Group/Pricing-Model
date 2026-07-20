@@ -110,7 +110,7 @@ export function useAddAircraft(
     if (!ac) return null
     if (msnInputs.some((i) => !i.isDraft && i.msn === ac.msn)) return null
     const current = msnInputs.find((i) => i.isDraft)
-    if (current?.msn === ac.msn) return current.msn // same aircraft re-selected
+    if (current?.aircraftId === ac.id) return current.msn // same aircraft re-selected
     if (current) removeMsnInput(current.msn)
     addMsnInput({ ...buildMsnInput(ac, bhFhRatio, apuFhRatio), isDraft: true })
     return ac.msn

@@ -21,10 +21,11 @@ export function MsnSwitcher() {
         <button
           key={input.msn}
           onClick={() => setSelectedMsn(input.msn)}
-          className={`av-ac-tab ${selectedMsn === input.msn ? 'active' : ''}`}
+          className={`av-ac-tab ${selectedMsn === input.msn ? 'active' : ''}${input.isDraft ? ' draft' : ''}`}
         >
           <span>MSN <span className="av-num">{input.msn}</span></span>
           {input.registration && <span className="ty">{input.registration}</span>}
+          {input.isDraft && <span className="draft-badge">Draft</span>}
         </button>
       ))}
     </div>

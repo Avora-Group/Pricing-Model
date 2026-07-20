@@ -69,6 +69,8 @@ interface CrewConfigStore {
   setAverageAC: (v: number) => void
   setFdDays: (v: number) => void
   setNfdDays: (v: number) => void
+  /** Restore payroll/costs/training and the scalar fields to their seed defaults. */
+  resetToDefaults: () => void
   loadFromSnapshot: (snapshot: {
     payroll: PayrollRow[]
     otherCost: CostRow[]
@@ -105,6 +107,16 @@ export const useCrewConfigStore = create<CrewConfigStore>()((set) => ({
   setAverageAC: (v) => set({ averageAC: v }),
   setFdDays: (v) => set({ fdDays: v }),
   setNfdDays: (v) => set({ nfdDays: v }),
+
+  resetToDefaults: () =>
+    set({
+      payroll: INITIAL_PAYROLL,
+      otherCost: INITIAL_OTHER_COST,
+      training: INITIAL_TRAINING,
+      averageAC: 10.17,
+      fdDays: 18,
+      nfdDays: 10,
+    }),
 
   loadFromSnapshot: (snapshot) => set({ ...snapshot }),
 }))

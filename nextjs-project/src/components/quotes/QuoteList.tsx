@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, Trash2, Plus } from 'lucide-react'
 import { NewQuoteModal } from './NewQuoteModal'
+import { usePricingStore } from '@/stores/pricing-store'
 import type { AircraftOption } from '@/lib/api-converters'
 import { StatusBadge } from './StatusBadge'
 import { listQuotesAction, updateQuoteStatusAction, deleteQuoteAction } from '@/app/actions/quotes'
@@ -122,6 +123,17 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
     setTotal((prev) => prev - 1)
   }
 
+  function handleNewQuote() {
+    const { msnInputs, editingQuoteId } = usePricingStore.getState()
+    if (msnInputs.length > 0 || editingQuoteId !== null) {
+      const ok = window.confirm(
+        'Opening a new quote clears the current pricing workspace (unsaved changes will be lost). Continue?'
+      )
+      if (!ok) return
+    }
+    setShowNewQuote(true)
+  }
+
   const formatDate = (dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleDateString('en-GB', {
@@ -180,7 +192,7 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
           {!isViewer && (
             <button
               type="button"
-              onClick={() => setShowNewQuote(true)}
+              onClick={handleNewQuote}
               className="av-btn av-btn-cyan !text-xs !py-1.5"
             >
               <Plus size={12} />

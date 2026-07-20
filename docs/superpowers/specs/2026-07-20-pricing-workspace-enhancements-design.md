@@ -30,7 +30,7 @@ Four related changes to the Quotes page and Pricing Workspace:
 
 - **New: `src/components/quotes/NewQuoteModal.tsx`**
   - `fixed inset-0 z-50` backdrop (`bg-black/50`) + centered panel:
-    - Width `75vw`, height `80vh` (`style={{ width: '75vw', height: '80vh' }}`), `av-panel` styling, internal `overflow-y: auto` body.
+    - Width exactly `75vw`, height exactly `80vh` (`style={{ width: '75vw', height: '80vh' }}`), `av-panel` styling, internal `overflow-y: auto` body.
   - Header bar: title "New Quote — Pricing Workspace" + ✕ close button.
   - Body renders `<DashboardSummary aircraftList={aircraftList} isViewer={false} onSaved={...} />`.
   - On open (mount): calls `usePricingStore.getState().reset()` — fresh blank workspace every time.

@@ -33,7 +33,8 @@ Four related changes to the Quotes page and Pricing Workspace:
     - Width exactly `75vw`, height exactly `80vh` (`style={{ width: '75vw', height: '80vh' }}`), `av-panel` styling, internal `overflow-y: auto` body.
   - Header bar: title "New Quote — Pricing Workspace" + ✕ close button.
   - Body renders `<DashboardSummary aircraftList={aircraftList} isViewer={false} onSaved={...} />`.
-  - On open (mount): calls `usePricingStore.getState().reset()` — fresh blank workspace every time.
+  - On open (mount): calls `usePricingStore.getState().reset()` **and** `resetToDefaults()` on the crew- and costs-config stores — fresh blank workspace pricing from company seed defaults every time. (Amended post-review: viewing a saved quote hydrates the global crew/costs stores with that quote's snapshots, and without this reset a new quote silently inherited the last-viewed quote's config.)
+  - Opening the modal while the shared workspace holds aircraft inputs or an in-progress quote edit shows a `window.confirm` before wiping (amended post-review; guard lives on the New Quote button handler in `QuoteList`).
   - Close paths: ✕ button or Escape key. **No backdrop-click close** (protects half-entered inputs).
   - On save: `onSaved` → `router.refresh()` + close modal.
 
@@ -78,6 +79,8 @@ Four related changes to the Quotes page and Pricing Workspace:
 - `SummaryTable.tsx` and `PnlTable.tsx`: wherever the **total-project** view iterates `msnInputs`, use `msnInputs.filter((i) => !i.isDraft)`. Single-MSN views (including viewing the draft itself) unchanged.
 - `useCalculation` continues to send all inputs (draft included) so the draft's own results compute; the server calc treats it like any MSN. Only client-side Total aggregation filters drafts.
 - Quote saving (`SaveQuoteDialog`) snapshots `msnInputs` — drafts are **excluded** from `msn_snapshots` (filter `!isDraft`) so an uncommitted draft never enters a saved quote.
+- The Excel export (`handleExport` in `DashboardSummary`) also excludes drafts and is disabled until ≥1 committed aircraft exists (amended post-review — export is an aggregation surface too).
+- The P&L page's `MsnSwitcher` marks draft tabs with the same dashed style + "Draft" badge as the workspace tabs (amended post-review).
 - The "Save as Quote" button in `DashboardSummary` is disabled unless at least one **committed** (non-draft) MSN exists — otherwise a draft-only session could save an empty quote.
 
 ### CSS — `globals.css`
@@ -128,6 +131,10 @@ Four related changes to the Quotes page and Pricing Workspace:
 - No store changes; purely derived display.
 
 ---
+
+## Follow-up (out of scope for this branch)
+
+- Global crew/costs config is currently browser-memory only (Excel-derived seed constants) and doubles as the "currently-viewed-quote context": `useQuoteHydration` loads a quote's config snapshots into the global stores and never restores them. The proper fix is server-persisted global settings plus quote viewing that renders from props/snapshot without touching the global stores. The New Quote reset above neutralizes the leak for the new-quote path only.
 
 ## Error handling
 

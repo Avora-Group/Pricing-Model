@@ -158,6 +158,20 @@ function endDateValue(v: string | null | undefined) {
   return `${v}-${String(lastDay).padStart(2, '0')}`
 }
 
+/** Human-readable term length, e.g. "365 d / 12.0 mo". Em dash when dates are
+ *  incomplete or inverted. Days are inclusive; months = days / 30.4375. */
+function durationText(start: string | null | undefined, end: string | null | undefined): string {
+  const s = startDateValue(start)
+  const e = endDateValue(end)
+  if (s.length < 10 || e.length < 10) return '—'
+  const sd = new Date(s)
+  const ed = new Date(e)
+  if (isNaN(sd.getTime()) || isNaN(ed.getTime()) || ed < sd) return '—'
+  const days = Math.round((ed.getTime() - sd.getTime()) / 86_400_000) + 1
+  const months = days / 30.4375
+  return `${days} d / ${months.toFixed(1)} mo`
+}
+
 /** Tiny inline segmented toggle for the slider `extra` slot. */
 function MiniSeg({
   value,
@@ -250,6 +264,17 @@ function RateControls({
       <div className="av-field-row">
         <NumField label="Start date" type="date" value={startDateValue(data.periodStart)} onChange={(v) => onChange('periodStart', v)} />
         <NumField label="End date" type="date" value={endDateValue(data.periodEnd)} onChange={(v) => onChange('periodEnd', v)} />
+      </div>
+      <div className="av-field-row" style={{ marginTop: 12 }}>
+        <div>
+          <label className="text-[10px] font-semibold leading-none mb-1 block" style={{ color: 'var(--muted)' }}>
+            Duration
+          </label>
+          <div className={inputCls} style={{ background: 'var(--card-2)', color: 'var(--ink-2)', cursor: 'default' }}>
+            {durationText(data.periodStart, data.periodEnd)}
+          </div>
+        </div>
+        <div />
       </div>
     </>
   )

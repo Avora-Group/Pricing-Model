@@ -244,6 +244,8 @@ export function PnlTable() {
   const totalResult = usePricingStore((s) => s.totalResult)
   const isCalculating = usePricingStore((s) => s.isCalculating)
   const msnInputs = usePricingStore((s) => s.msnInputs)
+  // Total-project scope excludes drafts (uncommitted dropdown selections).
+  const committedInputs = msnInputs.filter((i) => !i.isDraft)
   const rateBasis = usePricingStore((s) => s.rateBasis)
   const exchangeRate = parseFloat(usePricingStore((s) => s.exchangeRate) || '0.85')
   // Match the Summary's cost basis: naked only when permitted + selected.
@@ -324,13 +326,17 @@ export function PnlTable() {
       periodEnd = ep.end
     }
   } else {
-    // Total project view
+    // Total project view — committed MSNs only
     if (msnInputs.length > 0) {
       hasData = true
-      // Period: earliest start to latest end across all MSNs (accounting for seasonality)
-      const allPeriods = msnInputs.map(getEffectivePeriod)
-      periodStart = allPeriods.reduce((min, p) => (p.start < min ? p.start : min), allPeriods[0].start)
-      periodEnd = allPeriods.reduce((max, p) => (p.end > max ? p.end : max), allPeriods[0].end)
+      if (committedInputs.length > 0) {
+        // Period: earliest start to latest end across all MSNs (accounting for seasonality)
+        const allPeriods = committedInputs.map(getEffectivePeriod)
+        periodStart = allPeriods.reduce((min, p) => (p.start < min ? p.start : min), allPeriods[0].start)
+        periodEnd = allPeriods.reduce((max, p) => (p.end > max ? p.end : max), allPeriods[0].end)
+      }
+      // Draft-only: periodStart/periodEnd stay '' and the 12-month fallback
+      // below produces an all-zero statement.
     }
   }
 
@@ -374,7 +380,7 @@ export function PnlTable() {
       monthlyData[k] = new Array(months.length).fill(0)
     }
 
-    for (const input of msnInputs) {
+    for (const input of committedInputs) {
       const msnData = buildMsnMonthlyData(input, months, crew, costs, exchangeRate, crewFdDays, crewNfdDays, useNaked)
 
       // Zero out months outside this MSN's active period (accounting for seasonality)

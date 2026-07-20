@@ -150,6 +150,9 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
 
   const activeInput = msnInputs.find((i) => i.msn === activeMsn) ?? null
 
+  // Save requires at least one committed (non-draft) aircraft.
+  const committedCount = msnInputs.filter((i) => !i.isDraft).length
+
   // Per-MSN monthly margin, for the tab badges.
   const marginByMsn = new Map<number, number>()
   for (const r of msnResults) {
@@ -206,7 +209,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
           {!isViewer && (
             <button
               onClick={() => setShowSaveDialog(true)}
-              disabled={msnResults.length === 0}
+              disabled={committedCount === 0 || msnResults.length === 0}
               className="av-btn av-btn-cyan !text-xs !py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={12} />

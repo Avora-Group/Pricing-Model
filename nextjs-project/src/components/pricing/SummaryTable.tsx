@@ -620,11 +620,18 @@ export function SummaryTable({
   const activeRaw = perMsnData.find((d) => d.msn === selectedMsn) ?? perMsnData[0]
   const activeMsn = getFilteredMsn(activeRaw)
   // ── Total Project (all MSNs aggregated, with proration) — uses season filter ──
-  const filteredMsnData = perMsnData.map(getFilteredMsn)
+  // Drafts are excluded: they only appear in their own single-MSN scope until
+  // committed via "Add aircraft".
+  const draftMsnSet = new Set(msnInputs.filter((i) => i.isDraft).map((i) => i.msn))
+  const filteredMsnData = perMsnData
+    .filter((d) => !draftMsnSet.has(d.msn))
+    .map(getFilteredMsn)
 
-  const totalProjectDuration = numAc === 1
-    ? filteredMsnData[0].duration
-    : Math.max(...filteredMsnData.map((d) => d.duration))
+  const totalProjectDuration = filteredMsnData.length === 0
+    ? 0
+    : filteredMsnData.length === 1
+      ? filteredMsnData[0].duration
+      : Math.max(...filteredMsnData.map((d) => d.duration))
 
   const totalMgh = filteredMsnData.reduce((s, d) => s + d.mgh, 0)
 

@@ -93,8 +93,11 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
         apuFhRatio: pricingState.apuFhRatio,
       }
 
-      // Build msn_snapshots array: combine msnInputs with matching msnResults
-      const msn_snapshots = pricingState.msnInputs.map((input) => {
+      // Build msn_snapshots array: combine msnInputs with matching msnResults.
+      // Drafts (uncommitted dropdown selections) never enter a saved quote.
+      const msn_snapshots = pricingState.msnInputs
+        .filter((input) => !input.isDraft)
+        .map((input) => {
         const result = pricingState.msnResults.find((r) => r.msn === input.msn)
         return {
           msn: input.msn,

@@ -232,7 +232,8 @@ function getEffectivePeriod(input: MsnInput): { start: string; end: string } {
 interface PopoverState {
   rowKey: string
   monthIndex: number
-  anchorRect: DOMRect
+  x: number
+  y: number
 }
 
 export function PnlTable() {
@@ -267,7 +268,6 @@ export function PnlTable() {
 
   // -- Cost detail popover state --
   const [popover, setPopover] = useState<PopoverState | null>(null)
-  const closePopover = useCallback(() => setPopover(null), [])
 
   // Collapsible groups — all collapsed by default for a compact statement.
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
@@ -745,11 +745,11 @@ export function PnlTable() {
                     {(vals ?? []).map((v, mi) => (
                       <td
                         key={mi}
-                        className={`text-right px-3 py-1 av-num text-[var(--ink-2)] ${dataColWidth} ${valColor(v)} ${p.clickable ? 'cursor-pointer hover:underline hover:text-[var(--cyan-ink)]' : ''}`}
-                        onClick={p.clickable ? (e) => {
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                          setPopover({ rowKey: p.key, monthIndex: mi, anchorRect: rect })
+                        className={`text-right px-3 py-1 av-num text-[var(--ink-2)] ${dataColWidth} ${valColor(v)} ${p.clickable ? 'hover:underline hover:text-[var(--cyan-ink)]' : ''}`}
+                        onMouseEnter={p.clickable ? (e) => {
+                          setPopover({ rowKey: p.key, monthIndex: mi, x: e.clientX, y: e.clientY })
                         } : undefined}
+                        onMouseLeave={p.clickable ? () => setPopover(null) : undefined}
                       >
                         {fmt(v, 0)}
                       </td>
@@ -892,8 +892,7 @@ export function PnlTable() {
             monthLabel={months[popover.monthIndex]?.label ?? ''}
             items={cfg.items}
             params={cfg.params}
-            anchorRect={popover.anchorRect}
-            onClose={closePopover}
+            cursor={{ x: popover.x, y: popover.y }}
           />
         )
       })()}

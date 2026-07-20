@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { X } from 'lucide-react'
+import { useLayoutEffect, useRef } from 'react'
 import { fmt } from '@/lib/format'
 
 export interface BreakdownItem {
@@ -21,64 +20,60 @@ interface LineDetailPopoverProps {
   monthLabel: string
   items: BreakdownItem[]
   params?: ParamItem[]
-  anchorRect: DOMRect
-  onClose: () => void
+  /** Cursor position (clientX/clientY) at hover start; the popover then
+   *  follows the cursor itself via a document mousemove listener. */
+  cursor: { x: number; y: number }
 }
 
+const OFFSET = 16 // px gap between cursor and popover
+const MARGIN = 8 // px minimum distance from viewport edges
+
+/**
+ * Hover tooltip showing a cost line's build-up. Pointer-events are disabled so
+ * it never traps the mouse; it repositions itself directly (no React state) on
+ * every mousemove to avoid re-rendering the heavy parent tables, flipping
+ * left/above the cursor near the right/bottom viewport edges.
+ */
 export function LineDetailPopover({
   title,
   monthLabel,
   items,
   params,
-  anchorRect,
-  onClose,
+  cursor,
 }: LineDetailPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
 
-  // Close on click outside
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose()
-      }
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const place = (x: number, y: number) => {
+      const { width, height } = el.getBoundingClientRect()
+      let left = x + OFFSET
+      let top = y + OFFSET
+      if (left + width > window.innerWidth - MARGIN) left = x - OFFSET - width
+      if (top + height > window.innerHeight - MARGIN) top = y - OFFSET - height
+      el.style.left = `${Math.max(MARGIN, left)}px`
+      el.style.top = `${Math.max(MARGIN, top)}px`
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [onClose])
-
-  // Close on Escape
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [onClose])
+    place(cursor.x, cursor.y)
+    const onMove = (e: MouseEvent) => place(e.clientX, e.clientY)
+    document.addEventListener('mousemove', onMove)
+    return () => document.removeEventListener('mousemove', onMove)
+  }, [cursor.x, cursor.y])
 
   const total = items.reduce((s, i) => s + i.value, 0)
-
-  // Position below the clicked cell
-  const top = anchorRect.bottom + 4
-  const left = Math.max(8, anchorRect.left - 120)
 
   return (
     <div
       ref={ref}
-      className="fixed z-50 rounded-lg shadow-xl w-[320px] text-xs"
-      style={{ top, left, background: 'var(--card)', border: '1px solid var(--line)' }}
+      className="fixed z-50 rounded-lg shadow-xl w-[320px] text-xs pointer-events-none"
+      style={{ top: cursor.y + OFFSET, left: cursor.x + OFFSET, background: 'var(--card)', border: '1px solid var(--line)' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid var(--line)' }}>
+      <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--line)' }}>
         <span className="font-semibold" style={{ color: 'var(--ink)' }}>
           {title}
         </span>
-        <button
-          onClick={onClose}
-          className="transition-colors"
-          style={{ color: 'var(--muted)' }}
-        >
-          <X size={14} />
-        </button>
       </div>
 
       {/* Month label */}

@@ -397,7 +397,7 @@ export function SummaryTable({
 
   const [currency, setCurrency] = useState<'eur' | 'usd'>('eur')
   const [seasonFilter, setSeasonFilter] = useState<'total' | 'summer' | 'winter'>('total')
-  const [drill, setDrill] = useState<{ cat: string; rect: DOMRect } | null>(null)
+  const [drill, setDrill] = useState<{ cat: string; x: number; y: number } | null>(null)
 
   const exchangeRate = parseFloat(globalExchangeRate || '0.85')
   // Values are computed in EUR; EUR = USD × exchangeRate, so EUR → USD divides
@@ -1005,9 +1005,9 @@ export function SummaryTable({
               {canViewCosts && costLines.map((r) => (
                 <tr
                   key={r.n}
-                  className="sub cursor-pointer"
-                  onClick={r.drillKey ? (e) => setDrill({ cat: r.drillKey!, rect: (e.currentTarget as HTMLElement).getBoundingClientRect() }) : undefined}
-                  title={r.drillKey ? 'Click to see the build-up' : undefined}
+                  className="sub"
+                  onMouseEnter={r.drillKey ? (e) => setDrill({ cat: r.drillKey!, x: e.clientX, y: e.clientY }) : undefined}
+                  onMouseLeave={r.drillKey ? () => setDrill(null) : undefined}
                 >
                   <td>
                     <span className="cat"><span className="sw" style={{ background: r.sw }} />{r.n}</span>
@@ -1022,9 +1022,9 @@ export function SummaryTable({
               {/* ACMI cost total (naked cost) */}
               {canViewCosts && (
                 <tr
-                  className="total cursor-pointer"
-                  onClick={(e) => setDrill({ cat: 'acmiCost', rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })}
-                  title="Click to see the build-up"
+                  className="total"
+                  onMouseEnter={(e) => setDrill({ cat: 'acmiCost', x: e.clientX, y: e.clientY })}
+                  onMouseLeave={() => setDrill(null)}
                 >
                   <td>ACMI cost</td>
                   <td className="r av-num">{fmtMonth(mAcmiCost)}</td>
@@ -1050,9 +1050,9 @@ export function SummaryTable({
               {/* Overhead — click to drill (naked cost) */}
               {canViewCosts && (
                 <tr
-                  className="sub cursor-pointer"
-                  onClick={(e) => setDrill({ cat: 'overhead', rect: (e.currentTarget as HTMLElement).getBoundingClientRect() })}
-                  title="Click to see the build-up"
+                  className="sub"
+                  onMouseEnter={(e) => setDrill({ cat: 'overhead', x: e.clientX, y: e.clientY })}
+                  onMouseLeave={() => setDrill(null)}
                 >
                   <td>Overhead</td>
                   <td className="r av-num">{fmtMonth(mOverhead)}</td>
@@ -1107,8 +1107,7 @@ export function SummaryTable({
             title={cfg.title}
             monthLabel={`Per month${isPerBh ? ' · per BH' : ''}${currency === 'usd' ? ' · USD' : ''}`}
             items={cfg.items}
-            anchorRect={drill.rect}
-            onClose={() => setDrill(null)}
+            cursor={{ x: drill.x, y: drill.y }}
           />
         )
       })()}

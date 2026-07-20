@@ -76,6 +76,10 @@ export interface MsnInput {
   fixedCostCoverageEnabled: boolean
   fixedCostCoveragePercent: string // e.g. "50"
   fixedCostCoverageMonths: string  // e.g. "6"
+  // Draft: created when an aircraft is picked from the dropdown, before "Add
+  // aircraft" commits it. Excluded from Total-Project aggregation and quote
+  // snapshots until committed (isDraft set false).
+  isDraft?: boolean
 }
 
 /** Compute period in months from start/end strings (YYYY-MM or YYYY-MM-DD, inclusive) */

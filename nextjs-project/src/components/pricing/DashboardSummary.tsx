@@ -50,6 +50,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     lastError,
     removeMsnInput,
     updateMsnInput,
+    setSelectedMsn,
     editingQuoteNumber,
     reset,
   } = usePricingStore()
@@ -113,11 +114,12 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
   // Debounced calculation side-effect
   useCalculation(msnInputs, exchangeRate, marginPercent, effectiveBasis)
 
-  // Aircraft addition logic
+  // Draft-aircraft selection logic
   const {
-    selectedAircraft,
-    setSelectedAircraft,
-    handleAddAircraft,
+    draft,
+    selectAircraft,
+    discardDraft,
+    commitDraft,
     availableAircraft,
   } = useAddAircraft(aircraftList, msnInputs, bhFhRatio, apuFhRatio)
 
@@ -132,11 +134,18 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     }
   }, [msnInputs, activeMsn])
 
-  // Add an aircraft, then jump to its tab.
-  function handleAddAndSelect() {
-    const picked = availableAircraft.find((a) => String(a.id) === String(selectedAircraft))
-    handleAddAircraft()
-    if (picked) setActiveMsn(picked.msn)
+  // Selecting from the dropdown creates a live draft; jump to its tab and
+  // point the results scope at it so the engine output shows immediately.
+  function handleSelectAircraft(id: string) {
+    if (!id) {
+      discardDraft()
+      return
+    }
+    const msn = selectAircraft(id)
+    if (msn !== null) {
+      setActiveMsn(msn)
+      setSelectedMsn(msn)
+    }
   }
 
   const activeInput = msnInputs.find((i) => i.msn === activeMsn) ?? null
@@ -218,10 +227,11 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               key={input.msn}
               onClick={() => setActiveMsn(input.msn)}
               title={issues.length ? `Check inputs: ${issues.join(' · ')}` : undefined}
-              className={`av-ac-tab${active ? ' active' : ''}`}
+              className={`av-ac-tab${active ? ' active' : ''}${input.isDraft ? ' draft' : ''}`}
             >
               <span className="av-num">MSN {input.msn}</span>
               <span className="ty">{input.aircraftType}</span>
+              {input.isDraft && <span className="draft-badge">Draft</span>}
               {issues.length > 0 ? (
                 <AlertTriangle size={12} style={{ color: 'var(--amber)' }} />
               ) : margin !== undefined ? (
@@ -234,8 +244,8 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
         })}
         <div className="flex items-center gap-2 ml-1.5">
           <select
-            value={selectedAircraft}
-            onChange={(e) => setSelectedAircraft(e.target.value)}
+            value={draft ? String(draft.aircraftId) : ''}
+            onChange={(e) => handleSelectAircraft(e.target.value)}
             className="av-input !py-2"
           >
             <option value="">Select aircraft…</option>
@@ -246,7 +256,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               </option>
             ))}
           </select>
-          <button onClick={handleAddAndSelect} disabled={!selectedAircraft} className="av-ac-add disabled:opacity-50 disabled:cursor-not-allowed">
+          <button onClick={commitDraft} disabled={!draft} className="av-ac-add disabled:opacity-50 disabled:cursor-not-allowed">
             <Plus size={14} />
             Add aircraft
           </button>

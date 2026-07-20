@@ -316,6 +316,11 @@ body {
 .av-ac-add { display: flex; align-items: center; gap: 6px; padding: 9px 13px; border-radius: 10px; border: 1px dashed var(--muted-2); color: var(--muted); font-size: 13px; font-weight: 600; background: var(--card-2); cursor: pointer; }
 .av-ac-add:hover { border-color: var(--cyan); color: var(--cyan); }
 
+/* draft aircraft tab — selected from the dropdown but not yet added */
+.av-ac-tab.draft { border-style: dashed; border-color: var(--amber); }
+.av-ac-tab.draft.active { background: var(--card); color: var(--ink-2); border-color: var(--amber); }
+.av-ac-tab .draft-badge { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--amber); }
+
 /* input sections + fields */
 .av-work-grid { display: grid; grid-template-columns: 380px 1fr; gap: 18px; align-items: start; }
 .av-in-sec { padding: 16px 18px; border-bottom: 1px solid var(--line-2); }

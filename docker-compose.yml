@@ -1,0 +1,69 @@
+# Local development stack — database + API in Docker, frontend runs natively.
+#
+#   docker compose up --build          # Postgres + FastAPI (migrated + seeded)
+#   cd nextjs-project && npm run dev   # frontend with hot reload on :3000
+#
+# The API runs its SQL migrations itself on startup (app/main.py lifespan);
+# the one-shot `seed` service then populates the aircraft fleet and pricing
+# config once the API reports healthy. See docs/local-dev.md for the runbook
+# (including how to set a known local admin password).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: acmi_platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      # Host 5433: 5432 is usually occupied by the asset-app stack's Postgres.
+      # In-network traffic (api -> db:5432) is unaffected by this mapping.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d acmi_platform"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/acmi_platform
+      JWT_SECRET: local-dev-secret-not-for-production-use
+      ENVIRONMENT: development
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # python:slim has no curl/wget — probe /health with stdlib urllib.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # One-shot: seeds the 11-MSN fleet + pricing config after the API has
+  # started (migrations run inside the API's startup, so tables exist by the
+  # time this fires). Both scripts are idempotent — safe on every `up`.
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/acmi_platform
+    command: >
+      sh -c "python scripts/seed_aircraft.py && python scripts/seed_pricing_config.py"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  pgdata:

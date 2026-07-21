@@ -389,8 +389,8 @@ function ProjectDetail({ p, canViewCosts }: { p: DashboardProject; canViewCosts:
           <span>{shortDate(p.quote.created_at)}</span>
           {p.created_by && <span>by {p.created_by}</span>}
           <div className="flex items-center gap-2 ml-auto">
-            <Link href={`/quotes/${p.id}?go=calculation`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
-              <Calculator size={13} /> Calculation
+            <Link href={`/quotes/${p.id}`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
+              <Calculator size={13} /> Open
             </Link>
             <Link href={`/quotes/${p.id}?go=pnl`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
               <TrendingUp size={13} /> P&amp;L

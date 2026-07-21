@@ -175,8 +175,8 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search client or quote no."
                 aria-label="Search client or quote number"
-                className="av-input pl-8"
-                style={{ width: 240 }}
+                className="av-input"
+                style={{ width: 240, height: 40, paddingLeft: 32 }}
               />
             </div>
             <select
@@ -184,7 +184,7 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
               onChange={(e) => handleStatusFilterChange(e.target.value)}
               aria-label="Filter by status"
               className="av-input"
-              style={{ width: 240 }}
+              style={{ width: 240, height: 40 }}
             >
               <option value="">All statuses</option>
               {STATUSES.map((s) => (
@@ -195,7 +195,7 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
               <button
                 type="button"
                 onClick={handleNewQuote}
-                className="av-btn av-btn-cyan !text-xs !py-1.5 whitespace-nowrap"
+                className="av-btn av-btn-cyan !text-xs !py-0 !h-10 whitespace-nowrap"
               >
                 <Plus size={12} />
                 New Quote

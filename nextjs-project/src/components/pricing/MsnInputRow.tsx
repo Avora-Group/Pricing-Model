@@ -322,6 +322,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               type="button"
               className={`av-chip-t${input.seasonalityEnabled ? ' on' : ''}`}
               onClick={() => toggleSeasonality(input.msn, !input.seasonalityEnabled)}
+              aria-pressed={input.seasonalityEnabled}
             >
               Seasonality
             </button>
@@ -329,6 +330,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               type="button"
               className={`av-chip-t${input.fixedCostCoverageEnabled ? ' on' : ''}`}
               onClick={() => onUpdate(input.msn, 'fixedCostCoverageEnabled', !input.fixedCostCoverageEnabled)}
+              aria-pressed={input.fixedCostCoverageEnabled}
             >
               FC Coverage
             </button>

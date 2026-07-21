@@ -295,15 +295,11 @@ body {
 .dark .av-dstat .v { color: var(--ink); }
 
 /* ---------- Pricing workspace ---------- */
-.av-proj-bar { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 18px; display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; }
-.av-pb-field { display: flex; flex-direction: column; gap: 5px; }
-.av-pb-field.name { flex: 1; min-width: 200px; }
-.av-pb-field label { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-.av-input, .av-pb-field input, .av-field input, .av-field select {
+.av-input, .av-field input, .av-field select {
   border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; background: var(--card-2);
   color: var(--ink); width: 100%; transition: .15s;
 }
-.av-input:focus, .av-pb-field input:focus, .av-field input:focus, .av-field select:focus {
+.av-input:focus, .av-field input:focus, .av-field select:focus {
   outline: none; border-color: var(--cyan); background: var(--card); box-shadow: 0 0 0 3px var(--cyan-soft);
 }
 
@@ -322,22 +318,12 @@ body {
 .av-ac-tab .draft-badge { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--amber); }
 
 /* input sections + fields */
-.av-work-grid { display: grid; grid-template-columns: 380px 1fr; gap: 18px; align-items: start; }
-.av-in-sec { padding: 16px 18px; border-bottom: 1px solid var(--line-2); }
-.av-in-sec:last-child { border-bottom: none; }
-.av-in-sec-t { font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 13px; }
 .av-field { margin-bottom: 14px; }
 .av-field:last-child { margin-bottom: 0; }
 .av-field .fl { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
 .av-field .fl label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
 .av-field .fl .fv { font-size: 13px; font-weight: 700; color: var(--brand); }
 .dark .av-field .fl .fv { color: var(--cyan-ink); }
-.av-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
-
-/* slider */
-.av-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 5px; border-radius: 4px; background: var(--line); outline: none; margin-top: 4px; }
-.av-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; background: var(--cyan); cursor: pointer; box-shadow: 0 2px 6px rgba(0,123,242,.4); border: 2px solid var(--card); }
-.av-slider::-moz-range-thumb { width: 17px; height: 17px; border-radius: 50%; background: var(--cyan); cursor: pointer; border: 2px solid var(--card); }
 
 /* segmented toggle */
 .av-seg { display: flex; background: var(--line-2); border-radius: 8px; padding: 3px; gap: 3px; }
@@ -346,13 +332,6 @@ body {
 .dark .av-seg button.on { color: var(--ink); }
 
 /* verdict */
-.av-verdict-top { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 1px; background: var(--line-2); }
-.av-vcell { background: var(--card); padding: 18px 20px; }
-.av-vcell .vlab { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-.av-vcell .vval { font-size: 32px; font-weight: 800; letter-spacing: -.8px; margin-top: 8px; color: var(--brand); }
-.dark .av-vcell .vval { color: var(--ink); }
-.av-vcell .vsub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-.av-verdict-flag { padding: 11px 20px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 9px; }
 .av-vf-good { background: var(--pos-soft); color: var(--pos); }
 .av-vf-thin { background: var(--amber-soft); color: var(--amber); }
 .av-vf-loss { background: var(--neg-soft); color: var(--neg); }
@@ -382,15 +361,6 @@ body {
 .av-bd-tbl tr.sub td:first-child { padding-left: 30px; color: var(--ink-2); }
 .av-bd-tbl .cat { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
 .av-bd-tbl .cat .sw { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-
-/* sensitivity strip */
-.av-sens-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-.av-sens-cell { border: 1px solid var(--line-2); border-radius: 9px; padding: 10px 8px; text-align: center; transition: .15s; }
-.av-sens-cell.cur { border-color: var(--cyan); background: var(--cyan-soft); box-shadow: 0 0 0 1px var(--cyan); }
-.av-sens-cell .sr { font-size: 12px; font-weight: 700; color: var(--brand); }
-.dark .av-sens-cell .sr { color: var(--ink); }
-.av-sens-cell .sm { font-size: 13px; font-weight: 800; margin-top: 4px; }
-.av-sens-cell .sn { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
 
 /* naked-cost redaction (role-gated figures) */
 .av-redacted {
@@ -489,12 +459,9 @@ body {
 
 /* iPad portrait/landscape and narrow laptops */
 @media (max-width: 1024px) {
-  /* Pricing workspace: stack the input panel above the live summary */
-  .av-work-grid { grid-template-columns: 1fr; }
   .av-hero-grid { grid-template-columns: 1fr; gap: 20px; }
   .av-kpi-row { grid-template-columns: repeat(2, 1fr); }
   .av-detail-stats { grid-template-columns: repeat(3, 1fr); }
-  .av-sens-grid { grid-template-columns: repeat(4, 1fr); }
   .av-deck-grid { grid-template-columns: 1fr 1fr; }
   .av-cluster { border-right: 0; border-bottom: 1px solid var(--line-2); }
   .av-duo { grid-template-columns: 1fr; }
@@ -503,14 +470,9 @@ body {
 /* Phones */
 @media (max-width: 640px) {
   .av-kpi-row { grid-template-columns: 1fr; }
-  /* Stack the NET PROFIT / NET MARGIN / MONTHLY REVENUE metric cards */
-  .av-verdict-top { grid-template-columns: 1fr; }
   .av-hstat-grid { grid-template-columns: 1fr; }
-  .av-field-row { grid-template-columns: 1fr; }
   .av-detail-stats { grid-template-columns: repeat(2, 1fr); }
-  .av-sens-grid { grid-template-columns: repeat(2, 1fr); }
   .av-hbar-row { grid-template-columns: 84px 1fr 64px; gap: 8px; }
-  .av-proj-bar { gap: 12px; padding: 12px 14px; }
   /* Waterfall: let the 8 bars scroll horizontally instead of crushing */
   .av-wf { height: 180px; gap: 6px; padding: 12px 10px 0; overflow-x: auto; }
   .av-wf-col { min-width: 34px; }

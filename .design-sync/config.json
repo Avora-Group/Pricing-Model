@@ -1,0 +1,23 @@
+{
+  "projectId": "59521801-0d74-4787-9d7e-226397e3dd94",
+  "shape": "package",
+  "pkg": "nextjs-project",
+  "globalName": "AcmiDS",
+  "srcDir": "src",
+  "tsconfig": "tsconfig.json",
+  "buildCmd": "bash .design-sync/build-css.sh",
+  "readmeHeader": ".design-sync/conventions.md",
+  "entry": "nextjs-project/src/ds-entry.ts",
+  "cssEntry": ".ds-css/acmi.css",
+  "componentSrcMap": {
+    "StatusBadge": "src/components/quotes/StatusBadge.tsx",
+    "Redacted": "src/components/common/Redacted.tsx",
+    "FormulaCell": "src/components/ui/TableParts.tsx",
+    "SectionHeader": "src/components/ui/TableParts.tsx",
+    "TableCard": "src/components/ui/TableParts.tsx",
+    "EditableCell": "src/components/ui/EditableCell.tsx",
+    "ReadOnlyProvider": "src/components/ui/ReadOnlyContext.tsx",
+    "LineDetailPopover": "src/components/pricing/CostDetailPopover.tsx",
+    "PlaceholderPage": "src/components/ui/PlaceholderPage.tsx"
+  }
+}

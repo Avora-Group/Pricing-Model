@@ -3,3 +3,11 @@
 # Python
 __pycache__/
 *.pyc
+
+# design-sync machine state (durable inputs live in .design-sync/, committed)
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+nextjs-project/.ds-css/

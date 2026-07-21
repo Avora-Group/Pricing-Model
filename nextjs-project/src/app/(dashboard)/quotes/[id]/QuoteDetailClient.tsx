@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuoteHydration } from '@/components/quotes/hooks/useQuoteHydration'
 import { QuoteHeader } from '@/components/quotes/QuoteHeader'
+import { NewQuoteModal } from '@/components/quotes/NewQuoteModal'
 import { SummaryTable } from '@/components/pricing/SummaryTable'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
 import type { AircraftOption } from '@/lib/api-converters'
@@ -12,26 +13,28 @@ import type { AircraftOption } from '@/lib/api-converters'
 interface QuoteDetailClientProps {
   quote: QuoteDetailResponse
   aircraftList?: AircraftOption[]
+  isViewer?: boolean
 }
 
-export function QuoteDetailClient({ quote, aircraftList = [] }: QuoteDetailClientProps) {
+export function QuoteDetailClient({ quote, aircraftList = [], isViewer = false }: QuoteDetailClientProps) {
   const { loaded } = useQuoteHydration(quote)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [showEdit, setShowEdit] = useState(false)
 
   // Deep-link target (e.g. from the dashboard): once this quote's data is
-  // hydrated into the stores, forward to Calculation or P&L to inspect it.
+  // hydrated into the stores, forward to P&L to inspect it.
   const go = searchParams.get('go')
   useEffect(() => {
-    if (loaded && (go === 'pnl' || go === 'calculation')) {
-      router.replace(go === 'pnl' ? '/pnl' : '/calculation')
+    if (loaded && go === 'pnl') {
+      router.replace('/pnl')
     }
   }, [loaded, go, router])
 
-  if (go === 'pnl' || go === 'calculation') {
+  if (go === 'pnl') {
     return (
       <div className="flex items-center justify-center py-20 text-sm" style={{ color: 'var(--muted)' }}>
-        Loading {quote.quote_number} into {go === 'pnl' ? 'P&L' : 'Calculation'}…
+        Loading {quote.quote_number} into P&L…
       </div>
     )
   }
@@ -43,6 +46,7 @@ export function QuoteDetailClient({ quote, aircraftList = [] }: QuoteDetailClien
         clientName={quote.client_name}
         status={quote.status}
         createdAt={quote.created_at}
+        onEdit={!isViewer ? () => setShowEdit(true) : undefined}
       />
 
       {/* Same summary cards as the Pricing Workspace (metrics, ACMI cost
@@ -71,6 +75,20 @@ export function QuoteDetailClient({ quote, aircraftList = [] }: QuoteDetailClien
         </Link>{' '}
         to see full details from this quote.
       </div>
+
+      {/* In-place edit dialog. After an update, router.refresh() re-fetches
+          the quote; the fresh prop re-runs useQuoteHydration, overwriting the
+          snapshot the closing dialog restored. */}
+      <NewQuoteModal
+        isOpen={showEdit}
+        editQuote={quote}
+        onClose={() => setShowEdit(false)}
+        aircraftList={aircraftList}
+        onSaved={() => {
+          setShowEdit(false)
+          router.refresh()
+        }}
+      />
     </div>
   )
 }

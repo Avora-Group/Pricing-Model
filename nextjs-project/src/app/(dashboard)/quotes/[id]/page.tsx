@@ -40,6 +40,20 @@ async function getAircraftList(token: string): Promise<AircraftOption[]> {
   }
 }
 
+async function getIsViewer(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return false
+    const user = await res.json()
+    return user.role === 'viewer'
+  } catch {
+    return false
+  }
+}
+
 export default async function QuoteDetailPage({
   params,
 }: {
@@ -53,9 +67,10 @@ export default async function QuoteDetailPage({
     notFound()
   }
 
-  const [quote, aircraftList] = await Promise.all([
+  const [quote, aircraftList, isViewer] = await Promise.all([
     getQuoteDetail(id, token),
     getAircraftList(token),
+    getIsViewer(token),
   ])
 
   if (!quote) {
@@ -73,7 +88,7 @@ export default async function QuoteDetailPage({
         <span className="av-num" style={{ color: 'var(--ink-2)' }}>{quote.quote_number}</span>
       </nav>
 
-      <QuoteDetailClient quote={quote} aircraftList={aircraftList} />
+      <QuoteDetailClient quote={quote} aircraftList={aircraftList} isViewer={isViewer} />
     </div>
   )
 }

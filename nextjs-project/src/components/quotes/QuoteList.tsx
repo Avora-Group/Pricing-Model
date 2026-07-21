@@ -39,6 +39,7 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
   const [sortKey, setSortKey] = useState<QuoteSortKey>('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const editReqRef = useRef(0)
   const [showNewQuote, setShowNewQuote] = useState(false)
   const [editQuote, setEditQuote] = useState<QuoteDetailResponse | null>(null)
   const [editLoadingId, setEditLoadingId] = useState<number | null>(null)
@@ -127,7 +128,10 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
   const handleEdit = async (quoteId: number) => {
     setStatusError(null)
     setEditLoadingId(quoteId)
+    const reqId = ++editReqRef.current
     const result = await getQuoteAction(quoteId)
+    // A newer Edit click superseded this request — let it win.
+    if (reqId !== editReqRef.current) return
     setEditLoadingId(null)
     if ('error' in result) {
       setStatusError(result.error)

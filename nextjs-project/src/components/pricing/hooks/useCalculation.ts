@@ -22,6 +22,17 @@ export function useCalculation(
   const { setResults, setIsCalculating, setLastError } = usePricingStore()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // A calculation that is mid-flight when this component unmounts (e.g. the
+  // New Quote dialog closing and restoring workspace state) must not write
+  // its result into the store afterwards.
+  const aliveRef = useRef(true)
+  useEffect(() => {
+    aliveRef.current = true
+    return () => {
+      aliveRef.current = false
+    }
+  }, [])
+
   useEffect(() => {
     if (msnInputs.length === 0) {
       setResults([], null)
@@ -75,6 +86,8 @@ export function useCalculation(
         rate_basis: rateBasis,
         msn_inputs: expandedInputs,
       })
+
+      if (!aliveRef.current) return
 
       if ('error' in result) {
         setLastError(result.error)

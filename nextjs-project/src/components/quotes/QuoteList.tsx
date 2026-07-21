@@ -3,13 +3,12 @@
 import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, Trash2, Plus } from 'lucide-react'
+import { Search, Trash2, Plus, Pencil } from 'lucide-react'
 import { NewQuoteModal } from './NewQuoteModal'
-import { usePricingStore } from '@/stores/pricing-store'
 import type { AircraftOption } from '@/lib/api-converters'
 import { StatusBadge } from './StatusBadge'
-import { listQuotesAction, updateQuoteStatusAction, deleteQuoteAction } from '@/app/actions/quotes'
-import type { QuoteListItem } from '@/app/actions/quotes'
+import { listQuotesAction, updateQuoteStatusAction, deleteQuoteAction, getQuoteAction } from '@/app/actions/quotes'
+import type { QuoteListItem, QuoteDetailResponse } from '@/app/actions/quotes'
 
 interface QuoteListProps {
   initialQuotes: { items: QuoteListItem[]; total: number }
@@ -41,6 +40,8 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showNewQuote, setShowNewQuote] = useState(false)
+  const [editQuote, setEditQuote] = useState<QuoteDetailResponse | null>(null)
+  const [editLoadingId, setEditLoadingId] = useState<number | null>(null)
   const router = useRouter()
 
   const handleSort = (key: QuoteSortKey) => {
@@ -123,15 +124,16 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
     setTotal((prev) => prev - 1)
   }
 
-  function handleNewQuote() {
-    const { msnInputs, editingQuoteId } = usePricingStore.getState()
-    if (msnInputs.length > 0 || editingQuoteId !== null) {
-      const ok = window.confirm(
-        'Opening a new quote clears the current pricing workspace (unsaved changes will be lost). Continue?'
-      )
-      if (!ok) return
+  const handleEdit = async (quoteId: number) => {
+    setStatusError(null)
+    setEditLoadingId(quoteId)
+    const result = await getQuoteAction(quoteId)
+    setEditLoadingId(null)
+    if ('error' in result) {
+      setStatusError(result.error)
+      return
     }
-    setShowNewQuote(true)
+    setEditQuote(result)
   }
 
   const formatDate = (dateStr: string) => {
@@ -194,7 +196,7 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
             {!isViewer && (
               <button
                 type="button"
-                onClick={handleNewQuote}
+                onClick={() => setShowNewQuote(true)}
                 className="av-btn av-btn-cyan !text-xs !py-0 !h-10 whitespace-nowrap"
               >
                 <Plus size={12} />
@@ -263,6 +265,17 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
                             <Link href={`/quotes/${q.id}`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
                               Open
                             </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(q.id)}
+                              disabled={editLoadingId === q.id}
+                              title="Edit quote"
+                              aria-label={`Edit ${q.quote_number}`}
+                              className="p-1 rounded transition-colors disabled:opacity-50"
+                              style={{ color: 'var(--muted)' }}
+                            >
+                              <Pencil size={14} />
+                            </button>
                             {!isViewer && (
                               <button
                                 type="button"
@@ -291,11 +304,16 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
         )}
       </div>
       <NewQuoteModal
-        isOpen={showNewQuote}
-        onClose={() => setShowNewQuote(false)}
+        isOpen={showNewQuote || editQuote !== null}
+        editQuote={editQuote}
+        onClose={() => {
+          setShowNewQuote(false)
+          setEditQuote(null)
+        }}
         aircraftList={aircraftList}
         onSaved={() => {
           setShowNewQuote(false)
+          setEditQuote(null)
           // The list is client state seeded from a server prop — re-fetch it
           // directly, and refresh the route so server-computed financials update.
           fetchQuotes(search, statusFilter)

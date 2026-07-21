@@ -162,43 +162,46 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
           <div>
             <h2>Quotes</h2>
           </div>
-          <div className="relative">
-            <Search
-              size={15}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2"
-              style={{ color: 'var(--muted)' }}
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search client or quote no."
-              aria-label="Search client or quote number"
-              className="av-input pl-8"
+          <div className="flex items-center gap-2.5">
+            <div className="relative shrink-0">
+              <Search
+                size={15}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2"
+                style={{ color: 'var(--muted)' }}
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search client or quote no."
+                aria-label="Search client or quote number"
+                className="av-input pl-8"
+                style={{ width: 240 }}
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
+              aria-label="Filter by status"
+              className="av-input"
               style={{ width: 240 }}
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => handleStatusFilterChange(e.target.value)}
-            aria-label="Filter by status"
-            className="av-input"
-          >
-            <option value="">All statuses</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
-          {!isViewer && (
-            <button
-              type="button"
-              onClick={handleNewQuote}
-              className="av-btn av-btn-cyan !text-xs !py-1.5"
             >
-              <Plus size={12} />
-              New Quote
-            </button>
-          )}
+              <option value="">All statuses</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              ))}
+            </select>
+            {!isViewer && (
+              <button
+                type="button"
+                onClick={handleNewQuote}
+                className="av-btn av-btn-cyan !text-xs !py-1.5 whitespace-nowrap"
+              >
+                <Plus size={12} />
+                New Quote
+              </button>
+            )}
+          </div>
         </div>
 
         {quotes.length === 0 ? (

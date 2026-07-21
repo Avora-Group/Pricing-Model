@@ -387,7 +387,7 @@ body {
 .av-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .av-toolbar .sp { flex: 1; }
 .av-addgrp { display: inline-flex; align-items: stretch; height: 34px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card-2); }
-.av-addgrp select { border: 0; background: transparent; color: var(--ink); font-size: 12.5px; font-weight: 600; padding: 0 10px; outline: none; cursor: pointer; }
+.av-addgrp select { border: 0; background: transparent; color: var(--ink); font-size: 12.5px; font-weight: 600; padding: 0 30px 0 10px; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%237f89a5' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>"); background-repeat: no-repeat; background-position: right 11px center; }
 .av-addgrp button { border: 0; border-left: 1px solid var(--line); background: var(--card); color: var(--cyan-ink); font-weight: 700; font-size: 12.5px; padding: 0 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
 .av-addgrp button:disabled { color: var(--muted-2); cursor: not-allowed; }
 .av-tb-rate { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; color: var(--muted); }

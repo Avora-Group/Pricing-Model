@@ -151,8 +151,8 @@ function endDateValue(v: string | null | undefined) {
   return `${v}-${String(lastDay).padStart(2, '0')}`
 }
 
-/** Human-readable term length, e.g. "365d · 12.0mo". Em dash when dates are
- *  incomplete or inverted. Days are inclusive; months = days / 30.4375. */
+/** Human-readable term length, e.g. "365 days · 12.0 months". Em dash when dates
+ *  are incomplete or inverted. Days are inclusive; months = days / 30.4375. */
 function durationText(start: string | null | undefined, end: string | null | undefined): string {
   const s = startDateValue(start)
   const e = endDateValue(end)
@@ -162,7 +162,7 @@ function durationText(start: string | null | undefined, end: string | null | und
   if (isNaN(sd.getTime()) || isNaN(ed.getTime()) || ed < sd) return '—'
   const days = Math.round((ed.getTime() - sd.getTime()) / 86_400_000) + 1
   const months = days / 30.4375
-  return `${days}d · ${months.toFixed(1)}mo`
+  return `${days} days · ${months.toFixed(1)} months`
 }
 
 /** Utilisation / Rate / Term clusters for one season (or the flat case). */

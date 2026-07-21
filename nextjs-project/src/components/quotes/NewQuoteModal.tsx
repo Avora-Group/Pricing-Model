@@ -1,37 +1,65 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
-import { usePricingStore } from '@/stores/pricing-store'
-import { useCrewConfigStore } from '@/stores/crew-config-store'
-import { useCostsConfigStore } from '@/stores/costs-config-store'
+import {
+  snapshotWorkspaceStores,
+  restoreWorkspaceStores,
+  resetWorkspaceStores,
+} from '@/stores/workspace-stores'
+import { hydrateStoresFromQuote } from './hooks/useQuoteHydration'
 import { DashboardSummary } from '@/components/pricing/DashboardSummary'
 import type { AircraftOption } from '@/lib/api-converters'
+import type { QuoteDetailResponse } from '@/app/actions/quotes'
 
 interface NewQuoteModalProps {
   isOpen: boolean
   onClose: () => void
-  /** Called with the new quote number after a successful save. */
+  /** Called with the quote number after a successful save/update. */
   onSaved: (quoteNumber: string) => void
   aircraftList: AircraftOption[]
+  /** When set, the dialog edits this existing quote in place (stores are
+   *  hydrated from it; saving updates the same quote). Otherwise it opens
+   *  as a blank New Quote. */
+  editQuote?: QuoteDetailResponse | null
 }
 
 /**
- * "New Quote" — the full Pricing Workspace in a centered overlay
- * (75vw × 80vh). Opens with a blank slate (store reset) each time.
- * Closes on ✕ or Escape only — no backdrop-click close, so half-entered
- * inputs aren't lost to a stray click.
+ * "New Quote" / "Edit Quote" — the full Pricing Workspace in a centered
+ * overlay (75vw × 80vh). The three workspace stores are snapshotted when the
+ * dialog opens and restored when it closes (saved or cancelled), so the
+ * dialog never disturbs the sandbox Pricing Workspace. Closes on ✕ or
+ * Escape only — no backdrop-click close, so half-entered inputs aren't lost
+ * to a stray click.
  */
-export function NewQuoteModal({ isOpen, onClose, onSaved, aircraftList }: NewQuoteModalProps) {
-  // Fully clean slate on every open: pricing state cleared and crew/costs
-  // config restored to company defaults, so a previously viewed quote's
-  // snapshot (loaded into those global config stores) no longer leaks in.
+export function NewQuoteModal({
+  isOpen,
+  onClose,
+  onSaved,
+  aircraftList,
+  editQuote = null,
+}: NewQuoteModalProps) {
+  // Stores are prepared in the effect below; gate the body on `ready` so
+  // children first mount AFTER preparation (SaveQuoteDialog reads the
+  // editing client name into useState at mount time). The effect-with-
+  // cleanup shape is strict-mode safe: a double invoke restores the
+  // snapshot before re-snapshotting, so the original state survives.
+  const [ready, setReady] = useState(false)
+
   useEffect(() => {
     if (!isOpen) return
-    usePricingStore.getState().reset()
-    useCrewConfigStore.getState().resetToDefaults()
-    useCostsConfigStore.getState().resetToDefaults()
-  }, [isOpen])
+    const snap = snapshotWorkspaceStores()
+    if (editQuote) {
+      hydrateStoresFromQuote(editQuote)
+    } else {
+      resetWorkspaceStores()
+    }
+    setReady(true)
+    return () => {
+      setReady(false)
+      restoreWorkspaceStores(snap)
+    }
+  }, [isOpen, editQuote])
 
   // Close on Escape — unless the nested Save Quote dialog is on top.
   useEffect(() => {
@@ -55,7 +83,11 @@ export function NewQuoteModal({ isOpen, onClose, onSaved, aircraftList }: NewQuo
       >
         {/* Header */}
         <div className="av-panel-h shrink-0">
-          <h2>New Quote — Pricing Workspace</h2>
+          <h2>
+            {editQuote
+              ? `Edit ${editQuote.quote_number} — Pricing Workspace`
+              : 'New Quote — Pricing Workspace'}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -69,7 +101,9 @@ export function NewQuoteModal({ isOpen, onClose, onSaved, aircraftList }: NewQuo
 
         {/* Workspace body */}
         <div className="flex-1 overflow-y-auto p-[18px]">
-          <DashboardSummary aircraftList={aircraftList} isViewer={false} onSaved={onSaved} />
+          {ready && (
+            <DashboardSummary aircraftList={aircraftList} isViewer={false} onSaved={onSaved} />
+          )}
         </div>
       </div>
     </div>

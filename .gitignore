@@ -11,3 +11,6 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 nextjs-project/.ds-css/
+
+# SDD scratch (progress ledger, task briefs)
+.superpowers/

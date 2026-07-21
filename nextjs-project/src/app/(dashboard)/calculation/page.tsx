@@ -49,9 +49,9 @@ export default async function CalculationPage() {
     <div className="space-y-6">
       <div>
         <h1 className="av-page-title">Pricing Workspace</h1>
-        <p className="av-page-sub">Enter commercial assumptions — the ACMI cost build-up updates live</p>
+        <p className="av-page-sub">Sandbox — enter commercial assumptions and experiment; resets on refresh</p>
       </div>
-      <DashboardSummary aircraftList={aircraftList} isViewer={isViewer} />
+      <DashboardSummary aircraftList={aircraftList} isViewer={isViewer} sandbox />
     </div>
   )
 }

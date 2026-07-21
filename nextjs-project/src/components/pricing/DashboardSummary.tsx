@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Save, Download, AlertTriangle } from 'lucide-react'
+import { Plus, Save, Download, AlertTriangle, RefreshCw } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
 import type { MsnInput } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
+import { resetWorkspaceStores } from '@/stores/workspace-stores'
 import { MsnInputRow } from './MsnInputRow'
 import { SummaryTable } from './SummaryTable'
 import { SaveQuoteDialog } from '@/components/quotes/SaveQuoteDialog'
@@ -20,6 +21,9 @@ interface DashboardSummaryProps {
   isViewer?: boolean
   /** Called after a quote is saved/updated — lets a hosting modal close + refresh. */
   onSaved?: (quoteNumber: string) => void
+  /** Sandbox page (/calculation): leak-guard hydrated quote data on mount and
+   *  show the reset-workspace button. The quote dialog leaves this off. */
+  sandbox?: boolean
 }
 
 /** Missing / implausible inputs for an MSN, surfaced as a warning on its tab. */
@@ -38,7 +42,7 @@ function msnIssues(i: MsnInput): string[] {
   return issues
 }
 
-export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: DashboardSummaryProps) {
+export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sandbox = false }: DashboardSummaryProps) {
   const {
     projectName,
     exchangeRate,
@@ -55,9 +59,19 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
     setExchangeRate,
     setSelectedMsn,
     editingQuoteNumber,
-    reset,
   } = usePricingStore()
   const isEditing = editingQuoteNumber !== null
+
+  // Sandbox leak guard: quote data hydrated elsewhere (quote detail page,
+  // dashboard P&L deep-link) must never appear in the sandbox. Hydration
+  // already overwrote any sandbox state, so nothing of value is lost.
+  useEffect(() => {
+    if (!sandbox) return
+    if (usePricingStore.getState().editingQuoteId !== null) {
+      resetWorkspaceStores()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Naked cost basis is only available to users with naked access.
   const canViewNaked = useCanViewNaked()
@@ -221,6 +235,16 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
             Add
           </button>
         </span>
+        {sandbox && !isViewer && (
+          <button
+            onClick={resetWorkspaceStores}
+            title="Reset workspace"
+            aria-label="Reset workspace"
+            className="av-btn av-btn-ghost !h-[34px] !px-2.5 !py-0"
+          >
+            <RefreshCw size={13} />
+          </button>
+        )}
 
         <span className="sp" />
 
@@ -246,11 +270,6 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
             className="av-num"
           />
         </label>
-        {isEditing && !isViewer && (
-          <button onClick={() => reset()} className="av-btn av-btn-ghost !text-xs !h-[34px] !py-0">
-            New quote
-          </button>
-        )}
         <button
           onClick={handleExport}
           disabled={committedCount === 0 || isExporting}

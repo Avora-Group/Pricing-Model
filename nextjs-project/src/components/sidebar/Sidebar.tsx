@@ -14,9 +14,12 @@ import {
   DollarSign,
   BarChart3,
   Calculator,
+  LogOut,
 } from 'lucide-react'
 import { useSidebarStore } from '@/stores/sidebar-store'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { logoutAction } from '@/app/actions/auth'
+import { ROLE_LABEL, initials } from '@/lib/user-display'
 
 const navSections = [
   {
@@ -43,10 +46,11 @@ const navSections = [
 const viewerAllowedHrefs = new Set(['/dashboard', '/calculation', '/quotes'])
 
 interface SidebarProps {
+  userEmail?: string
   userRole?: string
 }
 
-export function Sidebar({ userRole = 'user' }: SidebarProps) {
+export function Sidebar({ userEmail, userRole = 'user' }: SidebarProps) {
   const { isCollapsed, toggle } = useSidebarStore()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
@@ -127,6 +131,48 @@ export function Sidebar({ userRole = 'user' }: SidebarProps) {
 
       {/* Footer */}
       <div className="border-t av-rail-bd px-3 py-3 space-y-3">
+        {/* User */}
+        <div className={`flex items-center gap-2.5 ${collapsed ? 'justify-center' : 'px-1.5'}`}>
+          <div
+            className="w-8 h-8 rounded-full grid place-items-center text-[11px] font-bold text-white shrink-0"
+            style={{ background: 'var(--cyan)' }}
+          >
+            {initials(userEmail)}
+          </div>
+          {!collapsed && (
+            <>
+              <div className="min-w-0 flex-1 leading-tight">
+                <div
+                  className="text-[11.5px] font-semibold truncate"
+                  style={{ color: 'var(--rail-ink)' }}
+                >
+                  {userEmail?.split('@')[0] ?? 'Avora User'}
+                </div>
+                <div className="text-[9.5px] opacity-55">{ROLE_LABEL[userRole] ?? 'Pricing'}</div>
+              </div>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  className="p-1 rounded-md hover:bg-white/10 transition-colors text-current opacity-70 hover:opacity-100"
+                  aria-label="Sign out"
+                >
+                  <LogOut size={15} />
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+        {collapsed && (
+          <form action={logoutAction} className="flex justify-center">
+            <button
+              type="submit"
+              className="p-1 rounded-md hover:bg-white/10 transition-colors text-current opacity-70 hover:opacity-100"
+              aria-label="Sign out"
+            >
+              <LogOut size={15} />
+            </button>
+          </form>
+        )}
         {!collapsed && <ThemeToggle />}
         {!collapsed && (
           <div className="px-1.5 leading-tight">

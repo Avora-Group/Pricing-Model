@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { logoutAction } from '@/app/actions/auth'
 import { LogOut } from 'lucide-react'
+import { ROLE_LABEL, initials } from '@/lib/user-display'
 
 interface TopBarProps {
   userEmail?: string
@@ -20,20 +21,6 @@ const ROUTES: Record<string, { group: string; page: string }> = {
   crew: { group: 'Reference Data', page: 'Crew Costs' },
   costs: { group: 'Reference Data', page: 'Cost Assumptions' },
   admin: { group: 'Reference Data', page: 'Admin' },
-}
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: 'Administrator',
-  user: 'Pricing',
-  viewer: 'Viewer',
-}
-
-function initials(email?: string): string {
-  if (!email) return 'AV'
-  const name = email.split('@')[0]
-  const parts = name.split(/[.\-_]/).filter(Boolean)
-  const chars = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2)
-  return chars.toUpperCase()
 }
 
 export function TopBar({ userEmail, userRole = 'user' }: TopBarProps) {
@@ -57,20 +44,8 @@ export function TopBar({ userEmail, userRole = 'user' }: TopBarProps) {
 
       <div className="flex-1" />
 
-      {/* Status pill */}
-      <div
-        className="hidden md:flex items-center gap-2 text-[11.5px] font-semibold px-2.5 py-1 rounded-full"
-        style={{ color: 'var(--teal)', background: 'var(--pos-soft)' }}
-      >
-        <span
-          className="w-[7px] h-[7px] rounded-full"
-          style={{ background: 'var(--teal)', animation: 'avPulse 2s infinite' }}
-        />
-        System operational
-      </div>
-
-      {/* User */}
-      <div className="flex items-center gap-2.5 pl-4" style={{ borderLeft: '1px solid var(--line)' }}>
+      {/* User — mobile only; on md+ this lives in the sidebar footer */}
+      <div className="flex md:hidden items-center gap-2.5 pl-4" style={{ borderLeft: '1px solid var(--line)' }}>
         <div
           className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-bold text-white"
           style={{ background: 'var(--navy)' }}

@@ -52,6 +52,7 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
     lastError,
     removeMsnInput,
     updateMsnInput,
+    setExchangeRate,
     setSelectedMsn,
     editingQuoteNumber,
     reset,
@@ -175,54 +176,8 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
         </div>
       )}
 
-      {/* Action row */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3 text-xs">
-          {isCalculating && (
-            <span style={{ color: 'var(--cyan-ink)' }}>Calculating…</span>
-          )}
-          {isEditing && (
-            <span
-              className="px-2 py-1 rounded-md av-num"
-              style={{ color: 'var(--cyan-ink)', background: 'var(--cyan-soft)' }}
-            >
-              Editing {editingQuoteNumber}
-            </span>
-          )}
-          {savedNotice && (
-            <span style={{ color: 'var(--pos)' }}>Saved: {savedNotice}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {isEditing && !isViewer && (
-            <button onClick={() => reset()} className="av-btn av-btn-ghost !text-xs !py-1.5">
-              New quote
-            </button>
-          )}
-          <button
-            onClick={handleExport}
-            disabled={committedCount === 0 || isExporting}
-            title="Download the calculation as an Excel workbook (Calculation, P&L, Aircraft, Crew, Costs)"
-            className="av-btn av-btn-ghost !text-xs !py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download size={12} />
-            {isExporting ? 'Preparing…' : 'Download Excel'}
-          </button>
-          {!isViewer && (
-            <button
-              onClick={() => setShowSaveDialog(true)}
-              disabled={committedCount === 0 || msnResults.length === 0}
-              className="av-btn av-btn-cyan !text-xs !py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save size={12} />
-              {isEditing ? 'Update Quote' : 'Save as Quote'}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Aircraft tabs + add-aircraft picker */}
-      <div className="av-ac-tabs">
+      {/* Unified toolbar: tabs + add picker · rate + actions */}
+      <div className="av-toolbar">
         {msnInputs.map((input) => {
           const active = input.msn === activeMsn
           const margin = marginByMsn.get(input.msn)
@@ -247,11 +202,11 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
             </button>
           )
         })}
-        <div className="flex items-center gap-2 ml-1.5">
+        <span className="av-addgrp">
           <select
             value={draft ? String(draft.aircraftId) : ''}
             onChange={(e) => handleSelectAircraft(e.target.value)}
-            className="av-input !py-2"
+            aria-label="Select aircraft"
           >
             <option value="">Select aircraft…</option>
             {availableAircraft.map((ac) => (
@@ -261,35 +216,82 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved }: Da
               </option>
             ))}
           </select>
-          <button onClick={commitDraft} disabled={!draft} className="av-ac-add disabled:opacity-50 disabled:cursor-not-allowed">
-            <Plus size={14} />
-            Add aircraft
+          <button onClick={commitDraft} disabled={!draft}>
+            <Plus size={13} />
+            Add
           </button>
-        </div>
+        </span>
+
+        <span className="sp" />
+
+        <span className="flex items-center gap-3 text-xs">
+          {isCalculating && <span style={{ color: 'var(--cyan-ink)' }}>Calculating…</span>}
+          {isEditing && (
+            <span className="px-2 py-1 rounded-md av-num" style={{ color: 'var(--cyan-ink)', background: 'var(--cyan-soft)' }}>
+              Editing {editingQuoteNumber}
+            </span>
+          )}
+          {savedNotice && <span style={{ color: 'var(--pos)' }}>Saved: {savedNotice}</span>}
+        </span>
+
+        <label className="av-tb-rate">
+          USD/EUR
+          <input
+            type="number"
+            step="0.0001"
+            value={exchangeRate}
+            onChange={(e) => setExchangeRate(e.target.value)}
+            readOnly={isViewer}
+            tabIndex={isViewer ? -1 : undefined}
+            className="av-num"
+          />
+        </label>
+        {isEditing && !isViewer && (
+          <button onClick={() => reset()} className="av-btn av-btn-ghost !text-xs !h-[34px] !py-0">
+            New quote
+          </button>
+        )}
+        <button
+          onClick={handleExport}
+          disabled={committedCount === 0 || isExporting}
+          title="Download the calculation as an Excel workbook (Calculation, P&L, Aircraft, Crew, Costs)"
+          className="av-btn av-btn-ghost !text-xs !h-[34px] !py-0 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download size={12} />
+          {isExporting ? 'Preparing…' : 'Excel'}
+        </button>
+        {!isViewer && (
+          <button
+            onClick={() => setShowSaveDialog(true)}
+            disabled={committedCount === 0 || msnResults.length === 0}
+            className="av-btn av-btn-cyan !text-xs !h-[34px] !py-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save size={12} />
+            {isEditing ? 'Update Quote' : 'Save as Quote'}
+          </button>
+        )}
       </div>
 
-      {/* Work grid: inputs (left) · live results (right) */}
-      <div className="av-work-grid">
-        <div className="av-panel overflow-hidden">
-          {activeInput ? (
-            <MsnInputRow
-              key={activeInput.msn}
-              input={activeInput}
-              onUpdate={updateMsnInput}
-              onRemove={removeMsnInput}
-              aircraftList={aircraftList}
-              usedMsns={msnInputs.map((i) => i.msn)}
-            />
-          ) : (
-            <p className="text-xs text-center py-10" style={{ color: 'var(--muted)' }}>
-              No aircraft added yet. Select an aircraft above to begin pricing.
-            </p>
-          )}
+      {/* Ticket deck (inputs, full width) above live results */}
+      {activeInput ? (
+        <MsnInputRow
+          key={activeInput.msn}
+          input={activeInput}
+          onUpdate={updateMsnInput}
+          onRemove={removeMsnInput}
+          aircraftList={aircraftList}
+          usedMsns={msnInputs.map((i) => i.msn)}
+        />
+      ) : (
+        <div className="av-panel">
+          <p className="text-xs text-center py-10" style={{ color: 'var(--muted)' }}>
+            No aircraft added yet. Select an aircraft above to begin pricing.
+          </p>
         </div>
+      )}
 
-        <div className="min-w-0">
-          <SummaryTable aircraftList={aircraftList} editable={!isViewer} />
-        </div>
+      <div className="min-w-0">
+        <SummaryTable aircraftList={aircraftList} editable={!isViewer} />
       </div>
 
       {/* Save Quote Dialog */}

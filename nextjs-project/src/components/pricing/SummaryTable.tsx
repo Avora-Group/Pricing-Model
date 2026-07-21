@@ -884,6 +884,15 @@ export function SummaryTable({
               <button key={b} className={rateBasis === b ? 'on' : ''} onClick={() => setRateBasis(b)} style={{ textTransform: 'capitalize' }}>{b}</button>
             ))}
           </div>
+          {!canViewCosts && msnInputs.some((i) => i.seasonalityEnabled) && (
+            <div className="av-seg">
+              {(['total', 'summer', 'winter'] as const).map((f) => (
+                <button key={f} className={seasonFilter === f ? 'on' : ''} onClick={() => setSeasonFilter(f)}>
+                  {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

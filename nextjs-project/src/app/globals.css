@@ -358,9 +358,11 @@ body {
 .av-vf-loss { background: var(--neg-soft); color: var(--neg); }
 
 /* waterfall */
-.av-wf { display: flex; align-items: flex-end; gap: 10px; height: 210px; padding: 14px 20px 0; position: relative; }
-.av-wf-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; position: relative; min-width: 0; }
-.av-wf-bar { width: 100%; max-width: 64px; border-radius: 5px 5px 0 0; position: relative; transition: height .5s cubic-bezier(.22,1,.36,1); min-height: 2px; }
+.av-wf { display: flex; align-items: flex-end; gap: 14px; height: 172px; padding: 30px 18px 0; margin: 0 0 12px; position: relative; }
+.av-wf-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; position: relative; min-width: 0; z-index: 1; }
+.av-wf::before { content: ""; position: absolute; left: 18px; right: 18px; top: 33%; height: 1px; background: var(--line-2); }
+.av-wf::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: 26px; height: 1px; background: var(--line); }
+.av-wf-bar { width: 100%; max-width: 46px; border-radius: 4px 4px 0 0; position: relative; transition: height .5s cubic-bezier(.22,1,.36,1); min-height: 2px; }
 .av-wf-bar.rev  { background: linear-gradient(180deg, var(--navy-500), var(--navy)); }
 .av-wf-bar.cost { background: linear-gradient(180deg, #f0b5b5, #e08a8a); }
 .av-wf-bar.net  { background: linear-gradient(180deg, #2cc39c, var(--pos)); }
@@ -370,16 +372,16 @@ body {
 .av-wf-lab b { display: block; color: var(--ink-2); font-size: 10.5px; }
 
 /* cost breakdown table (Line | €/month | Project total | Per BH | % rev) */
-.av-bd-tbl { width: 100%; border-collapse: collapse; }
-.av-bd-tbl td { padding: 10px 20px; font-size: 13px; border-bottom: 1px solid var(--line-2); }
+.av-bd-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.av-bd-tbl td { padding: 8px 14px; font-size: 12.5px; border-bottom: 1px solid var(--line-2); }
 .av-bd-tbl td.r { text-align: right; font-weight: 600; }
-.av-bd-tbl td.pct { text-align: right; color: var(--muted); font-size: 12px; width: 70px; }
-.av-bd-tbl tr.head td { font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 700; background: var(--card-2); }
+.av-bd-tbl td.pct { text-align: right; color: var(--muted); font-size: 11px; }
+.av-bd-tbl tr.head td { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 800; background: var(--card-2); white-space: nowrap; padding: 7px 14px; }
 .av-bd-tbl tr.total td { font-weight: 800; color: var(--brand); border-top: 1.5px solid var(--line); background: var(--card-2); }
 .dark .av-bd-tbl tr.total td { color: var(--ink); }
-.av-bd-tbl tr.sub td:first-child { padding-left: 34px; color: var(--ink-2); }
-.av-bd-tbl .cat { display: flex; align-items: center; gap: 9px; font-weight: 600; }
-.av-bd-tbl .cat .sw { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+.av-bd-tbl tr.sub td:first-child { padding-left: 30px; color: var(--ink-2); }
+.av-bd-tbl .cat { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.av-bd-tbl .cat .sw { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
 /* sensitivity strip */
 .av-sens-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }

@@ -337,7 +337,6 @@ export function SummaryTable({
     apuFhRatio: globalApuFhRatio,
     projectName,
     setProjectName,
-    setExchangeRate,
     msnInputs,
     selectedMsn,
     setSelectedMsn,
@@ -830,150 +829,115 @@ export function SummaryTable({
 
   return (
     <div className={`flex flex-col gap-[18px] transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
-      {/* ── Scope + display controls ── */}
-      <div className="av-panel">
-        <div className="av-card-b flex items-center gap-2 flex-wrap" style={{ padding: '12px 16px' }}>
-          {/* Scope: Total / per-MSN */}
-          <div className="av-seg" style={{ flex: 'unset' }}>
-            <button
-              className={selectedMsn === null ? 'on' : ''}
-              onClick={() => setSelectedMsn(null)}
-              style={{ padding: '6px 12px' }}
-            >
-              Total
-            </button>
+      {/* ── Verdict strip ── */}
+      <div className="av-strip">
+        {canViewCosts && (
+          <div className="m">
+            <div className="l">
+              <span className="whitespace-nowrap">Net profit · mo</span>
+              <input
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                readOnly={!editable}
+                placeholder="Untitled project"
+                className="av-num bg-transparent border-0 p-0 focus:outline-none font-semibold normal-case tracking-normal"
+                style={{ color: 'var(--ink-2)', fontSize: 11, minWidth: 0, flex: '1 1 auto', letterSpacing: 0 }}
+                title="Project name"
+              />
+            </div>
+            <div className={`v av-num${mNetProfit < 0 ? ' neg' : ' pos'}`}>{fmt(cur(mNetProfit), 0)} {bdUnit}</div>
+            <div className="s av-num">
+              {periodMonths > 0
+                ? `${fmt(cur(projectNet), 0)} over ${periodMonths}-mo term`
+                : 'Set a contract term to see project total'}
+            </div>
+          </div>
+        )}
+        {canViewCosts && (
+          <div className="m">
+            <div className="l">Net margin</div>
+            <div className="v av-num" style={{ color: marginTone(netMargin) }}>{(netMargin * 100).toFixed(1)}%</div>
+            <div className="s av-num">GP margin {(gpMargin * 100).toFixed(1)}%</div>
+          </div>
+        )}
+        <div className="m">
+          <div className="l">Revenue · mo</div>
+          <div className="v av-num">{fmt(cur(mRevenue), 0)} {bdUnit}</div>
+          <div className="s av-num">{fmt(mBhActual, 0)} BH · {fmt(mFc, 0)} cycles</div>
+        </div>
+        {canViewCosts && <div className={`flag ${flag.cls}`}>{flag.text}</div>}
+        <div className="scope">
+          <div className="av-seg">
+            <button className={selectedMsn === null ? 'on' : ''} onClick={() => setSelectedMsn(null)}>Total</button>
             {msnInputs.map((input) => (
-              <button
-                key={input.msn}
-                className={selectedMsn === input.msn ? 'on' : ''}
-                onClick={() => setSelectedMsn(input.msn)}
-                style={{ padding: '6px 12px' }}
-              >
+              <button key={input.msn} className={selectedMsn === input.msn ? 'on' : ''} onClick={() => setSelectedMsn(input.msn)}>
                 <span className="av-num">{input.msn}</span>
               </button>
             ))}
           </div>
+          <div className="av-seg">
+            {(['eur', 'usd'] as const).map((c) => (
+              <button key={c} className={currency === c ? 'on' : ''} onClick={() => setCurrency(c)}>{c.toUpperCase()}</button>
+            ))}
+            {canViewNaked && (['current', 'naked'] as const).map((b) => (
+              <button key={b} className={rateBasis === b ? 'on' : ''} onClick={() => setRateBasis(b)} style={{ textTransform: 'capitalize' }}>{b}</button>
+            ))}
+          </div>
+        </div>
+      </div>
 
-          <div className="ml-auto flex items-center gap-2 flex-wrap">
-            {/* Season filter */}
-            {msnInputs.some((i) => i.seasonalityEnabled) && (
-              <div className="av-seg" style={{ flex: 'unset' }}>
-                {(['total', 'summer', 'winter'] as const).map((f) => (
-                  <button key={f} className={seasonFilter === f ? 'on' : ''} onClick={() => setSeasonFilter(f)} style={{ padding: '6px 12px' }}>
-                    {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
-              </div>
-            )}
-            {/* USD / EUR exchange rate */}
-            <label className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: 'var(--muted)' }}>
-              USD/EUR
-              <input
-                type="number"
-                step="0.0001"
-                value={globalExchangeRate}
-                onChange={(e) => setExchangeRate(e.target.value)}
-                readOnly={!editable}
-                tabIndex={editable ? undefined : -1}
-                className="av-input av-num"
-                style={{ width: 76, padding: '5px 8px' }}
-              />
-            </label>
-            {/* Currency */}
-            <div className="av-seg" style={{ flex: 'unset' }}>
-              {(['eur', 'usd'] as const).map((c) => (
-                <button key={c} className={currency === c ? 'on' : ''} onClick={() => setCurrency(c)} style={{ padding: '6px 12px' }}>
-                  {c.toUpperCase()}
-                </button>
+      {/* ── Charts: waterfall + sensitivity rail side by side ── */}
+      {canViewCosts && (
+        <div className="av-duo">
+          <div className="av-panel">
+            <div className="av-panel-h">
+              <h2>ACMI cost build-up · monthly</h2>
+              <span className="flex items-center gap-2">
+                {msnInputs.some((i) => i.seasonalityEnabled) && (
+                  <span className="av-seg" style={{ flex: 'unset', height: 24, padding: 2 }}>
+                    {(['total', 'summer', 'winter'] as const).map((f) => (
+                      <button key={f} className={seasonFilter === f ? 'on' : ''} onClick={() => setSeasonFilter(f)} style={{ padding: '0 10px', fontSize: 10.5 }}>
+                        {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                      </button>
+                    ))}
+                  </span>
+                )}
+                <span className="av-hint">Revenue → cost stack → net</span>
+              </span>
+            </div>
+            <div className="av-wf">
+              {wfBars.map((s, i) => (
+                <div className="av-wf-col" key={i}>
+                  <div
+                    className={`av-wf-bar ${s.cls}${s.neg ? ' isneg' : ''}`}
+                    style={{ height: `${s.barH}%`, marginBottom: `${s.floatBottom}%` }}
+                  >
+                    <span className="av-wf-val av-num">{compact(s.v)}</span>
+                  </div>
+                  <div className="av-wf-lab">{s.lab}</div>
+                </div>
               ))}
             </div>
-            {/* Cost basis — naked-access users only */}
-            {canViewNaked && (
-              <div className="av-seg" style={{ flex: 'unset' }}>
-                {(['current', 'naked'] as const).map((b) => (
-                  <button
-                    key={b}
-                    className={rateBasis === b ? 'on' : ''}
-                    onClick={() => setRateBasis(b)}
-                    style={{ padding: '6px 12px', textTransform: 'capitalize' }}
-                  >
-                    {b}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
-        </div>
-      </div>
 
-      {/* ── Verdict ── */}
-      <div className="av-panel overflow-hidden">
-        <div className="av-verdict-top">
-          {canViewCosts && (
-            <div className="av-vcell">
-              {/* Label + project name on one line (keeps value/subtitle aligned
-                  with the Margin & Revenue cards). */}
-              <div className="flex items-baseline gap-2">
-                <span className="vlab whitespace-nowrap">Net profit · monthly</span>
-                <input
-                  type="text"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  readOnly={!editable}
-                  placeholder="Untitled project"
-                  className="av-num bg-transparent border-0 p-0 focus:outline-none font-semibold"
-                  style={{ color: 'var(--ink-2)', fontSize: 13, minWidth: 0, flex: '1 1 auto' }}
-                  title="Project name"
-                />
-              </div>
-              <div className="vval av-num" style={mNetProfit < 0 ? { color: 'var(--neg)' } : undefined}>
-                {fmt(cur(mNetProfit), 0)} {bdUnit}
-              </div>
-              <div className="vsub av-num">
-                {periodMonths > 0
-                  ? `${fmt(cur(projectNet), 0)} over ${periodMonths}-month term`
-                  : 'Set a contract term to see project total'}
-              </div>
+          <div className="av-panel">
+            <div className="av-panel-h">
+              <h2>Rate sensitivity</h2>
+              <span className="av-hint">net margin @ ±150/BH</span>
             </div>
-          )}
-          {canViewCosts && (
-            <div className="av-vcell">
-              <div className="vlab">Net margin</div>
-              <div className="vval av-num" style={{ color: marginTone(netMargin) }}>
-                {(netMargin * 100).toFixed(1)}%
-              </div>
-              <div className="vsub av-num">GP margin {(gpMargin * 100).toFixed(1)}%</div>
+            <div className="av-sens-rail">
+              {(() => {
+                const maxM = Math.max(...sens.map((s) => s.m), 0.001)
+                return sens.map((s, i) => (
+                  <div className={`av-sens-row${s.cur ? ' cur' : ''}`} key={i}>
+                    <span className="rr av-num">{fmt(s.rate, 0)}</span>
+                    <span className="bar"><i style={{ width: `${Math.max(0, (s.m / maxM) * 100)}%` }} /></span>
+                    <span className="mv av-num" style={{ color: marginTone(s.m) }}>{(s.m * 100).toFixed(0)}%</span>
+                  </div>
+                ))
+              })()}
             </div>
-          )}
-          <div className="av-vcell">
-            <div className="vlab">Monthly revenue</div>
-            <div className="vval av-num">{fmt(cur(mRevenue), 0)} {bdUnit}</div>
-            <div className="vsub av-num">{fmt(mBhActual, 0)} BH · {fmt(mFc, 0)} cycles</div>
-          </div>
-        </div>
-        {/* Verdict flag exposes the net margin verdict — naked-cost only. */}
-        {canViewCosts && <div className={`av-verdict-flag ${flag.cls}`}>{flag.text}</div>}
-      </div>
-
-      {/* ── Waterfall ── (naked cost build-up: hidden without permission) */}
-      {canViewCosts && (
-        <div className="av-panel">
-          <div className="av-panel-h">
-            <h2>ACMI cost build-up · monthly</h2>
-            <span className="av-hint">Revenue → cost stack → net</span>
-          </div>
-          <div className="av-wf">
-            {wfBars.map((s, i) => (
-              <div className="av-wf-col" key={i}>
-                <div
-                  className={`av-wf-bar ${s.cls}${s.neg ? ' isneg' : ''}`}
-                  style={{ height: `${s.barH}%`, marginBottom: `${s.floatBottom}%` }}
-                >
-                  <span className="av-wf-val av-num">{compact(s.v)}</span>
-                </div>
-                <div className="av-wf-lab">{s.lab}</div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -988,6 +952,13 @@ export function SummaryTable({
         </div>
         <div className="overflow-x-auto">
           <table className="av-bd-tbl">
+            <colgroup>
+              <col />
+              <col style={{ width: 132 }} />
+              <col style={{ width: 148 }} />
+              <col style={{ width: 92 }} />
+              <col style={{ width: 62 }} />
+            </colgroup>
             <tbody>
               <tr className="head">
                 <td>Line</td>
@@ -1083,27 +1054,6 @@ export function SummaryTable({
           </table>
         </div>
       </div>
-
-      {/* ── Rate sensitivity ── (net margin / net figures: naked cost) */}
-      {canViewCosts && (
-        <div className="av-panel">
-          <div className="av-panel-h">
-            <h2>Rate sensitivity</h2>
-            <span className="av-hint">net margin @ ±150/BH</span>
-          </div>
-          <div className="av-card-b">
-            <div className="av-sens-grid">
-              {sens.map((s, i) => (
-                <div className={`av-sens-cell${s.cur ? ' cur' : ''}`} key={i}>
-                  <div className="sr av-num">{fmt(s.rate, 0)}</div>
-                  <div className="sm av-num" style={{ color: marginTone(s.m) }}>{(s.m * 100).toFixed(0)}%</div>
-                  <div className="sn av-num">{compact(s.net)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Drill-down build-up popover */}
       {drill && (() => {

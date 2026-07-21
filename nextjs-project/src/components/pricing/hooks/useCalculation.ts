@@ -26,10 +26,15 @@ export function useCalculation(
   // New Quote dialog closing and restoring workspace state) must not write
   // its result into the store afterwards.
   const aliveRef = useRef(true)
+  const inFlightRef = useRef(false)
   useEffect(() => {
     aliveRef.current = true
     return () => {
       aliveRef.current = false
+      // A calculation still in flight can never clear the shared
+      // isCalculating flag after this unmount (the alive guard drops its
+      // write), so clear it here — otherwise the P&L view stays dimmed.
+      if (inFlightRef.current) usePricingStore.getState().setIsCalculating(false)
     }
   }, [])
 
@@ -43,6 +48,7 @@ export function useCalculation(
 
     debounceRef.current = setTimeout(async () => {
       setIsCalculating(true)
+      inFlightRef.current = true
       setLastError(null)
 
       // Expand seasonal MSNs into two entries (one per season)
@@ -86,6 +92,8 @@ export function useCalculation(
         rate_basis: rateBasis,
         msn_inputs: expandedInputs,
       })
+
+      inFlightRef.current = false
 
       if (!aliveRef.current) return
 
@@ -148,6 +156,9 @@ export function useCalculation(
       setIsCalculating(false)
     }, 500)
 
+    // Load-bearing beyond debouncing: the /calculation leak guard resets the
+    // stores on mount and relies on this cleanup to cancel a timer scheduled
+    // over pre-reset inputs — without it, leaked results reappear ~500ms in.
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }

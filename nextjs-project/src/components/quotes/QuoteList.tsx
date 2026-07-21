@@ -200,7 +200,13 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
             {!isViewer && (
               <button
                 type="button"
-                onClick={() => setShowNewQuote(true)}
+                onClick={() => {
+                  // Invalidate any pending row-Edit fetch so it can't hijack
+                  // the blank dialog, and release that row's pencil.
+                  editReqRef.current++
+                  setEditLoadingId(null)
+                  setShowNewQuote(true)
+                }}
                 className="av-btn av-btn-cyan !text-xs !py-0 !h-10 whitespace-nowrap"
               >
                 <Plus size={12} />

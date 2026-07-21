@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Variant A — Unified toolbar + compact grid</title>
+<link rel="stylesheet" href="ds.css">
+<style>
+  /* ── mockup-specific: the redesign's draft layout CSS ── */
+  * { box-sizing: border-box; margin: 0; }
+  body { padding: 24px; }
+  .modal { max-width: 1560px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden; }
+
+  /* slim modal header — title + window actions on ONE row, no dead band below */
+  .m-head { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--line-2); background: var(--panel-h-bg); }
+  .m-head h1 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .m-head .x { margin-left: auto; color: var(--muted); font-size: 16px; cursor: pointer; line-height: 1; }
+
+  /* unified toolbar: tabs + add-combo left · actions right. ALL controls h34 r8 */
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+  .ctl { height: 34px; border-radius: 8px; font-size: 12.5px; font-weight: 600; }
+  .tab { display: inline-flex; align-items: center; gap: 8px; padding: 0 13px; background: var(--card); border: 1px solid var(--line); color: var(--ink-2); cursor: pointer; }
+  .tab.draft { border-style: dashed; border-color: var(--amber); }
+  .tab .ty { font-size: 10px; opacity: .65; }
+  .tab .draft-badge { font-size: 9px; font-weight: 800; letter-spacing: .06em; color: var(--amber); }
+  /* fused add-aircraft: select + button share ONE outline */
+  .addgrp { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card-2); }
+  .addgrp select { border: 0; background: transparent; color: var(--ink); font-size: 12.5px; font-weight: 600; padding: 0 10px; height: 32px; outline: none; }
+  .addgrp button { border: 0; border-left: 1px solid var(--line); background: var(--card); color: var(--cyan-ink); font-weight: 700; font-size: 12.5px; padding: 0 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .toolbar .spacer { flex: 1; }
+  .act-ghost { display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; background: var(--card); border: 1px solid var(--line); color: var(--ink-2); cursor: pointer; }
+  .act-primary { display: inline-flex; align-items: center; gap: 6px; padding: 0 15px; background: var(--cyan); border: 1px solid var(--cyan); color: #fff; cursor: pointer; box-shadow: 0 3px 10px rgba(0,123,242,.25); }
+
+  /* work grid — narrower editor, denser gap */
+  .work { display: grid; grid-template-columns: 336px 1fr; gap: 14px; padding: 14px 16px 16px; align-items: start; background: var(--bg); }
+
+  /* ── left: compact editor ── */
+  .ed { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .ed-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line-2); background: var(--panel-h-bg); }
+  .ed-h b { font-size: 13px; color: var(--ink); }
+  .ed-h .ty { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .ed-h .x { margin-left: auto; color: var(--muted); cursor: pointer; }
+  .chiprow { display: flex; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--line-2); }
+  .chip-t { font-size: 10.5px; font-weight: 700; padding: 4px 9px; border-radius: 20px; border: 1px solid var(--line); color: var(--muted); cursor: pointer; }
+  .chip-t.on { background: var(--cyan-soft); border-color: var(--cyan); color: var(--cyan-ink); }
+  .ed-b { padding: 12px 14px 14px; }
+  .sec { display: flex; align-items: center; gap: 8px; margin: 14px 0 9px; }
+  .sec:first-child { margin-top: 0; }
+  .sec span { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 800; white-space: nowrap; }
+  .sec::after { content: ""; height: 1px; background: var(--line-2); flex: 1; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 10px; }
+  /* compact slider-field: label+value on one 18px row, thin slider under */
+  .sf label { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; font-weight: 600; color: var(--ink-2); margin-bottom: 3px; }
+  .sf label .v { font-size: 12px; font-weight: 700; color: var(--cyan-ink); font-variant-numeric: tabular-nums; background: var(--cyan-soft); border-radius: 5px; padding: 1px 6px; }
+  .sf input[type=range] { width: 100%; -webkit-appearance: none; height: 4px; border-radius: 3px; background: var(--line); outline: none; }
+  .sf input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--cyan); border: 2px solid var(--card); box-shadow: 0 1px 4px rgba(0,123,242,.4); }
+  /* compact text/number fields */
+  .nf label { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .nf input, .nf .ro { width: 100%; height: 30px; border: 1px solid var(--line); border-radius: 7px; padding: 0 9px; background: var(--card-2); color: var(--ink); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .nf .ro { display: flex; align-items: center; background: var(--line-2); color: var(--ink-2); border-style: dashed; }
+  .seg { display: flex; background: var(--line-2); border-radius: 7px; padding: 2px; gap: 2px; height: 30px; }
+  .seg button { flex: 1; border: 0; border-radius: 5px; font-size: 11.5px; font-weight: 600; color: var(--muted); background: none; cursor: pointer; }
+  .seg button.on { background: var(--card); color: var(--brand); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .mt8 { margin-top: 8px; }
+
+  /* ── right column ── */
+  .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+  /* verdict panel: scope+display controls IN the header (old控制 panel merged) */
+  .vp-h { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--line-2); background: var(--panel-h-bg); flex-wrap: wrap; }
+  .vp-h .seg { height: 28px; flex: unset; }
+  .vp-h .seg button { padding: 0 12px; flex: unset; }
+  .vp-h .rate { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+  .vp-h .rate input { width: 64px; height: 28px; border: 1px solid var(--line); border-radius: 7px; padding: 0 8px; background: var(--card-2); font-variant-numeric: tabular-nums; color: var(--ink); font-size: 12px; }
+  .vgrid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 1px; background: var(--line-2); }
+  .vcell { background: var(--card); padding: 13px 16px 12px; }
+  .vcell .vlab { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .vcell .vval { font-size: 26px; font-weight: 800; letter-spacing: -.6px; margin-top: 5px; color: var(--brand); font-variant-numeric: tabular-nums; }
+  .vcell .vval.pos { color: var(--pos); }
+  .vcell .vsub { font-size: 11px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .vflag { padding: 8px 16px; font-size: 12px; font-weight: 600; background: var(--pos-soft); color: var(--pos); }
+
+  /* waterfall: room for value labels, baseline, tighter bars */
+  .wf-wrap { padding: 30px 18px 12px; }
+  .wf { display: flex; align-items: flex-end; gap: 14px; height: 172px; border-bottom: 1px solid var(--line); position: relative; }
+  .wf::before { content: ""; position: absolute; left: 0; right: 0; top: 33%; height: 1px; background: var(--line-2); }
+  .wf::after  { content: ""; position: absolute; left: 0; right: 0; top: 66%; height: 1px; background: var(--line-2); }
+  .wf-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; position: relative; z-index: 1; }
+  .wf-bar { width: 100%; max-width: 46px; border-radius: 4px 4px 0 0; position: relative; }
+  .wf-bar .v { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 700; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .wf-bar.rev { background: linear-gradient(180deg, var(--navy-500), var(--navy)); }
+  .wf-bar.cost { background: linear-gradient(180deg, #f0b5b5, #e08a8a); }
+  .wf-bar.net { background: linear-gradient(180deg, #2cc39c, var(--pos)); }
+  .wf-labels { display: flex; gap: 14px; margin-top: 7px; }
+  .wf-labels span { flex: 1; text-align: center; font-size: 9.5px; font-weight: 600; color: var(--muted); }
+
+  /* breakdown table: fixed numeric columns clustered right, tight rows */
+  .bd { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .bd col.c-line { width: auto; } .bd col.c-m { width: 132px; } .bd col.c-t { width: 148px; } .bd col.c-bh { width: 92px; } .bd col.c-p { width: 62px; }
+  .bd td { padding: 8px 14px; font-size: 12.5px; border-bottom: 1px solid var(--line-2); font-variant-numeric: tabular-nums; }
+  .bd tr.head td { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 800; background: var(--card-2); white-space: nowrap; padding: 7px 14px; }
+  .bd td.r { text-align: right; font-weight: 600; }
+  .bd td.p { text-align: right; color: var(--muted); font-size: 11px; }
+  .bd tr.sub td:first-child { padding-left: 30px; color: var(--ink-2); }
+  .bd tr.total td { font-weight: 800; color: var(--brand); border-top: 1.5px solid var(--line); background: var(--card-2); }
+  .bd .cat { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+  .bd .sw { width: 8px; height: 8px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="modal">
+  <div class="m-head"><h1>New Quote — Pricing Workspace</h1><span class="x">✕</span></div>
+
+  <div class="toolbar">
+    <span class="ctl tab draft"><b>MSN 3055</b><span class="ty">A320</span><span class="draft-badge">Draft</span></span>
+    <span class="ctl addgrp">
+      <select><option>Select aircraft…</option></select>
+      <button>+ Add</button>
+    </span>
+    <span class="spacer"></span>
+    <button class="ctl act-ghost">⬇ Excel</button>
+    <button class="ctl act-primary">Save as Quote</button>
+  </div>
+
+  <div class="work">
+    <!-- ══ left: compact editor ══ -->
+    <div class="ed">
+      <div class="ed-h"><b>MSN 3055</b><span class="ty">A320 · swap ⟳</span><span class="x">✕</span></div>
+      <div class="chiprow"><span class="chip-t">Seasonality</span><span class="chip-t">FC Coverage</span></div>
+      <div class="ed-b">
+        <div class="sec"><span>Utilisation &amp; Rate</span></div>
+        <div class="g2">
+          <div class="sf"><label>MGH <span class="v">350</span></label><input type="range" min="0" max="700" value="350"></div>
+          <div class="sf"><label>ACMI €/BH <span class="v">3,500</span></label><input type="range" min="0" max="8000" value="3500"></div>
+        </div>
+        <div class="g2 mt8">
+          <div class="sf"><label>FH : FC <span class="v">1.0</span></label><input type="range" min="0" max="5" value="1"></div>
+          <div class="sf"><label>Crew sets <span class="v">4</span></label><input type="range" min="1" max="8" value="4"></div>
+        </div>
+        <div class="g2 mt8">
+          <div class="nf"><label>Excess rate (EUR)</label><input value="0"></div>
+          <div class="nf"><label>Excess hours</label><input value="0"></div>
+        </div>
+
+        <div class="sec"><span>Term</span></div>
+        <div class="g3">
+          <div class="nf"><label>Start</label><input value="07/01/2026"></div>
+          <div class="nf"><label>End</label><input value="06/30/2027"></div>
+          <div class="nf"><label>Duration</label><div class="ro">365d · 12mo</div></div>
+        </div>
+
+        <div class="sec"><span>Operation</span></div>
+        <div class="g2">
+          <div class="nf"><label>Environment</label>
+            <div class="seg"><button class="on">Benign</button><button>Hot</button></div>
+          </div>
+          <div class="nf"><label>Lease type</label>
+            <div class="seg"><button class="on">Wet</button><button>Damp</button><button>Moist</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ right: results ══ -->
+    <div class="col">
+      <div class="av-panel">
+        <div class="vp-h">
+          <div class="seg"><button class="on">Total</button><button>3055</button></div>
+          <span class="rate">USD/EUR <input value="0.85"></span>
+          <div class="seg"><button class="on">EUR</button><button>USD</button></div>
+          <div class="seg"><button class="on">Current</button><button>Naked</button></div>
+        </div>
+        <div class="vgrid">
+          <div class="vcell"><div class="vlab">Net profit · monthly</div><div class="vval pos">316,943 EUR</div><div class="vsub">3,803,317 over 12-month term</div></div>
+          <div class="vcell"><div class="vlab">Net margin</div><div class="vval pos">25.9%</div><div class="vsub">GP margin 30.6%</div></div>
+          <div class="vcell"><div class="vlab">Monthly revenue</div><div class="vval">1,225,000</div><div class="vsub">350 BH · 292 cycles</div></div>
+        </div>
+        <div class="vflag">Healthy deal — 25.9% net margin clears the 10% hurdle</div>
+      </div>
+
+      <div class="av-panel">
+        <div class="av-panel-h"><h2>ACMI cost build-up · monthly</h2><span class="av-hint">revenue → cost stack → net</span></div>
+        <div class="wf-wrap">
+          <div class="wf">
+            <div class="wf-col"><div class="wf-bar rev" style="height:100%"><span class="v">1.2M</span></div></div>
+            <div class="wf-col"><div class="wf-bar cost" style="height:41%;margin-bottom:59%"><span class="v">505k</span></div></div>
+            <div class="wf-col"><div class="wf-bar cost" style="height:13%;margin-bottom:46%"><span class="v">160k</span></div></div>
+            <div class="wf-col"><div class="wf-bar cost" style="height:13%;margin-bottom:33%"><span class="v">162k</span></div></div>
+            <div class="wf-col"><div class="wf-bar cost" style="height:2%;margin-bottom:31%"><span class="v">11k</span></div></div>
+            <div class="wf-col"><div class="wf-bar cost" style="height:2%;margin-bottom:29%"><span class="v">12k</span></div></div>
+            <div class="wf-col"><div class="wf-bar cost" style="height:5%;margin-bottom:26%"><span class="v">58k</span></div></div>
+            <div class="wf-col"><div class="wf-bar net" style="height:26%"><span class="v">317k</span></div></div>
+          </div>
+          <div class="wf-labels"><span>Revenue</span><span>Aircraft</span><span>Crew</span><span>Maint.</span><span>Insurance</span><span>DOC</span><span>Overhead</span><span>Net</span></div>
+        </div>
+      </div>
+
+      <div class="av-panel">
+        <div class="av-panel-h"><h2>Cost breakdown</h2><span class="av-hint">monthly · project total (12 mo) · per block hour (350 BH)</span></div>
+        <table class="bd">
+          <colgroup><col class="c-line"><col class="c-m"><col class="c-t"><col class="c-bh"><col class="c-p"></colgroup>
+          <tr class="head"><td>Line</td><td class="r">EUR / month</td><td class="r">Project total</td><td class="r">Per BH</td><td class="p">% rev</td></tr>
+          <tr><td><span class="cat"><span class="sw" style="background:var(--navy)"></span>Total revenue</span></td><td class="r" style="color:var(--brand)">1,225,000</td><td class="r">14,700,000</td><td class="r">3,500</td><td class="p">100%</td></tr>
+          <tr class="sub"><td><span class="cat"><span class="sw" style="background:#e08a8a"></span>Aircraft (lease + reserves)</span></td><td class="r">504,547</td><td class="r">6,054,567</td><td class="r">1,442</td><td class="p">41%</td></tr>
+          <tr class="sub"><td><span class="cat"><span class="sw" style="background:#e5a3a3"></span>Crew</span></td><td class="r">159,929</td><td class="r">1,919,146</td><td class="r">457</td><td class="p">13%</td></tr>
+          <tr class="sub"><td><span class="cat"><span class="sw" style="background:#eab5b5"></span>Maintenance</span></td><td class="r">162,217</td><td class="r">1,946,607</td><td class="r">463</td><td class="p">13%</td></tr>
+          <tr class="sub"><td><span class="cat"><span class="sw" style="background:#f0c8c8"></span>Insurance</span></td><td class="r">11,066</td><td class="r">132,794</td><td class="r">32</td><td class="p">1%</td></tr>
+          <tr class="sub"><td><span class="cat"><span class="sw" style="background:#f4d6d6"></span>DOC</span></td><td class="r">12,222</td><td class="r">146,667</td><td class="r">35</td><td class="p">1%</td></tr>
+          <tr class="total"><td>ACMI cost</td><td class="r">849,982</td><td class="r">10,199,780</td><td class="r">2,429</td><td class="p">69%</td></tr>
+          <tr><td><span class="cat"><span class="sw" style="background:var(--pos)"></span>Gross profit</span></td><td class="r av-pos">375,018</td><td class="r av-pos">4,500,220</td><td class="r av-pos">1,071</td><td class="p">31%</td></tr>
+          <tr class="sub"><td>Overhead</td><td class="r">58,075</td><td class="r">696,903</td><td class="r">166</td><td class="p">5%</td></tr>
+          <tr class="total"><td>Net profit</td><td class="r av-pos">316,943</td><td class="r av-pos">3,803,317</td><td class="r av-pos">906</td><td class="p">26%</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -242,34 +242,42 @@ body {
 .av-link, .tlink { color: var(--cyan-ink); font-weight: 700; cursor: pointer; }
 .av-link:hover, .tlink:hover { text-decoration: underline; }
 
-/* ---------- Dashboard hero ---------- */
-.av-hero {
-  background: linear-gradient(120deg, var(--rail-top) 0%, #0a2f96 55%, #0d3aae 100%);
-  border-radius: var(--radius); padding: 24px 26px; color: #fff;
-  position: relative; overflow: hidden; box-shadow: var(--shadow);
-}
-.av-hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 260px; height: 260px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,123,242,.28), transparent 68%); }
-.av-hero::before { content: ""; position: absolute; right: 120px; bottom: -80px; width: 220px; height: 220px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,123,242,.14), transparent 70%); }
-.av-hero-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; position: relative; z-index: 1; align-items: center; }
-.av-hero-eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: #9fb0e8; font-weight: 700; }
-.av-hero-val { font-family: var(--font-serif); font-size: 44px; font-weight: 700; letter-spacing: -.5px; margin-top: 8px; line-height: 1; }
-.av-hero-sub { color: #c3ccec; font-size: 13px; margin-top: 9px; }
-.av-hero-sub b { color: #fff; font-weight: 600; }
-.av-hstat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.av-hstat { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); border-radius: 11px; padding: 14px 16px; }
-.av-hstat .l { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: #9fb0e8; font-weight: 700; }
-.av-hstat .v { font-size: 23px; font-weight: 800; margin-top: 6px; letter-spacing: -.3px; }
-.av-hstat .s { font-size: 11.5px; color: #b9c3e6; margin-top: 3px; }
+/* ---------- Fleet deployment board (dashboard signature) ---------- */
+.av-fb { padding: 6px 16px 16px; min-width: 720px; }
+.av-fb-axis, .av-fb-row { display: grid; grid-template-columns: 148px 1fr 62px; gap: 12px; align-items: center; }
+.av-fb-axis { padding: 8px 0 6px; }
+.av-fb-months { display: grid; grid-template-columns: repeat(12, 1fr); }
+.av-fb-months span { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; color: var(--muted-2); text-transform: uppercase; }
+.av-fb-row { padding: 3px 0; }
+.av-fb-tail { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.av-fb-tail .ty { font-size: 10px; color: var(--muted); font-weight: 600; }
+.av-fb-track { position: relative; height: 24px; border-radius: 6px;
+  background: repeating-linear-gradient(to right, transparent 0, transparent calc(100%/12 - 1px), var(--line-2) calc(100%/12 - 1px), var(--line-2) calc(100%/12));
+  background-color: color-mix(in srgb, var(--line-2) 24%, transparent); }
+.av-fb-track.idle { opacity: .55; }
+.av-fb-seg { position: absolute; top: 2px; bottom: 2px; border-radius: 5px; display: flex; align-items: center;
+  padding: 0 8px; font-size: 10.5px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; }
+.av-fb-seg.sent { background: color-mix(in srgb, #18B4D8 16%, transparent); border: 1.5px dashed #18B4D8; color: var(--cyan-ink); }
+.av-fb-seg.signed { background: #3f56b0; }
+.av-fb-seg.active { background: #2cc39c; }
+.av-fb-util { font-size: 11.5px; font-weight: 800; text-align: right; color: var(--ink-2); }
+.av-fb-util .idle { color: var(--muted-2); font-weight: 600; font-size: 10.5px; }
+.av-fb-today { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid var(--amber); z-index: 2; }
+.av-fb-today i { position: absolute; top: -15px; left: -14px; font-style: normal; font-size: 8.5px; font-weight: 800;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--amber); }
+.av-fb-legend { display: flex; gap: 16px; padding: 10px 2px 0; font-size: 10.5px; color: var(--muted); font-weight: 600; flex-wrap: wrap; }
+.av-fb-legend .d { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 
-/* pipeline stacked bar */
-.av-pipe-bar { display: flex; height: 12px; border-radius: 7px; overflow: hidden; margin-top: 6px; background: rgba(255,255,255,.12); }
-.av-pipe-seg { height: 100%; transition: width .8s cubic-bezier(.22,1,.36,1); }
-.av-pipe-legend { display: flex; gap: 18px; margin-top: 14px; flex-wrap: wrap; }
-.av-pipe-legend .pl { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #c9d2ee; }
-.av-pipe-legend .pl .d { width: 9px; height: 9px; border-radius: 3px; }
-.av-pipe-legend .pl b { color: #fff; font-weight: 700; }
+/* dashboard charts row */
+.dash-charts { grid-template-columns: 1fr 1.4fr; }
+
+/* pipeline flow strip */
+.av-flow { display: flex; align-items: center; flex: 1; padding: 16px; }
+.av-flow-stage { flex: 1; text-align: center; padding: 10px 6px; }
+.av-flow-stage + .av-flow-stage { border-left: 1px solid var(--line-2); }
+.av-flow-stage .c { font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+.av-flow-stage .l { font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.av-flow-stage .v { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
 
 /* horizontal bar chart */
 .av-hbar-row { display: grid; grid-template-columns: 120px 1fr 92px; align-items: center; gap: 12px; padding: 8px 0; }
@@ -452,18 +460,17 @@ body {
 
 /* iPad portrait/landscape and narrow laptops */
 @media (max-width: 1024px) {
-  .av-hero-grid { grid-template-columns: 1fr; gap: 20px; }
   .av-kpi-row { grid-template-columns: repeat(2, 1fr); }
   .av-detail-stats { grid-template-columns: repeat(3, 1fr); }
   .av-deck-grid { grid-template-columns: 1fr 1fr; }
   .av-cluster { border-right: 0; border-bottom: 1px solid var(--line-2); }
   .av-duo { grid-template-columns: 1fr; }
+  .dash-charts { grid-template-columns: 1fr; }
 }
 
 /* Phones */
 @media (max-width: 640px) {
   .av-kpi-row { grid-template-columns: 1fr; }
-  .av-hstat-grid { grid-template-columns: 1fr; }
   .av-detail-stats { grid-template-columns: repeat(2, 1fr); }
   .av-hbar-row { grid-template-columns: 84px 1fr 64px; gap: 8px; }
   /* Waterfall: let the 8 bars scroll horizontally instead of crushing */

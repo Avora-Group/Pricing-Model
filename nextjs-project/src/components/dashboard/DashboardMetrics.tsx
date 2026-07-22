@@ -2,11 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Calculator, TrendingUp, List, CalendarDays } from 'lucide-react'
+import { ChevronRight, Calculator, TrendingUp } from 'lucide-react'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
-import { FleetCalendar, type CalendarSegment } from './FleetCalendar'
+import { FleetBoard, type CalendarSegment, type FleetTail } from './FleetBoard'
 import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
-import { Redacted } from '@/components/common/Redacted'
 
 // ---- Types (mirror the dashboard payload) ----
 
@@ -59,6 +58,9 @@ export interface DashboardData {
   }
   averages: { eur_per_bh: string | null; margin_percent: string | null }
   calendar: CalendarSegment[]
+  fleet: FleetTail[]
+  /** Server-rendered date (YYYY-MM-DD) so the board's today line hydrates cleanly. */
+  today: string
 }
 
 // ---- Formatting ----
@@ -106,6 +108,10 @@ const COMMITTED = new Set(['active', 'signed'])
 interface Rollup {
   signedValue: number
   pipelineValue: number
+  /** Total committed value split by status, for the pipeline flow strip. */
+  signedOnlyValue: number
+  activeValue: number
+  /** Distinct MSNs on committed deals (an MSN on two deals counts once). */
   committedMsn: number
   avgRate: string | null
   avgMargin: string | null
@@ -117,7 +123,8 @@ interface Rollup {
 function rollup(data: DashboardData): Rollup {
   let signedValue = 0
   let pipelineValue = 0
-  let committedMsn = 0
+  let signedOnlyValue = 0
+  let activeValue = 0
   let rateWeightSum = 0
   let rateWeight = 0
   let sumRev = 0
@@ -125,11 +132,14 @@ function rollup(data: DashboardData): Rollup {
   let monthlyRevenue = 0
   let monthlyProfit = 0
   let lifetimeProfit = 0
+  const committedMsns = new Set<number>()
   for (const p of data.projects) {
     const rev = n(p.total_revenue) ?? 0
     if (COMMITTED.has(p.status)) {
       signedValue += rev
-      committedMsn += p.msn_count
+      if (p.status === 'active') activeValue += rev
+      else signedOnlyValue += rev
+      for (const m of p.msns) committedMsns.add(m.msn)
       const rate = n(p.eur_per_bh)
       const mgh = n(p.total_mgh)
       if (rate && mgh) {
@@ -148,7 +158,9 @@ function rollup(data: DashboardData): Rollup {
   return {
     signedValue,
     pipelineValue,
-    committedMsn,
+    signedOnlyValue,
+    activeValue,
+    committedMsn: committedMsns.size,
     avgRate: rateWeight > 0 ? String(rateWeightSum / rateWeight) : null,
     avgMargin: sumRev > 0 ? String((sumProfit / sumRev) * 100) : null,
     monthlyRevenue,
@@ -157,62 +169,46 @@ function rollup(data: DashboardData): Rollup {
   }
 }
 
-// ---- Hero ----
+// ---- KPI band ----
 
-function Hero({ data, r, canViewCosts }: { data: DashboardData; r: Rollup; canViewCosts: boolean }) {
-  const { project_counts } = data
-  const totForBar = Math.max(project_counts.total, 1)
-  const seg = (c: number) => `${(c / totForBar) * 100}%`
-
+function KpiBand({ data, r, canViewCosts }: { data: DashboardData; r: Rollup; canViewCosts: boolean }) {
+  const fleetTotal = data.fleet.length
+  const available = fleetTotal > 0 ? Math.max(0, fleetTotal - r.committedMsn) : null
   return (
-    <div className="av-hero">
-      <div className="av-hero-grid">
-        {/* Left */}
-        <div>
-          <div className="av-hero-eyebrow">Committed contract value</div>
-          <div className="av-hero-val">{eurM(r.signedValue)}</div>
-          <div className="av-hero-sub">
-            <b>{project_counts.total}</b> projects in pipeline
-            {canViewCosts && (
-              <> · <b>{eurM(r.lifetimeProfit)}</b> lifetime profit committed</>
-            )}
-          </div>
-          <div className="av-pipe-bar mt-4">
-            <div className="av-pipe-seg" style={{ width: seg(project_counts.active), background: '#2cc39c' }} />
-            <div className="av-pipe-seg" style={{ width: seg(project_counts.signed), background: '#3f56b0' }} />
-            <div className="av-pipe-seg" style={{ width: seg(project_counts.sent), background: '#18B4D8' }} />
-          </div>
-          <div className="av-pipe-legend">
-            <div className="pl"><span className="d" style={{ background: '#2cc39c' }} /> Active <b>{project_counts.active}</b></div>
-            <div className="pl"><span className="d" style={{ background: '#3f56b0' }} /> Signed <b>{project_counts.signed}</b></div>
-            <div className="pl"><span className="d" style={{ background: '#18B4D8' }} /> Sent <b>{project_counts.sent}</b></div>
-          </div>
+    <div className="av-kpi-row">
+      <div className="av-kpi k-navy">
+        <div className="lab">Committed value</div>
+        <div className="val av-num">{eurM(r.signedValue)}</div>
+        <div className="sub">
+          signed &amp; active
+          {canViewCosts && <> · {eurM(r.lifetimeProfit)} lifetime profit</>}
         </div>
-        {/* Right */}
-        <div className="av-hstat-grid">
-          <div className="av-hstat">
-            <div className="l">Avg rate · signed &amp; active</div>
-            <div className="v av-num">{num(r.avgRate)}<span className="text-[13px] font-medium opacity-70"> €/BH</span></div>
-            <div className="s">{canViewCosts ? `${num(r.avgMargin, 1)}% blended margin` : 'signed & active deals'}</div>
-          </div>
-          <div className="av-hstat">
-            <div className="l">Fleet committed</div>
-            <div className="v av-num">{r.committedMsn}<span className="text-[13px] font-medium opacity-70"> MSN</span></div>
-            <div className="s">on signed &amp; active deals</div>
-          </div>
-          <div className="av-hstat">
-            <div className="l">Monthly revenue</div>
-            <div className="v av-num">{eur(String(r.monthlyRevenue))}</div>
-            <div className="s">committed run-rate</div>
-          </div>
-          <div className="av-hstat">
-            <div className="l">Monthly profit</div>
-            <div className="v av-num" style={{ color: canViewCosts ? (r.monthlyProfit >= 0 ? '#5eead4' : '#fca5a5') : undefined }}>
-              {canViewCosts ? eur(String(r.monthlyProfit)) : <Redacted />}
-            </div>
-            <div className="s">across committed deals</div>
-          </div>
+      </div>
+      <div className="av-kpi k-navy">
+        <div className="lab">Avg rate</div>
+        <div className="val av-num">
+          {num(r.avgRate)} <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.7 }}>€/BH</span>
         </div>
+        <div className="sub">{canViewCosts ? `${num(r.avgMargin, 1)}% blended margin` : 'signed & active deals'}</div>
+      </div>
+      <div className="av-kpi k-green">
+        <div className="lab">Fleet committed</div>
+        <div className="val av-num">
+          {r.committedMsn}
+          {fleetTotal > 0 && <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.7 }}> of {fleetTotal} MSN</span>}
+        </div>
+        <div className="sub">{available !== null ? `${available} tails available` : 'on signed & active deals'}</div>
+      </div>
+      <div className="av-kpi k-green">
+        <div className="lab">Monthly run-rate</div>
+        <div className="val av-num">{eur(String(r.monthlyRevenue))}</div>
+        {canViewCosts ? (
+          <div className={`sub av-num ${r.monthlyProfit >= 0 ? 'av-pos' : 'av-neg'}`}>
+            {signed(String(r.monthlyProfit))} profit / mo
+          </div>
+        ) : (
+          <div className="sub">committed revenue</div>
+        )}
       </div>
     </div>
   )
@@ -256,67 +252,24 @@ function RevenueByClient({ data }: { data: DashboardData }) {
   )
 }
 
-function PipelineDonut({ data, r }: { data: DashboardData; r: Rollup }) {
-  const { project_counts } = data
-  const segs = [
-    { label: 'Active', value: project_counts.active, color: '#2cc39c' },
-    { label: 'Signed', value: project_counts.signed, color: '#3f56b0' },
-    { label: 'Sent', value: project_counts.sent, color: '#18B4D8' },
+function PipelineFlow({ data, r }: { data: DashboardData; r: Rollup }) {
+  const stages = [
+    { label: 'Draft', count: data.quote_counts.draft, value: null as string | null, color: 'var(--muted)' },
+    { label: 'Sent', count: data.project_counts.sent, value: eurM(r.pipelineValue), color: '#18B4D8' },
+    { label: 'Signed', count: data.project_counts.signed, value: eurM(r.signedOnlyValue), color: '#3f56b0' },
+    { label: 'Active', count: data.project_counts.active, value: eurM(r.activeValue), color: '#2cc39c' },
   ]
-  const total = segs.reduce((s, x) => s + x.value, 0) || 1
-  const C = 2 * Math.PI * 54 // r=54
-  let offset = 0
-
   return (
-    <div className="av-panel">
-      <div className="av-panel-h"><h2>Pipeline mix</h2></div>
-      <div className="av-card-b">
-        <div className="flex items-center gap-6">
-          <div className="relative shrink-0" style={{ width: 140, height: 140 }}>
-            <svg width="140" height="140" viewBox="0 0 140 140">
-              <circle cx="70" cy="70" r="54" fill="none" stroke="var(--line)" strokeWidth="16" />
-              {segs.map((s) => {
-                const len = (s.value / total) * C
-                const el = (
-                  <circle
-                    key={s.label}
-                    cx="70" cy="70" r="54" fill="none"
-                    stroke={s.color} strokeWidth="16"
-                    strokeDasharray={`${len} ${C - len}`}
-                    strokeDashoffset={-offset}
-                    transform="rotate(-90 70 70)"
-                    strokeLinecap="butt"
-                  />
-                )
-                offset += len
-                return el
-              })}
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="text-[26px] font-extrabold" style={{ color: 'var(--brand)' }}>{project_counts.total}</div>
-              <div className="text-[10px] uppercase tracking-[0.08em] font-bold" style={{ color: 'var(--muted)' }}>Projects</div>
-            </div>
+    <div className="av-panel flex flex-col">
+      <div className="av-panel-h"><h2>Pipeline flow</h2><span className="av-hint">count · open value</span></div>
+      <div className="av-flow">
+        {stages.map((s) => (
+          <div className="av-flow-stage" key={s.label}>
+            <div className="c av-num" style={{ color: s.color }}>{s.count}</div>
+            <div className="l">{s.label}</div>
+            <div className="v av-num">{s.value ?? '—'}</div>
           </div>
-          <div className="flex-1 flex flex-col gap-2.5">
-            {segs.map((s) => (
-              <div className="flex items-center gap-2.5 text-[12.5px]" key={s.label}>
-                <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: s.color }} />
-                <span className="font-semibold" style={{ color: 'var(--ink-2)', minWidth: 52 }}>{s.label}</span>
-                <span className="ml-auto font-extrabold av-num" style={{ color: 'var(--brand)' }}>{s.value}</span>
-              </div>
-            ))}
-            <div className="mt-2 pt-2.5 space-y-1" style={{ borderTop: '1px solid var(--line-2)' }}>
-              <div className="flex justify-between text-[11.5px]">
-                <span style={{ color: 'var(--muted)' }}>Signed value</span>
-                <span className="font-bold av-num" style={{ color: 'var(--ink)' }}>{eurM(r.signedValue)}</span>
-              </div>
-              <div className="flex justify-between text-[11.5px]">
-                <span style={{ color: 'var(--muted)' }}>Open pipeline</span>
-                <span className="font-bold av-num" style={{ color: 'var(--ink)' }}>{eurM(r.pipelineValue)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )
@@ -420,43 +373,31 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
       return next
     })
 
-  const [view, setView] = useState<'list' | 'calendar'>('list')
-
-  const SwitchBtn = ({ v, icon: Icon, label }: { v: 'list' | 'calendar'; icon: typeof List; label: string }) => (
-    <button
-      onClick={() => setView(v)}
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors"
-      style={
-        view === v
-          ? { background: 'var(--card)', color: 'var(--ink)', boxShadow: '0 1px 3px rgba(0,0,0,.08)' }
-          : { color: 'var(--muted)' }
-      }
-    >
-      <Icon size={13} /> {label}
-    </button>
-  )
-
   return (
     <div className="space-y-[18px]">
-      <Hero data={data} r={r} canViewCosts={canViewCosts} />
+      <KpiBand data={data} r={r} canViewCosts={canViewCosts} />
 
-      <div className="dash-charts grid gap-[18px]" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
+      {/* Signature: fleet deployment board */}
+      <div className="av-panel">
+        <div className="av-panel-h">
+          <h2>Fleet deployment · next 12 months</h2>
+          <span className="av-hint">dashed = quoted, not yet signed</span>
+        </div>
+        <FleetBoard segments={data.calendar} fleet={data.fleet} today={data.today} />
+      </div>
+
+      <div className="dash-charts grid gap-[18px]">
+        <PipelineFlow data={data} r={r} />
         <RevenueByClient data={data} />
-        <PipelineDonut data={data} r={r} />
       </div>
 
       <div className="av-panel">
         <div className="av-panel-h">
-          <h2>{view === 'list' ? 'Projects' : 'Fleet calendar'}</h2>
-          <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'var(--line-2)' }}>
-            <SwitchBtn v="list" icon={List} label="List" />
-            <SwitchBtn v="calendar" icon={CalendarDays} label="Calendar" />
-          </div>
+          <h2>Projects</h2>
+          <span className="av-hint">expand a row for per-MSN detail</span>
         </div>
 
-        {view === 'calendar' ? (
-          <FleetCalendar segments={data.calendar} />
-        ) : data.projects.length === 0 ? (
+        {data.projects.length === 0 ? (
           <div className="px-4 py-12 text-center text-[13px]" style={{ color: 'var(--muted)' }}>
             No projects yet. Save a quote from the Pricing Workspace — its client becomes a project here.
           </div>

@@ -433,14 +433,10 @@ export function SummaryTable({
   // also falls back to combined data when a season's data is absent — so no
   // effect is needed to reset it.
 
+  // Empty workspace: the input deck placeholder above already explains what
+  // to do — rendering a second empty panel here is just noise.
   if (msnInputs.length === 0) {
-    return (
-      <div className="av-panel p-4 text-center">
-        <p className="text-xs text-[var(--text-muted)]">
-          Add an aircraft to see the pricing summary.
-        </p>
-      </div>
-    )
+    return null
   }
 
   // ── Derive crew values (same as PnlTable) ──

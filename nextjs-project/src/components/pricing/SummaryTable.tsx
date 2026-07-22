@@ -840,7 +840,8 @@ export function SummaryTable({
 
   return (
     <div className={`flex flex-col gap-[18px] transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
-      {/* ── Verdict strip ── */}
+      {/* ── Verdict strip: metrics card + verdict card, split like .av-duo ── */}
+      <div className={canViewCosts ? 'av-duo' : undefined}>
       <div className="av-strip">
         {canViewCosts && (
           <div className="m">
@@ -877,7 +878,6 @@ export function SummaryTable({
           <div className="v av-num">{fmt(cur(mRevenue), 0)} {bdUnit}</div>
           <div className="s av-num">{fmt(mBhActual, 0)} BH · {fmt(mFc, 0)} cycles</div>
         </div>
-        {canViewCosts && <div className={`flag ${flag.cls}`}>{flag.text}</div>}
         {!canViewCosts && msnInputs.some((i) => i.seasonalityEnabled) && (
           <div className="scope">
             <div className="av-seg">
@@ -889,6 +889,8 @@ export function SummaryTable({
             </div>
           </div>
         )}
+      </div>
+      {canViewCosts && <div className={`av-flag-card ${flag.cls}`}>{flag.text}</div>}
       </div>
 
       {/* ── Charts: waterfall + sensitivity rail side by side ── */}

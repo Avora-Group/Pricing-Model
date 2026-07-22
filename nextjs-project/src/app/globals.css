@@ -426,14 +426,17 @@ body {
 
 /* verdict strip */
 .av-strip { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; align-items: stretch; overflow: hidden; flex-wrap: wrap; }
-.av-strip .m { padding: 12px 20px; border-right: 1px solid var(--line-2); min-width: 170px; }
+/* Metric cells split the strip card evenly; the verdict lives in its own
+   card beside it (the pair is wrapped in .av-duo, mirroring the charts row). */
+.av-strip .m { padding: 12px 20px; border-right: 1px solid var(--line-2); min-width: 170px; flex: 1 1 0; }
+.av-strip .m:last-child { border-right: 0; }
 .av-strip .m .l { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 800; display: flex; align-items: baseline; gap: 8px; }
 .av-strip .m .v { font-size: 23px; font-weight: 800; letter-spacing: -.5px; margin-top: 3px; color: var(--brand); }
 .dark .av-strip .m .v { color: var(--ink); }
 .av-strip .m .v.pos { color: var(--pos); }
 .av-strip .m .v.neg { color: var(--neg); }
 .av-strip .m .s { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
-.av-strip .flag { flex: 1; display: flex; align-items: center; padding: 10px 20px; font-size: 12px; font-weight: 600; min-width: 220px; }
+.av-flag-card { display: flex; align-items: center; padding: 10px 20px; font-size: 12px; font-weight: 600; border-radius: var(--radius); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .av-strip .scope { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 8px 14px; border-left: 1px solid var(--line-2); background: var(--card-2); }
 .av-strip .scope .av-seg { height: 26px; padding: 2px; }
 .av-strip .scope .av-seg button { padding: 0 10px; flex: unset; font-size: 11px; }
@@ -471,6 +474,7 @@ body {
   .av-bd-tbl { min-width: 560px; }
   .av-deck-grid { grid-template-columns: 1fr; }
   .av-strip { flex-direction: column; }
-  .av-strip .m { border-right: 0; border-bottom: 1px solid var(--line-2); }
+  .av-strip .m { flex: initial; border-right: 0; border-bottom: 1px solid var(--line-2); }
+  .av-strip .m:last-child { border-bottom: 0; }
   .av-strip .scope { border-left: 0; flex-direction: row; }
 }

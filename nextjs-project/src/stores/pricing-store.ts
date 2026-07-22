@@ -150,6 +150,7 @@ interface PricingStore {
   exchangeRate: string // Default "0.85"
   marginPercent: string // Default "0"
   rateBasis: 'current' | 'naked' // Cost basis for pricing (cost-access only)
+  displayCurrency: 'eur' | 'usd' // Display currency for summary/chart figures
   bhFhRatio: string // Global BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
   apuFhRatio: string // Global APU FH:FH ratio — APU FH = FH * apuFhRatio (default 0.7)
   msnInputs: MsnInput[]
@@ -167,6 +168,7 @@ interface PricingStore {
   setExchangeRate: (rate: string) => void
   setMarginPercent: (margin: string) => void
   setRateBasis: (basis: 'current' | 'naked') => void
+  setDisplayCurrency: (currency: 'eur' | 'usd') => void
   setBhFhRatio: (ratio: string) => void
   setApuFhRatio: (ratio: string) => void
   addMsnInput: (input: MsnInput) => void
@@ -225,6 +227,7 @@ const initialState = {
   exchangeRate: '0.85',
   marginPercent: '0',
   rateBasis: 'current' as 'current' | 'naked',
+  displayCurrency: 'eur' as 'eur' | 'usd',
   bhFhRatio: '1.2',
   apuFhRatio: '0.7',
   msnInputs: [] as MsnInput[],
@@ -243,6 +246,7 @@ export const usePricingStore = create<PricingStore>()((set) => ({
   setExchangeRate: (rate) => set({ exchangeRate: rate }),
   setMarginPercent: (margin) => set({ marginPercent: margin }),
   setRateBasis: (basis) => set({ rateBasis: basis }),
+  setDisplayCurrency: (currency) => set({ displayCurrency: currency }),
   setBhFhRatio: (ratio) =>
     set((state) => ({
       bhFhRatio: ratio,

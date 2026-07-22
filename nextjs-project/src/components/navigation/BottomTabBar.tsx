@@ -12,7 +12,6 @@ import {
   Plane,
   Users,
   DollarSign,
-  BarChart3,
   Calculator,
   X,
 } from 'lucide-react'
@@ -30,7 +29,6 @@ const moreItems = [
   { href: '/aircraft', label: 'Aircraft', icon: Plane },
   { href: '/crew', label: 'Crew', icon: Users },
   { href: '/costs', label: 'Costs', icon: DollarSign },
-  { href: '/sensitivity', label: 'Sensitivity', icon: BarChart3 },
 ]
 
 const viewerAllowedHrefs = new Set(['/dashboard', '/calculation', '/quotes'])

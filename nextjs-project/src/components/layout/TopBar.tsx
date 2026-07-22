@@ -15,7 +15,6 @@ const ROUTES: Record<string, { group: string; page: string }> = {
   dashboard: { group: 'Workspace', page: 'Dashboard' },
   calculation: { group: 'Workspace', page: 'Pricing Workspace' },
   pnl: { group: 'Workspace', page: 'Profit & Loss' },
-  sensitivity: { group: 'Workspace', page: 'Sensitivity' },
   quotes: { group: 'Workspace', page: 'Quotes' },
   aircraft: { group: 'Reference Data', page: 'Aircraft Fleet' },
   crew: { group: 'Reference Data', page: 'Crew Costs' },

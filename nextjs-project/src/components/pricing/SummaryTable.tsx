@@ -12,8 +12,16 @@ import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { periodBhWeightsFromStrings } from '@/lib/mgh-distribution'
 import { LineDetailPopover, type BreakdownItem } from './CostDetailPopover'
+import {
+  useSensitivitySweep,
+  paramBase,
+  SWEEP_PARAMS,
+  type SweepEngineArgs,
+} from '@/components/sensitivity/useSensitivitySweep'
+import { SensitivitySetupPanel } from '@/components/sensitivity/SensitivitySetupPanel'
+import { SweepResultsPanel } from '@/components/sensitivity/SweepResultsPanel'
+import type { CrewStoreData, CostsStoreData } from '@/lib/pnl-engine'
 import { useCanViewCosts, useCanViewNaked } from '@/providers/CostVisibilityProvider'
-import { Redacted } from '@/components/common/Redacted'
 import type { AircraftOption } from '@/lib/api-converters'
 
 
@@ -342,7 +350,7 @@ export function SummaryTable({
     setSelectedMsn,
     isCalculating,
     rateBasis,
-    setRateBasis,
+    displayCurrency,
     patchMsnInput,
   } = usePricingStore()
 
@@ -394,9 +402,10 @@ export function SummaryTable({
   const costsOverhead = useCostsConfigStore((s) => s.overhead)
   const costsAvgAc = useCostsConfigStore((s) => s.avgAc)
 
-  const [currency, setCurrency] = useState<'eur' | 'usd'>('eur')
+  const currency = displayCurrency
   const [seasonFilter, setSeasonFilter] = useState<'total' | 'summer' | 'winter'>('total')
   const [drill, setDrill] = useState<{ cat: string; x: number; y: number } | null>(null)
+  const sweep = useSensitivitySweep()
 
   const exchangeRate = parseFloat(globalExchangeRate || '0.85')
   // Values are computed in EUR; EUR = USD × exchangeRate, so EUR → USD divides
@@ -505,6 +514,32 @@ export function SummaryTable({
     commissionSummerRate, commissionWinterRate, commissionMxcRate,
     fuelVal, handlingVal, navigationVal, airportChargesVal, overheadPerMonth,
   }
+
+  // ── Sensitivity sweep wiring: live inputs for the current scope, plus the
+  // raw crew/costs store data the P&L engine consumes. ──
+  const sweepInputs = selectedMsn === null
+    ? msnInputs.filter((i) => !i.isDraft)
+    : msnInputs.filter((i) => i.msn === selectedMsn)
+  const sweepCrew: CrewStoreData = {
+    payroll: crewPayroll, otherCost: crewOtherCost, training: crewTraining,
+    averageAC: crewAvgAC, fdDays: crewFdDays, nfdDays: crewNfdDays,
+  }
+  const sweepCosts: CostsStoreData = {
+    maintPersonnel: costsMaintPersonnel, maintCosts: costsMaintCosts,
+    insurance: costsInsurance, doc: costsDoc, otherCogs: costsOtherCogs,
+    overhead: costsOverhead, avgAc: costsAvgAc,
+  }
+  const sweepArgs: SweepEngineArgs = {
+    inputs: sweepInputs,
+    crew: sweepCrew,
+    costs: sweepCosts,
+    exchangeRate,
+    useNaked,
+    scopeLabel: selectedMsn === null ? 'Total project' : `MSN ${selectedMsn}`,
+  }
+  const sweepBases = Object.fromEntries(
+    SWEEP_PARAMS.map((p) => [p.key, paramBase(sweepInputs, p.key)]),
+  )
 
   // ── Compute per-MSN data (with seasonal breakdown when applicable) ──
   type MsnCostResult = ReturnType<typeof computeMsnCosts>
@@ -668,20 +703,10 @@ export function SummaryTable({
   const mDoc = perMo(totOf((t) => t.doc))
   const mAcmiCost = perMo(totOf((t) => t.acmiCost))
   const mOverhead = perMo(totOf((t) => t.overhead))
-  // totalCost excludes overhead (ACMI cost only), matching `.total.totalCost`.
-  const mTotalCost = mAcmiCost
   const mGrossProfit = mRevenue - mAcmiCost
   const mNetProfit = mGrossProfit - mOverhead
   const mBhActual = perMo(totOf((t) => t.bhActual))
   const mFc = perMo(totOf((t) => t.fc))
-
-  // Blended ACMI rate (weighted by MGH) for the Total view; a single MSN uses its own rate.
-  const totalAcmiWeighted = (() => {
-    let num = 0, den = 0
-    for (const d of filteredMsnData) { num += d.acmiRate * d.mgh; den += d.mgh }
-    return den > 0 ? num / den : 0
-  })()
-  const acmiRateDisplay = isTotalView ? totalAcmiWeighted : activeMsn.acmiRate
 
   const mOtherCogs = perMo(totOf((t) => t.otherCogs))
 
@@ -811,20 +836,6 @@ export function SummaryTable({
     { n: 'DOC', v: mDoc, sw: '#f4d6d6', drillKey: 'doc' },
   ]
 
-  // ── Rate sensitivity: net margin across a ±rate band. Revenue moves linearly
-  // with the ACMI rate (revenue = rate × MGH + excess), so we shift the already-
-  // computed monthly revenue by Δrate × monthly MGH — no pricing formula is
-  // re-derived; costs/overhead are held at their computed monthly values. ──
-  const sensMgh = isTotalView ? totalMgh : activeMsn.mgh
-  const baseRate = acmiRateDisplay
-  const sensBand = [-150, -100, -50, 0, 50, 100, 150]
-  const sens = sensBand.map((d) => {
-    const rev = mRevenue + d * sensMgh
-    const net = rev - mTotalCost - mOverhead
-    const m = rev > 0 ? net / rev : 0
-    return { rate: baseRate + d, m, net: cur(net), cur: d === 0 }
-  })
-
   const bdUnit = currency === 'usd' ? 'USD' : 'EUR'
 
   return (
@@ -867,24 +878,8 @@ export function SummaryTable({
           <div className="s av-num">{fmt(mBhActual, 0)} BH · {fmt(mFc, 0)} cycles</div>
         </div>
         {canViewCosts && <div className={`flag ${flag.cls}`}>{flag.text}</div>}
-        <div className="scope">
-          <div className="av-seg">
-            <button className={selectedMsn === null ? 'on' : ''} onClick={() => setSelectedMsn(null)}>Total</button>
-            {msnInputs.map((input) => (
-              <button key={input.msn} className={selectedMsn === input.msn ? 'on' : ''} onClick={() => setSelectedMsn(input.msn)}>
-                <span className="av-num">{input.msn}</span>
-              </button>
-            ))}
-          </div>
-          <div className="av-seg">
-            {(['eur', 'usd'] as const).map((c) => (
-              <button key={c} className={currency === c ? 'on' : ''} onClick={() => setCurrency(c)}>{c.toUpperCase()}</button>
-            ))}
-            {canViewNaked && (['current', 'naked'] as const).map((b) => (
-              <button key={b} className={rateBasis === b ? 'on' : ''} onClick={() => setRateBasis(b)} style={{ textTransform: 'capitalize' }}>{b}</button>
-            ))}
-          </div>
-          {!canViewCosts && msnInputs.some((i) => i.seasonalityEnabled) && (
+        {!canViewCosts && msnInputs.some((i) => i.seasonalityEnabled) && (
+          <div className="scope">
             <div className="av-seg">
               {(['total', 'summer', 'winter'] as const).map((f) => (
                 <button key={f} className={seasonFilter === f ? 'on' : ''} onClick={() => setSeasonFilter(f)}>
@@ -892,8 +887,8 @@ export function SummaryTable({
                 </button>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ── Charts: waterfall + sensitivity rail side by side ── */}
@@ -930,25 +925,23 @@ export function SummaryTable({
             </div>
           </div>
 
-          <div className="av-panel">
-            <div className="av-panel-h">
-              <h2>Rate sensitivity</h2>
-              <span className="av-hint">net margin @ ±150/BH</span>
-            </div>
-            <div className="av-sens-rail">
-              {(() => {
-                const maxM = Math.max(...sens.map((s) => s.m), 0.001)
-                return sens.map((s, i) => (
-                  <div className={`av-sens-row${s.cur ? ' cur' : ''}`} key={i}>
-                    <span className="rr av-num">{fmt(s.rate, 0)}</span>
-                    <span className="bar"><i style={{ width: `${Math.max(0, (s.m / maxM) * 100)}%` }} /></span>
-                    <span className="mv av-num" style={{ color: marginTone(s.m) }}>{(s.m * 100).toFixed(0)}%</span>
-                  </div>
-                ))
-              })()}
-            </div>
-          </div>
+          <SensitivitySetupPanel
+            selected={sweep.selected}
+            intervals={sweep.intervals}
+            bases={sweepBases}
+            scopeLabel={sweepArgs.scopeLabel}
+            onToggle={sweep.toggleParam}
+            onInterval={sweep.setIntervalFor}
+            onRun={() => sweep.run(sweepArgs)}
+            disabled={isCalculating || sweepInputs.length === 0}
+            error={sweep.error}
+          />
         </div>
+      )}
+
+      {/* ── Sensitivity sweep results (full width, after Run) ── */}
+      {canViewCosts && sweep.result && (
+        <SweepResultsPanel result={sweep.result} stale={sweep.isStale(sweepArgs)} />
       )}
 
       {/* ── Cost build-up table (Line | € / month | Project total | Per BH | % rev) ── */}

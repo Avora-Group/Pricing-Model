@@ -12,7 +12,6 @@ import {
   Settings,
   ChevronLeft,
   DollarSign,
-  BarChart3,
   Calculator,
   LogOut,
 } from 'lucide-react'
@@ -28,7 +27,6 @@ const navSections = [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/calculation', label: 'Pricing Workspace', icon: Calculator },
       { href: '/pnl', label: 'P&L', icon: TrendingUp },
-      { href: '/sensitivity', label: 'Sensitivity', icon: BarChart3 },
       { href: '/quotes', label: 'Quotes', icon: FileText },
     ],
   },

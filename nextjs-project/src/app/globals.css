@@ -395,7 +395,7 @@ body {
 
 /* ticket deck — horizontal input band */
 .av-deck { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-.av-deck-grid { display: grid; grid-template-columns: minmax(150px, .8fr) 1.2fr 1.2fr 1fr 1.2fr; }
+.av-deck-grid { display: grid; grid-template-columns: minmax(150px, .8fr) 1.15fr 1.15fr 1fr 1.15fr .9fr; }
 .av-cluster { padding: 12px 16px 14px; border-right: 1px solid var(--line-2); min-width: 0; }
 .av-cluster:last-child { border-right: 0; }
 .av-cluster-t { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
@@ -438,18 +438,8 @@ body {
 .av-strip .scope .av-seg { height: 26px; padding: 2px; }
 .av-strip .scope .av-seg button { padding: 0 10px; flex: unset; font-size: 11px; }
 
-/* charts row */
-.av-duo { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; align-items: stretch; }
-
-/* sensitivity rail */
-.av-sens-rail { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
-.av-sens-row { display: grid; grid-template-columns: 52px 1fr 64px; align-items: center; gap: 10px; border: 1px solid var(--line-2); border-radius: 8px; padding: 7px 10px; }
-.av-sens-row.cur { border-color: var(--cyan); background: var(--cyan-soft); box-shadow: 0 0 0 1px var(--cyan); }
-.av-sens-row .rr { font-size: 12px; font-weight: 700; color: var(--brand); }
-.dark .av-sens-row .rr { color: var(--ink); }
-.av-sens-row .bar { height: 6px; border-radius: 3px; background: var(--line-2); overflow: hidden; }
-.av-sens-row .bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--cyan), #0056d6); }
-.av-sens-row .mv { text-align: right; font-size: 12px; font-weight: 800; }
+/* charts row (chart | sensitivity setup) */
+.av-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
 
 /* ============================================================
    Responsive — collapse the fixed multi-column grids so the app

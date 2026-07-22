@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { X, RefreshCw } from 'lucide-react'
 import type { MsnInput, SeasonInput } from '@/stores/pricing-store'
 import { usePricingStore } from '@/stores/pricing-store'
+import { useCanViewNaked } from '@/providers/CostVisibilityProvider'
 import type { AircraftOption } from '@/lib/api-converters'
 
 interface MsnInputRowProps {
@@ -137,6 +138,10 @@ const CURRENCY_OPTS = [
   { value: 'eur', label: 'EUR' },
   { value: 'usd', label: 'USD' },
 ]
+const BASIS_OPTS = [
+  { value: 'current', label: 'Current' },
+  { value: 'naked', label: 'Naked' },
+]
 
 function startDateValue(v: string | null | undefined) {
   if (!v) return ''
@@ -238,7 +243,19 @@ function SeasonClusters({
 export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns }: MsnInputRowProps) {
   const [showSwap, setShowSwap] = useState(false)
   const [activeTab, setActiveTab] = useState<'summer' | 'winter'>('summer')
-  const { swapMsnAircraft, toggleSeasonality, updateSeasonInput } = usePricingStore()
+  const {
+    swapMsnAircraft,
+    toggleSeasonality,
+    updateSeasonInput,
+    msnInputs,
+    selectedMsn,
+    setSelectedMsn,
+    rateBasis,
+    setRateBasis,
+    displayCurrency,
+    setDisplayCurrency,
+  } = usePricingStore()
+  const canViewNaked = useCanViewNaked()
 
   const swapOptions = aircraftList.filter((ac) => ac.msn === input.msn || !usedMsns.includes(ac.msn))
   const currencyLabel = input.rateCurrency?.toUpperCase() || 'EUR'
@@ -362,6 +379,36 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               <Nf label="Coverage months" value={String(input.fixedCostCoverageMonths)} step="1" onChange={(v) => onUpdate(input.msn, 'fixedCostCoverageMonths', v)} />
             </div>
           )}
+        </div>
+
+        {/* ── View (results scope / currency / cost basis — workspace-wide) ── */}
+        <div className="av-cluster">
+          <div className="av-cluster-t">View</div>
+          <Sg
+            label="Results scope"
+            value={selectedMsn === null ? 'total' : String(selectedMsn)}
+            options={[
+              { value: 'total', label: 'Total' },
+              ...msnInputs.map((i) => ({ value: String(i.msn), label: String(i.msn) })),
+            ]}
+            onChange={(v) => setSelectedMsn(v === 'total' ? null : Number(v))}
+          />
+          <div className="av-gd2 av-mt8">
+            <Sg
+              label="Currency"
+              value={displayCurrency}
+              options={CURRENCY_OPTS}
+              onChange={(v) => setDisplayCurrency(v as 'eur' | 'usd')}
+            />
+            {canViewNaked && (
+              <Sg
+                label="Cost basis"
+                value={rateBasis}
+                options={BASIS_OPTS}
+                onChange={(v) => setRateBasis(v as 'current' | 'naked')}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

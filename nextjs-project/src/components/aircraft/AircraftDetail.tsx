@@ -1,6 +1,10 @@
 'use client'
 
+import { useState, useActionState, useEffect } from 'react'
+import { Pencil } from 'lucide-react'
+import { updateRegistrationAction, type UpdateAircraftState } from '@/app/actions/aircraft'
 import { RatesSection } from '@/components/aircraft/RatesSection'
+import { EscalationSection } from '@/components/aircraft/EscalationSection'
 import { EprMatrixTable } from '@/components/aircraft/EprMatrixTable'
 import type { RateRow } from '@/components/aircraft/RatesSection'
 import type { EprMatrixRow } from '@/components/aircraft/EprMatrixTable'
@@ -51,13 +55,6 @@ export interface AircraftDetailData {
   naked_epr_matrix?: EprMatrixRow[]
 }
 
-function formatEscalation(value: string | number | null): string {
-  if (value === null || value === undefined) return '-'
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return '-'
-  return `${(num * 100).toFixed(1)}%`
-}
-
 export function AircraftDetail({
   aircraft,
   canEdit,
@@ -81,6 +78,16 @@ export function AircraftDetail({
   const canViewNaked = useCanViewNaked()
   const showNaked = canViewNaked && Boolean(aircraft.has_naked_rates)
 
+  // Inline registration editing in the header.
+  const [editingReg, setEditingReg] = useState(false)
+  const [regValue, setRegValue] = useState('')
+  const boundRegAction = async (prevState: UpdateAircraftState, formData: FormData) =>
+    updateRegistrationAction(aircraft.msn, prevState, formData)
+  const [regState, regAction, regPending] = useActionState(boundRegAction, {})
+  useEffect(() => {
+    if (regState.success) setEditingReg(false)
+  }, [regState])
+
   const nakedFixedRates: RateRow[] = [
     { label: 'Lease Rent', usd: aircraft.naked_lease_rent_usd ?? '', eur: aircraft.naked_lease_rent_eur ?? '', field: 'naked_lease_rent_usd' },
     { label: '6-Year Check', usd: aircraft.naked_six_year_check_usd ?? '', eur: aircraft.naked_six_year_check_eur ?? '', field: 'naked_six_year_check_usd' },
@@ -102,9 +109,50 @@ export function AircraftDetail({
           <h1 className="av-page-title av-num">MSN {aircraft.msn}</h1>
           <span className="chip">{aircraft.aircraft_type}</span>
         </div>
-        <p className="av-page-sub">
-          {aircraft.registration ?? 'No registration'}
-        </p>
+        {editingReg ? (
+          <form action={regAction} className="flex items-center gap-2 mt-1 flex-wrap">
+            <input
+              name="registration"
+              value={regValue}
+              onChange={(e) => setRegValue(e.target.value)}
+              placeholder="e.g. LZ-FSA (empty clears)"
+              autoFocus
+              className="av-input !py-1 !text-[12.5px] w-[190px]"
+            />
+            <button type="submit" disabled={regPending} className="av-btn av-btn-cyan !py-1 !px-2.5 !text-xs disabled:opacity-60">
+              {regPending ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingReg(false)}
+              disabled={regPending}
+              className="av-btn av-btn-ghost !py-1 !px-2.5 !text-xs disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            {regState.error && (
+              <span className="text-xs" style={{ color: 'var(--neg)' }}>{regState.error}</span>
+            )}
+          </form>
+        ) : (
+          <p className="av-page-sub flex items-center gap-1.5">
+            {aircraft.registration ?? 'No registration'}
+            {canEdit && (
+              <button
+                onClick={() => {
+                  setRegValue(aircraft.registration ?? '')
+                  setEditingReg(true)
+                }}
+                aria-label="Edit registration"
+                title="Edit registration"
+                className="p-0.5 rounded transition-colors"
+                style={{ color: 'var(--muted)', background: 'none', border: 0, cursor: 'pointer' }}
+              >
+                <Pencil size={12} />
+              </button>
+            )}
+          </p>
+        )}
       </div>
 
       {/* Fixed Monthly Rates */}
@@ -124,33 +172,16 @@ export function AircraftDetail({
       />
 
       {/* Escalation Rates */}
-      <div className="av-panel">
-        <div className="av-panel-h"><h2>Escalation Rates</h2></div>
-        <div className="overflow-x-auto">
-          <table className="av-tbl">
-            <thead>
-              <tr>
-                <th className="av-th">Parameter</th>
-                <th className="av-th r">Rate</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="av-td" style={{ color: 'var(--ink-2)' }}>EPR Escalation</td>
-                <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.epr_escalation)}</td>
-              </tr>
-              <tr>
-                <td className="av-td" style={{ color: 'var(--ink-2)' }}>LLP Escalation</td>
-                <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.llp_escalation)}</td>
-              </tr>
-              <tr>
-                <td className="av-td" style={{ color: 'var(--ink-2)' }}>AF+APU Escalation</td>
-                <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.af_apu_escalation)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <EscalationSection
+        title="Escalation Rates"
+        rows={[
+          { label: 'EPR Escalation', field: 'epr_escalation', value: aircraft.epr_escalation },
+          { label: 'LLP Escalation', field: 'llp_escalation', value: aircraft.llp_escalation },
+          { label: 'AF+APU Escalation', field: 'af_apu_escalation', value: aircraft.af_apu_escalation },
+        ]}
+        msn={aircraft.msn}
+        canEdit={canEdit}
+      />
 
       {/* EPR Matrix */}
       <EprMatrixTable eprMatrix={aircraft.epr_matrix} msn={aircraft.msn} canEdit={canEdit} />
@@ -172,33 +203,16 @@ export function AircraftDetail({
           <RatesSection title="Naked — Fixed Monthly Rates" rates={nakedFixedRates} msn={aircraft.msn} canEdit={false} />
           <RatesSection title="Naked — Variable Rates (per engine)" rates={nakedVariableRates} msn={aircraft.msn} canEdit={false} />
 
-          <div className="av-panel">
-            <div className="av-panel-h"><h2>Naked — Escalation Rates</h2></div>
-            <div className="overflow-x-auto">
-              <table className="av-tbl">
-                <thead>
-                  <tr>
-                    <th className="av-th">Parameter</th>
-                    <th className="av-th r">Rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="av-td" style={{ color: 'var(--ink-2)' }}>EPR Escalation</td>
-                    <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.naked_epr_escalation ?? null)}</td>
-                  </tr>
-                  <tr>
-                    <td className="av-td" style={{ color: 'var(--ink-2)' }}>LLP Escalation</td>
-                    <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.naked_llp_escalation ?? null)}</td>
-                  </tr>
-                  <tr>
-                    <td className="av-td" style={{ color: 'var(--ink-2)' }}>AF+APU Escalation</td>
-                    <td className="av-td r av-num" style={{ color: 'var(--ink-2)' }}>{formatEscalation(aircraft.naked_af_apu_escalation ?? null)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <EscalationSection
+            title="Naked — Escalation Rates"
+            rows={[
+              { label: 'EPR Escalation', field: 'naked_epr_escalation', value: aircraft.naked_epr_escalation ?? null },
+              { label: 'LLP Escalation', field: 'naked_llp_escalation', value: aircraft.naked_llp_escalation ?? null },
+              { label: 'AF+APU Escalation', field: 'naked_af_apu_escalation', value: aircraft.naked_af_apu_escalation ?? null },
+            ]}
+            msn={aircraft.msn}
+            canEdit={false}
+          />
 
           <EprMatrixTable eprMatrix={aircraft.naked_epr_matrix ?? []} msn={aircraft.msn} canEdit={false} />
         </>

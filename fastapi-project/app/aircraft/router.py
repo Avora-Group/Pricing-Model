@@ -17,6 +17,7 @@ from app.aircraft.schemas import (
     AircraftDetailResponse,
     AircraftListResponse,
     CreateAircraftRequest,
+    UpdateAircraftRequest,
     UpdateEprMatrixRequest,
     UpdateRatesRequest,
 )
@@ -130,6 +131,45 @@ async def get_aircraft(
         data["naked_epr_matrix"] = [dict(r) for r in naked_epr]
     else:
         # Strip every naked_* field for users without cost access.
+        for key in [k for k in data if k.startswith("naked_")]:
+            data.pop(key, None)
+        data["has_naked_rates"] = False
+        data["naked_epr_matrix"] = []
+    return data
+
+
+@router.patch("/{msn}", response_model=AircraftDetailResponse)
+async def update_aircraft(
+    msn: int,
+    body: UpdateAircraftRequest,
+    db: asyncpg.Connection = Depends(get_db),
+    current_user: dict = Depends(require_editor),
+):
+    """Update aircraft identity fields (admin or user).
+
+    Currently supports registration; sending null or an empty string clears it.
+    Returns the full aircraft detail (naked fields stripped without cost access).
+    """
+    repo = AircraftRepository(db)
+    aircraft = await repo.fetch_by_msn(msn)
+    if not aircraft:
+        raise HTTPException(status_code=404, detail="Aircraft not found")
+
+    if "registration" not in body.model_fields_set:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    registration = (body.registration or "").strip() or None
+    await repo.update_aircraft(aircraft["id"], registration=registration)
+
+    updated = await repo.fetch_by_msn(msn)
+    epr_rows = await repo.fetch_epr_matrix(updated["id"], "current")
+    data = apply_eur_conversion(dict(updated))
+    data["epr_matrix"] = [dict(r) for r in epr_rows]
+
+    if user_can_view_naked(current_user) and data.get("has_naked_rates"):
+        naked_epr = await repo.fetch_epr_matrix(updated["id"], "naked")
+        data["naked_epr_matrix"] = [dict(r) for r in naked_epr]
+    else:
         for key in [k for k in data if k.startswith("naked_")]:
             data.pop(key, None)
         data["has_naked_rates"] = False

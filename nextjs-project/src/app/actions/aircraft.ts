@@ -57,6 +57,51 @@ export async function updateRatesAction(
   }
 }
 
+/* ─── Update Aircraft (registration) ─── */
+
+export interface UpdateAircraftState {
+  success?: boolean
+  error?: string
+}
+
+export async function updateRegistrationAction(
+  msn: number,
+  prevState: UpdateAircraftState,
+  formData: FormData
+): Promise<UpdateAircraftState> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+
+  if (!token) {
+    return { error: 'Not authenticated' }
+  }
+
+  const registration = String(formData.get('registration') ?? '').trim()
+
+  try {
+    const res = await fetch(`${API_URL}/aircraft/${msn}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: `access_token=${token}`,
+      },
+      // Empty input clears the registration.
+      body: JSON.stringify({ registration: registration || null }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ detail: 'Update failed' }))
+      return { error: data.detail ?? 'Update failed' }
+    }
+
+    revalidatePath(`/aircraft/${msn}`)
+    revalidatePath('/aircraft')
+    return { success: true }
+  } catch {
+    return { error: 'Network error — could not reach API' }
+  }
+}
+
 /* ─── Create Aircraft ─── */
 
 export interface CreateAircraftState {

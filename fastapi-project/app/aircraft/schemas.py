@@ -110,6 +110,15 @@ class AircraftDetailResponse(BaseModel):
     naked_epr_matrix: list[EprMatrixRow] = []
 
 
+class UpdateAircraftRequest(BaseModel):
+    """Partial update for aircraft identity fields (currently registration).
+
+    An explicit null/empty registration clears it; an omitted field is a 400.
+    """
+
+    registration: str | None = None
+
+
 class UpdateRatesRequest(BaseModel):
     """Partial update for aircraft cost parameters. All fields optional."""
 

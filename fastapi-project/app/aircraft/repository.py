@@ -115,6 +115,16 @@ class AircraftRepository(BaseRepository):
             *args,
         )
 
+    async def update_aircraft(
+        self, aircraft_id: int, registration: str | None
+    ) -> dict | None:
+        """Update aircraft identity fields. Returns the updated row."""
+        return await self.fetch_one(
+            "UPDATE aircraft SET registration = $1 WHERE id = $2 RETURNING *",
+            registration,
+            aircraft_id,
+        )
+
     async def create_aircraft(
         self,
         msn: int,

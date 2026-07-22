@@ -3,31 +3,44 @@
 import { useState, useActionState, useEffect } from 'react'
 import { updateRatesAction, type UpdateRatesState } from '@/app/actions/aircraft'
 
-export interface RateRow {
+export interface EscalationRow {
   label: string
-  usd: string | number
-  eur: string | number
+  /** Rate field name on the update endpoint (e.g. "epr_escalation"). */
   field: string
+  /** Decimal rate as stored (0.05 = 5%). */
+  value: string | number | null
 }
 
-interface RatesSectionProps {
+interface EscalationSectionProps {
   title: string
-  rates: RateRow[]
+  rows: EscalationRow[]
   msn: number
   canEdit: boolean
 }
 
-function formatValue(value: string | number | null): string {
+function formatEscalation(value: string | number | null): string {
   if (value === null || value === undefined) return '-'
   const num = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(num)) return '-'
-  return num.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
-  })
+  return `${(num * 100).toFixed(1)}%`
 }
 
-export function RatesSection({ title, rates, msn, canEdit }: RatesSectionProps) {
+/** Stored decimal → editable percent string (0.055 → "5.5"). */
+function toPercentInput(value: string | number | null): string {
+  if (value === null || value === undefined) return ''
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(num)) return ''
+  return String(Math.round(num * 100 * 10000) / 10000)
+}
+
+/** Editable percent string → stored decimal string ("5.5" → "0.055"). */
+function toDecimal(percent: string): string {
+  const num = parseFloat(percent)
+  if (isNaN(num)) return ''
+  return String(Math.round(num * 10000) / 1_000_000)
+}
+
+export function EscalationSection({ title, rows, msn, canEdit }: EscalationSectionProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValues, setEditValues] = useState<Record<string, string>>({})
 
@@ -48,8 +61,8 @@ export function RatesSection({ title, rates, msn, canEdit }: RatesSectionProps) 
 
   const handleEdit = () => {
     const values: Record<string, string> = {}
-    for (const rate of rates) {
-      values[rate.field] = typeof rate.usd === 'string' ? rate.usd : String(rate.usd)
+    for (const row of rows) {
+      values[row.field] = toPercentInput(row.value)
     }
     setEditValues(values)
     setIsEditing(true)
@@ -86,21 +99,24 @@ export function RatesSection({ title, rates, msn, canEdit }: RatesSectionProps) 
             <div className="space-y-2">
               <div className="grid grid-cols-[1fr_150px] gap-2 text-[11px] px-1" style={{ color: 'var(--muted)' }}>
                 <span>Parameter</span>
-                <span className="text-right">USD Value</span>
+                <span className="text-right">Rate (%)</span>
               </div>
-              {rates.map((rate) => (
-                <div key={rate.field} className="grid grid-cols-[1fr_150px] gap-2 items-center">
-                  <span className="text-[13.5px]" style={{ color: 'var(--ink-2)' }}>{rate.label}</span>
+              {rows.map((row) => (
+                <div key={row.field} className="grid grid-cols-[1fr_150px] gap-2 items-center">
+                  <span className="text-[13.5px]" style={{ color: 'var(--ink-2)' }}>{row.label}</span>
+                  {/* Visible input is in percent; the hidden field carries the
+                      decimal the rates endpoint stores (5.5 → 0.055). */}
                   <input
                     type="number"
-                    step="any"
-                    name={rate.field}
-                    value={editValues[rate.field] ?? ''}
+                    step="0.1"
+                    value={editValues[row.field] ?? ''}
                     onChange={(e) =>
-                      setEditValues((prev) => ({ ...prev, [rate.field]: e.target.value }))
+                      setEditValues((prev) => ({ ...prev, [row.field]: e.target.value }))
                     }
+                    aria-label={`${row.label} (%)`}
                     className="av-input av-num text-right !py-1.5"
                   />
+                  <input type="hidden" name={row.field} value={toDecimal(editValues[row.field] ?? '')} />
                 </div>
               ))}
             </div>
@@ -121,21 +137,18 @@ export function RatesSection({ title, rates, msn, canEdit }: RatesSectionProps) 
         ) : (
           <div className="space-y-1">
             <div
-              className="grid grid-cols-[1fr_120px_120px] gap-2 text-[11px] px-1 pb-1.5 mb-1"
+              className="grid grid-cols-[1fr_120px] gap-2 text-[11px] px-1 pb-1.5 mb-1"
               style={{ color: 'var(--muted)', borderBottom: '1px solid var(--line-2)' }}
             >
               <span>Parameter</span>
-              <span className="text-right">USD</span>
-              <span className="text-right">EUR</span>
+              <span className="text-right">Rate</span>
             </div>
-            {rates.map((rate) => (
-              <div
-                key={rate.field}
-                className="grid grid-cols-[1fr_120px_120px] gap-2 py-1.5 px-1"
-              >
-                <span className="text-[13.5px]" style={{ color: 'var(--ink-2)' }}>{rate.label}</span>
-                <span className="text-[13.5px] text-right av-num" style={{ color: 'var(--ink-2)' }}>{formatValue(rate.usd)}</span>
-                <span className="text-[13.5px] text-right av-num" style={{ color: 'var(--muted)' }}>{formatValue(rate.eur)}</span>
+            {rows.map((row) => (
+              <div key={row.field} className="grid grid-cols-[1fr_120px] gap-2 py-1.5 px-1">
+                <span className="text-[13.5px]" style={{ color: 'var(--ink-2)' }}>{row.label}</span>
+                <span className="text-[13.5px] text-right av-num" style={{ color: 'var(--ink-2)' }}>
+                  {formatEscalation(row.value)}
+                </span>
               </div>
             ))}
           </div>

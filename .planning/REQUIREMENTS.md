@@ -1,96 +1,80 @@
 # Requirements: ACMI Pricing Platform
 
-**Defined:** 2026-06-05 (milestone v2.0)
+**Defined:** 2026-09-30 (milestone v2.1)
 **Core Value:** Accurate, repeatable ACMI pricing quotes that sales teams can generate, save, and retrieve — replacing manual spreadsheet-based pricing.
+**Milestone goal:** A signed-in ACMI user can file a feature request or bug report from the app shell, and it lands in the tracker as their own request, with `source_app` = `acmi-app`.
 
-## v2.0 Requirements
+**Source:** `C:\Projects\task-tracker\docs\superpowers\specs\2026-09-14-host-app-embeds-design.md`. All paths below are under `nextjs-project/`.
 
-Milestone v2.0 — Dashboard & Project Pipeline. Each maps to roadmap phases.
+## v2.1 Requirements
 
-### Navigation & Routing
+### Dependency & build (DEP)
 
-- [ ] **NAV-01**: User sees the pricing workspace as "Calculation" in the sidebar, served at `/calculation` — all nav links, middleware route protection, viewer allowlists, and redirects (root page, Azure callback, BottomTabBar, QuoteHeader) updated consistently
-- [ ] **NAV-02**: User lands on the new Dashboard (`/dashboard`) after login; root redirect points to Dashboard
+- [ ] **DEP-01**: `@avora/tracker-client` v10 is a dependency pinned to the `v10` git tag. The lockfile resolves it over `git+https` to `a369f81…`, contains no `git+ssh`, and no other package changes.
+- [ ] **DEP-02**: The Vercel build installs the private dependency. `vercel.json`'s `installCommand` changes from `npm install` to `bash vercel-install.sh`, and that script writes git credentials from `TRACKER_REPO_TOKEN` for all three GitHub URL forms before `npm install`. It is committed with LF line endings.
+- [ ] **DEP-03**: A new `.env.example` lists every variable name the frontend reads, name-only: the existing `AZURE_*` and `API_URL` names, `TRACKER_API_SCOPE` and `TRACKER_RT_KEY` (server-only), `NEXT_PUBLIC_TRACKER_API_URL`, `NEXT_PUBLIC_TRACKER_URL`, and the build-only `TRACKER_REPO_TOKEN`.
 
-### Project Pipeline
+### Refresh-token capture (RT)
 
-- [x] **PROJ-01**: Every pricing project has a status of `potential` or `signed` (new projects default to `potential`)
-- [ ] **PROJ-02**: User can manually set a project's status (potential ↔ signed) from the Calculation page
-- [ ] **PROJ-03**: A quote saved from a project is linked to that project (`quotes.project_id`)
-- [ ] **PROJ-04**: When a linked quote is marked Accepted, its project is automatically set to `signed` — idempotent, escalation-only (un-accepting or rejecting a quote never auto-demotes a project)
-- [x] **PROJ-05**: Status changes record provenance: `signed_at` timestamp and whether the change was automatic or manual (manual overrides are never overwritten by automation)
+- [ ] **RT-01**: A Microsoft sign-in requests `openid email profile offline_access` in both places: the authorize request in `src/app/api/auth/login/azure/route.ts` and the code exchange in `src/app/api/auth/callback/azure/route.ts`.
+- [ ] **RT-02**: When the code exchange returns a `refresh_token`, the callback sets a `tracker_rt` cookie whose value is `EncryptJWT({ rt })` (jose, `dir` / `A256GCM`) keyed by `TRACKER_RT_KEY` (32 random bytes, base64url).
+- [ ] **RT-03**: The `tracker_rt` cookie is `httpOnly`, `secure` in production, `sameSite: 'lax'`, `maxAge` 7 days and `path: '/api/tracker'`, so the browser sends it only to the token route and page scripts cannot read it.
+- [ ] **RT-04**: `logoutAction` clears `tracker_rt` with the same path, alongside `access_token`.
+- [ ] **RT-05**: Sign-in is unaffected when the embed is not configured. With `TRACKER_RT_KEY` unset, or when Entra returns no refresh token, the callback still sets `access_token` and redirects as it does today, and sets no `tracker_rt`.
 
-### Dashboard Metrics
+### Token route (TOKEN)
 
-- [ ] **DASH-01**: User sees project counts split by status (X potential, Y signed) on the Dashboard
-- [ ] **DASH-02**: User sees pipeline contract value (potential) and signed contract value in EUR, computed as EUR/BH × MGH × period months per project — using one authoritative quote per project (latest accepted quote for signed projects, latest quote of any status for potential projects)
-- [ ] **DASH-03**: User sees average EUR/BH rate and average margin % across projects
-- [ ] **DASH-04**: User sees fleet utilization: MSNs committed to signed projects vs available fleet, with a utilization % headline KPI
-- [ ] **DASH-05**: User sees pipeline value broken down by client and by aircraft type
-- [ ] **DASH-06**: User sees a trend chart of pipeline/signed value by month (driven by `signed_at`/created timestamps)
-- [ ] **DASH-07**: Dashboard is read-only and company-wide (all users' projects visible to everyone); all monetary aggregation happens in SQL with NUMERIC precision
+- [ ] **TOKEN-01**: `POST /api/tracker/token` (`src/app/api/tracker/token/route.ts`) decrypts `tracker_rt` and redeems it for `TRACKER_API_SCOPE` with `redeemTrackerToken`, using the existing `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET`. It returns `200 { accessToken, expiresAt }` with `Cache-Control: no-store`.
+- [ ] **TOKEN-02**: The route requires the app's own session. A request without the `access_token` cookie gets `401 reauth`, returned by the route itself, because `src/middleware.ts`'s matcher does not cover `/api`.
+- [ ] **TOKEN-03**: Failures map through `tokenErrorResponse`:
+  - `503 unconfigured` when `TRACKER_API_SCOPE` or `TRACKER_RT_KEY` is unset
+  - `401 reauth` when `tracker_rt` is missing or fails to decrypt (for example after a key rotation)
+  - `403 consent`, `503 config` and `502 unavailable` from Entra
 
-## v1.0 Requirements (shipped)
+  The route logs only the error code and Entra's numeric codes, never a token.
+- [ ] **TOKEN-04**: When Entra returns a rotated refresh token, the route re-sets `tracker_rt` with the new value and the RT-03 attributes on the same response.
 
-### Authentication
+### Triggers & dialog (EMBED)
 
-- [x] **AUTH-01**: User can log in with company email and password
-- [x] **AUTH-02**: User session persists across browser refresh (JWT)
-- [x] **AUTH-03**: User can log out from any page
-- [x] **AUTH-04**: Admin can create and manage user accounts (no self-signup)
+- [ ] **EMBED-01**: On desktop, two lucide icon buttons (`Lightbulb`, `Bug`) with `aria-label` and `title` **Request a feature** and **Report a bug** sit in the `Sidebar.tsx` footer beside `ThemeToggle`. They are hidden when the sidebar is collapsed, as `ThemeToggle` is.
+- [ ] **EMBED-02**: On mobile, **Request a feature** and **Report a bug** appear in `BottomTabBar.tsx`'s More list and open the same dialog.
+- [ ] **EMBED-03**: Each trigger opens the tracker dialog:
+  - with `type` set to `feature` or `bug`
+  - pinned to `{ id: "acmi-app", name: "ACMI App" }` with `lockProject: true`
+  - with the requester's email from the shell's `userEmail`, and the display name decoded from the `name` claim of the tracker access token already fetched (display only)
+- [ ] **EMBED-04**: The wrapper fetches a token before opening. On failure it shows `showNotice({ tone: 'error' })` with the error's message, and no dialog opens.
+- [ ] **EMBED-05**: A successful submit shows a notice linking to `{NEXT_PUBLIC_TRACKER_URL}/?view=requests&project=acmi-app`.
+- [ ] **EMBED-06**: The dialog and notices are themed from ACMI's palette for next-themes' `resolvedTheme` at open time. All 18 dialog variables are set, and nothing is written to `documentElement`.
+- [ ] **EMBED-07**: The triggers are hidden on desktop and mobile when `NEXT_PUBLIC_TRACKER_API_URL` is unset or the shell has no `userEmail`.
+- [ ] **EMBED-08**: Viewer-role users see and can use both triggers. The viewer route allowlist does not filter them out.
 
-### Aircraft Data
+### Rollout (SHIP)
 
-- [x] **ACFT-01**: System stores aircraft records imported from Excel (MSN, type, registration, cost parameters)
-- [x] **ACFT-02**: User can view list of aircraft with search by MSN or registration
-- [x] **ACFT-03**: User can view aircraft detail with associated cost data
-- [x] **ACFT-04**: Admin can update aircraft cost parameters
-
-### Pricing Engine
-
-- [x] **PRIC-01**: User can enter pricing inputs: MGH, Cycle Ratio, Environment, Period, MSN
-- [x] **PRIC-02**: System calculates per-BH cost for each component: Aircraft, Crew, Maintenance, Insurance, DOC, Other COGS, Overhead
-- [x] **PRIC-03**: User can enter margin percentage and see final EUR/BH rate
-- [x] **PRIC-04**: Calculation results update in real-time as inputs change
-- [x] **PRIC-05**: Calculation output matches Excel workbook exactly (verified with test fixtures)
-- [x] **PRIC-06**: All monetary calculations use Decimal precision (never floating-point)
-
-### Pricing Configuration
-
-- [x] **CONF-01**: Admin can view and update base rates and pricing parameters via admin page
-- [x] **CONF-02**: Pricing config changes are versioned (old quotes reference the config version they were created with)
-- [x] **CONF-03**: System prevents config changes from altering previously saved quotes
-
-### Sensitivity Analysis
-
-- [x] **SENS-01**: User can vary a single input parameter and see how the EUR/BH rate changes
-- [x] **SENS-02**: Sensitivity results display as a comparison table or chart
-
-### Quote Management
-
-- [x] **QUOT-01**: User can save a completed pricing calculation as a named quote with client name
-- [x] **QUOT-02**: Saved quotes are immutable (original calculation preserved exactly as generated)
-- [x] **QUOT-03**: User can view list of saved quotes with search and filter (by client, date, MSN)
-- [x] **QUOT-04**: User can view full detail of a saved quote including all component breakdowns
-- [x] **QUOT-05**: User can set quote status: Draft, Sent, Accepted, Rejected
-- [ ] **QUOT-06**: User can export a quote as PDF with professional formatting *(carried over — still pending)*
-
-### UI / UX
-
-- [x] **UI-01**: Application has sidebar navigation with pages: Dashboard, Pricing, Quotes, Aircraft, Admin
-- [x] **UI-02**: Data displayed in responsive, sortable tables with detail panes
-- [x] **UI-03**: Dark/light mode toggle persisted per user
-- [x] **UI-04**: Dashboard shows summary stats: total quotes, quotes by status, recent activity
-- [x] **UI-05**: Application matches AeroVista visual style (Tailwind, Zustand, component patterns)
+- [ ] **SHIP-01**: The Entra prerequisites are re-confirmed for client `ac19614d-e6c8-4e6c-966f-2e6de3ee1516`: the delegated `access_as_user` permission with admin consent, and its entry as an authorized client on the tracker registration.
+- [ ] **SHIP-02**: A live preflight to the tracker API returns `access-control-allow-origin` from each origin ACMI users actually land on: `https://pricing-model.avora.aero` and `https://acmi-pricing.vercel.app`.
+- [ ] **SHIP-03**: `TRACKER_API_SCOPE`, `TRACKER_RT_KEY`, `NEXT_PUBLIC_TRACKER_API_URL`, `NEXT_PUBLIC_TRACKER_URL` and `TRACKER_REPO_TOKEN` are set on the Vercel project `pricing-model` before the deploy.
+- [ ] **SHIP-04**: After explicit sign-off, a push to `main` deploys to production and the deployment reaches `READY`. The rollback target is recorded first, and the install log shows the credential step.
+- [ ] **SHIP-05**: The spec's per-app UAT checklist passes on production:
+  - a feature (with a screenshot) and a bug each land with `source_app` = `acmi-app` and `created_by` = the user
+  - light and dark both match, and the page behind the dialog does not change colour
+  - a forced `reauth` shows the notice and no dialog opens
+  - a session from before the deploy gets `reauth` once, then works after signing in again
+  - after logout, `tracker_rt` is gone
+  - ACMI's own session, quotes and dashboard still work after filing
 
 ## Future Requirements
 
-Deferred to future release. Tracked but not in current roadmap.
+Deferred. Tracked but not in the current roadmap.
+
+### Embed follow-ups
+
+- **EMBED-09**: A loading state on the trigger during the token pre-flight (Finance 04-UI-REVIEW).
+- **EMBED-10**: Adopt a tracker-client v10.x that stops `dialog.css` setting `color-scheme` and defaults on `:root` (Finance 03-REVIEW WR-05).
 
 ### Dashboard Enhancements
 
 - **DASH-08**: Time-bounded fleet utilization (lease period overlap — an MSN signed Jan–Mar is free in Apr)
-- **DASH-09**: Weighted pipeline forecasting (requires multi-state funnel; low value with two states)
+- **DASH-09**: Weighted pipeline forecasting
 
 ### Actuals Comparison
 
@@ -100,6 +84,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Quote Enhancement
 
+- **QUOT-06**: User can export a quote as PDF with professional formatting *(carried over from v1.0; the API route is a 501 stub)*
 - **QUOT-07**: User can clone/duplicate an existing quote with modified inputs
 - **QUOT-08**: User can add notes and attachments to quotes
 
@@ -116,17 +101,14 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Feature | Reason |
 |---------|--------|
-| Multi-stage CRM pipeline (lead → qualified → proposal → won) | This is a pricing tool, not a CRM; two states (potential/signed) is the explicit requirement; quote statuses already provide granularity |
-| Editing status/metrics on the Dashboard | Dashboard is read-only by decision; all mutation lives in Calculation — two mutation surfaces cause sync bugs |
-| Real-time / live-updating dashboard | On-load query is sufficient for a small internal team; websockets/polling is overkill |
-| Auto-reverting project status when a quote un-accepts | Aggressive bidirectional automation fights manual overrides; downgrades are manual |
-| Fuel cost calculation | Fuel is the lessee's cost, not the lessor's — does not belong in ACMI pricing |
-| Real-time aircraft tracking | Not relevant to pricing; belongs in operations tools |
-| Mobile app | Web-first; mobile deferred indefinitely |
-| Multi-currency support | All ACMI contracts in EUR for this market |
-| Self-service signup | Controlled company access only |
-| Component-level tracking (engines, APU, LG) | v1 uses aircraft-level costs from Excel; component tracking is AeroVista's domain |
-| AI forecasting / deal scoring | No win/loss history to train on; ship descriptive metrics first |
+| A test runner for the frontend | Spec, Testing: ACMI is verified by `next build`, lint and UAT |
+| Tracker read views, status sync or notifications in ACMI | Spec non-goal; host-app tokens are create-only |
+| Changing `AZURE_REDIRECT_URI` or consolidating ACMI's two addresses | Not requested; the embed must work where sessions land today |
+| Changes to FastAPI or to the tracker backend | The refresh token is redeemed by the Next.js server; the tracker already maps ACMI's client id |
+| Storing the refresh token in the database or in the `access_token` JWT | Spec decision: a separate encrypted cookie scoped to `/api/tracker` |
+| A user menu component | Spec decision: icon buttons in the sidebar footer and entries in the mobile More list |
+| Moving asset-app or the tracker to v10 | Spec non-goal |
+| Multi-stage CRM pipeline, real-time dashboard, fuel cost, multi-currency, self-service signup, mobile app | Standing exclusions from v1.0 and v2.0 |
 
 ## Traceability
 
@@ -134,27 +116,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NAV-01 | Phase 8 | Pending |
-| NAV-02 | Phase 8 | Pending |
-| PROJ-01 | Phase 6 | Complete |
-| PROJ-02 | Phase 9 | Pending |
-| PROJ-03 | Phase 7 | Pending |
-| PROJ-04 | Phase 7 | Pending |
-| PROJ-05 | Phase 6 | Complete |
-| DASH-01 | Phase 10 | Pending |
-| DASH-02 | Phase 10 | Pending |
-| DASH-03 | Phase 10 | Pending |
-| DASH-04 | Phase 10 | Pending |
-| DASH-05 | Phase 10 | Pending |
-| DASH-06 | Phase 10 | Pending |
-| DASH-07 | Phase 10 | Pending |
+| *(filled by the roadmap)* | | |
 
 **Coverage:**
-- v2.0 requirements: 14 total
-- Mapped to phases: 14
-- Unmapped: 0 ✓
+- v2.1 requirements: 25 total
+- Mapped to phases: 0
+- Unmapped: 25 ⚠️
+
+## Shipped requirements
+
+The v1.0 list (30 requirements, shipped 2026-03-10) and the v2.0 list (14 requirements, closed 2026-09-30 from code evidence) are in git history at `7c9993d:.planning/REQUIREMENTS.md`. MILESTONES.md summarises both.
 
 ---
-*Requirements defined: 2026-06-05 for milestone v2.0*
-*Roadmap mapped: 2026-06-05 — phases 6–10*
-*v1.0 requirements (30) shipped 2026-03-10; QUOT-06 (PDF export) still pending*
+*Requirements defined: 2026-09-30 for milestone v2.1*
+*Last updated: 2026-09-30 after initial definition*

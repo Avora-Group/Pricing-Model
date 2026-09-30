@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v2.1
 milestone_name: Tracker request embed
 status: planning
-last_updated: "2026-09-30T13:50:41.908Z"
+last_updated: "2026-09-30T13:59:24.179Z"
 last_activity: 2026-09-30
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-05)
+See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Milestone v2.0 — rename Dashboard to Calculation, build real Dashboard with project pipeline metrics (potential vs signed).
+**Current focus:** Milestone v2.1 Tracker request embed — Phase 11: Install tracker-client v10
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 11 of 14 (Install tracker-client v10), the first of four in v2.1
 Plan: —
-Status: Defining requirements
-Last activity: 2026-09-30 — Milestone v2.1 started
+Status: Ready to plan
+Last activity: 2026-09-30 — Roadmap created for milestone v2.1 (phases 11–14)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -71,27 +73,21 @@ Last activity: 2026-09-30 — Milestone v2.1 started
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current (v2.0) work:
+Decisions are logged in the PROJECT.md Key Decisions table.
+Decisions affecting v2.1 work:
 
-- [v2.0]: Project status lives on `pricing_projects`, auto-updated by accepted quotes (single source of truth + manual override)
-- [v2.0]: Status managed inside Calculation page; Dashboard is read-only company-wide metrics (separate workspace from reporting)
-- [v2.0]: Contract value = EUR/BH × MGH × period months
-- [v2.0]: Auto-sign is escalation-only (potential→signed) and never overwrites manual overrides; downgrades are manual
-- [v2.0]: Login lands on `/dashboard` (metrics); pricing workspace moves to `/calculation`
-- [v2.0]: Authoritative quote per project = latest accepted (signed) else latest non-rejected (potential) — prevents revenue double-counting
-- [v2.0]: All monetary aggregation in SQL at NUMERIC precision; never re-sum money in JS
+- [v2.1]: A same-origin token route, not a proxy or in-browser MSAL. The browser calls the tracker directly.
+- [v2.1]: The refresh token lives in its own `tracker_rt` cookie: `EncryptJWT` (`dir` / `A256GCM`) under `TRACKER_RT_KEY`, path `/api/tracker`. ACMI has no next-auth JWT to hold it.
+- [v2.1]: The theme is passed to the dialog inline and never written to `documentElement`. ACMI defines `--shadow-lg` and switches dark mode by class.
+- [v2.1]: Phases continue at 11. v2.0 ended at Phase 10.
+- [Phase 05]: next-themes handles theme persistence. Its `resolvedTheme` picks the dialog palette (EMBED-06).
 
-Carried v1.0 decisions still relevant:
-- [Init]: Match AeroVista stack exactly — FastAPI + Next.js 14 + PostgreSQL 15+ with asyncpg raw SQL
-- [Init]: All monetary calculations use Python decimal.Decimal and PostgreSQL NUMERIC — never float
-- [Init]: Quote immutability is a schema-level decision — store all seven component values and config FK at save time
-- [02-03]: Server Components fetch API with cookie forwarding (cookies() from next/headers) — keeps API_URL server-only
-- [Phase 04-01]: DecimalEncoder converts Decimal to string (not float) in JSONB to preserve precision
-- [Phase 04]: Fork behavior: loadFromQuote sets projectId=null so saving creates a new quote, preserving original immutability
-- [Phase 05]: next-themes handles theme persistence; SensitivityChart.tsx is the proven recharts + dark-mode pattern to reuse
-- [Phase 06-01]: Project provenance modeled as status_source ('automatic'|'manual'), not a boolean override, so Phase 7 auto-sign guard (WHERE status_source <> 'manual') is directly expressible
-- [Phase 06]: [Phase 06-02]: quotes.project_id is a nullable FK with NO ACTION on delete — column lands in foundation Phase 6, save-flow wiring deferred to Phase 7 (PROJ-03)
+Working rules from PROJECT.md Constraints:
+
+- No push without sign-off. Phases 11–13 are local commits only; the push to `main` is Phase 14.
+- Clean tree first: check `git status` before any dependency change or commit. A dirty tree means stop and ask.
+- `.env*` files are edited by the user. The refresh token never reaches a page script or a log line.
+- `nextjs-project/` only. The package is pinned to the `v10` tag (`a369f81`).
 
 ### Pending Todos
 
@@ -99,11 +95,31 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 10]: Three product decisions gate the metrics aggregation SQL — (a) authoritative-quote rule for potential projects, (b) company-wide scope, (c) period_months source (live project_msn_inputs vs quote snapshot). Decisions (a) and (b) are now made (see Decisions above); confirm period_months source during Phase 10 planning.
-- Test suite: _login() helper POSTs to removed /auth/login (Azure SSO migration) — all API-level tests 404 before assertions; pre-existing, logged in deferred-items.md. Needs a maintenance task to re-enable API tests.
+- **Unpushed docs commits.** `main` is ahead of `origin/main` by this milestone's `.planning/` commits. They stay local and go out with the Phase 14 push.
+- **Untracked `.planning/state.json`.** It is SDK output. Decide whether to commit or ignore it before Phase 11's clean-tree check.
+- **[Phase 11] `.env.example` is ignored today.** `nextjs-project/.gitignore` has `.env*`, so DEP-03 needs a negation rule or a forced add.
+- **[Phase 11] `NEXT_PUBLIC_API_URL`.** `src/lib/api.ts` reads it. DEP-03's list does not name it, but "every variable name the frontend reads" covers it.
+- **[Phase 12] `jose` is already a dependency (`^6.1.3`).** RT-02 adds no package, which keeps DEP-01's "no other package changes" true.
+- **[Phases 12–13] Lint is not clean today.** `npm run lint` reports 10 errors and 10 warnings, two of them in `Sidebar.tsx` and `ThemeToggle.tsx`. The gate is "nothing new".
+- **[Phases 12–13] Local UAT needs the user.** The tracker variables go into `.env.local` by hand. Whether the tracker's CORS accepts ACMI's local origin is unconfirmed.
+- **[Phase 13] `BottomTabBar` takes only `userRole` and hides More from viewers** (`showMore = !isViewer`). EMBED-02, -07 and -08 need `userEmail` there and a More list for viewers.
+- **[Phase 13] UAT rows are real.** Host-app tokens are create-only, so `[UAT]` rows must be deleted from the tracker itself.
+- **[Phase 14] Re-check the tracker side.** Consent, the authorized-client entry and CORS were last verified on 2026-09-15. Confirm what else a push to `main` redeploys (the root `railway.json` builds the API).
+- **[Carried] API test suite.** The `_login()` helper posts to the removed `/auth/login`, so every API-level test 404s. v2.1 does not touch the backend.
+
+## Deferred Items
+
+| Category | Item | Status | Deferred At | Milestone |
+|----------|------|--------|-------------|-----------|
+| Requirement | QUOT-06 PDF export (the API route is a 501 stub) | Pending | 2026-09-30 | v2.0 |
+| Tests | Re-enable the API test suite after the Azure SSO migration | Pending | 2026-09-30 | v2.0 |
 
 ## Session Continuity
 
-Last session: 2026-06-05T15:58:39.538Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-09-30T13:59:24.179Z
+Stopped at: Roadmap created for milestone v2.1 (phases 11–14)
 Resume file: None
+
+## Operator Next Steps
+
+- Discuss the first phase with `/gsd-discuss-phase 11`

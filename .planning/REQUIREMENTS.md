@@ -116,12 +116,36 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| *(filled by the roadmap)* | | |
+| DEP-01 | Phase 11 | Pending |
+| DEP-02 | Phase 11 | Pending |
+| DEP-03 | Phase 11 | Pending |
+| RT-01 | Phase 12 | Pending |
+| RT-02 | Phase 12 | Pending |
+| RT-03 | Phase 12 | Pending |
+| RT-04 | Phase 12 | Pending |
+| RT-05 | Phase 12 | Pending |
+| TOKEN-01 | Phase 12 | Pending |
+| TOKEN-02 | Phase 12 | Pending |
+| TOKEN-03 | Phase 12 | Pending |
+| TOKEN-04 | Phase 12 | Pending |
+| EMBED-01 | Phase 13 | Pending |
+| EMBED-02 | Phase 13 | Pending |
+| EMBED-03 | Phase 13 | Pending |
+| EMBED-04 | Phase 13 | Pending |
+| EMBED-05 | Phase 13 | Pending |
+| EMBED-06 | Phase 13 | Pending |
+| EMBED-07 | Phase 13 | Pending |
+| EMBED-08 | Phase 13 | Pending |
+| SHIP-01 | Phase 14 | Pending |
+| SHIP-02 | Phase 14 | Pending |
+| SHIP-03 | Phase 14 | Pending |
+| SHIP-04 | Phase 14 | Pending |
+| SHIP-05 | Phase 14 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 ⚠️
+- Mapped to phases: 25
+- Unmapped: 0
 
 ## Shipped requirements
 
@@ -129,4 +153,4 @@ The v1.0 list (30 requirements, shipped 2026-03-10) and the v2.0 list (14 requir
 
 ---
 *Requirements defined: 2026-09-30 for milestone v2.1*
-*Last updated: 2026-09-30 after initial definition*
+*Last updated: 2026-09-30 after roadmap creation (traceability filled)*

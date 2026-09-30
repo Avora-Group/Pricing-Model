@@ -1,104 +1,148 @@
 # Roadmap: ACMI Pricing Platform
 
-## Overview
+## Milestones
 
-**Current milestone: v2.0 — Dashboard & Project Pipeline.** This milestone separates the pricing workspace from reporting. The existing Dashboard becomes "Calculation" (the pricing workspace), pricing projects gain a potential/signed lifecycle managed inside Calculation, quotes link to projects so an accepted quote auto-signs its project, and a new read-only company-wide Dashboard surfaces pipeline metrics.
+- ✅ **v1.0 Core Pricing Tool** — Phases 1-5 (shipped 2026-03-10)
+- ✅ **v2.0 Dashboard & Project Pipeline** — Phases 6-10 (closed 2026-09-30 from code evidence)
+- 🚧 **v2.1 Tracker request embed** — Phases 11-14 (in progress)
 
-The structure follows a strict dependency chain established by research: the schema (`pricing_projects.status` + provenance, `quotes.project_id`) must exist before any behavior can attach to it, the backend behavior must be correct before the UI consumes it, the route rename must be isolated to avoid partial-broken navigation, and the metrics Dashboard is built last because it is the read-only consumer of everything beneath it. Each phase delivers an independently verifiable capability.
+## Shipped milestones
 
-## v1.0 (shipped)
+<details>
+<summary>✅ v1.0 Core Pricing Tool (Phases 1-5) — SHIPPED 2026-03-10</summary>
 
-Milestone v1.0 — Core Pricing Tool — shipped 2026-03-10. Five phases, all complete:
+- [x] Phase 1: Foundation and Authentication — completed 2026-03-05
+- [x] Phase 2: Aircraft Master Data — completed 2026-03-05
+- [x] Phase 3: Pricing Engine — completed 2026-03-10
+- [x] Phase 4: Quote Persistence and History — completed 2026-03-10
+- [x] Phase 5: Polish and Production Readiness — completed 2026-03-10
 
-- [x] **Phase 1: Foundation and Authentication** — Secure access, project scaffold, database schema foundation (completed 2026-03-05)
-- [x] **Phase 2: Aircraft Master Data** — Aircraft records with cost parameters feeding the pricing engine (completed 2026-03-05)
-- [x] **Phase 3: Pricing Engine** — Formula-accurate EUR/BH calculation across all seven ACMI cost components (completed 2026-03-10)
-- [x] **Phase 4: Quote Persistence and History** — Save, retrieve, and manage pricing quotes as auditable records (completed 2026-03-10)
-- [x] **Phase 5: Polish and Production Readiness** — Admin controls, UI completeness, deployment configuration (completed 2026-03-10)
+Carried over: QUOT-06 (PDF export) is still pending.
 
-Carried-over requirement: QUOT-06 (PDF export) remains pending and is not scheduled in v2.0.
+</details>
+
+<details>
+<summary>✅ v2.0 Dashboard & Project Pipeline (Phases 6-10) — CLOSED 2026-09-30</summary>
+
+Closed from code evidence, not from a verified closeout. See MILESTONES.md.
+
+- [x] Phase 6: Project Schema Foundation (2/2 plans) — completed 2026-06-05 under GSD
+- [x] Phase 7: Project Status Backend & Auto-Sign — built outside GSD
+- [x] Phase 8: Route Rename (Dashboard → Calculation) — built outside GSD
+- [x] Phase 9: Calculation-Page Status Control — built outside GSD
+- [x] Phase 10: Dashboard Metrics Page — built outside GSD
+
+Phase directories as they stood: `milestones/v2.0-phases/`. The v2.0 phase details are in git history at `b624bfa:.planning/ROADMAP.md`.
+
+</details>
+
+## v2.1 — Tracker request embed
+
+**Milestone goal:** A signed-in ACMI user can file a feature request or bug report from the app shell, and it lands in the Avora task tracker as their own request, with `source_app` = `acmi-app`.
+
+### Overview
+
+ACMI is the last of the five host apps in the embed spec (`2026-09-14-host-app-embeds-design.md`). This roadmap follows the same four steps HR, MXT and Finance took:
+
+1. Install the private package so that Vercel can build it.
+2. Keep a refresh token out of the browser's reach and redeem it at a same-origin token route.
+3. Put the two triggers in the app shell, with ACMI's palette.
+4. Deploy to production after sign-off and run the spec's UAT.
+
+ACMI differs from Finance in three ways:
+
+- It is TypeScript.
+- It runs its own code exchange instead of next-auth. The refresh token therefore gets its own encrypted cookie and key, and the token route checks the session itself (Phase 12).
+- It has no user menu. The triggers are icon buttons in the sidebar footer and entries in the mobile More list (Phase 13).
+
+All paths are under `nextjs-project/`. FastAPI and the tracker backend do not change.
+
+Phases 11 to 13 are local commits only. Nothing is pushed until Phase 14, because a push to `main` is a production deploy.
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (6, 7, 8): Planned milestone work for v2.0
-- Decimal phases (6.1, 6.2): Urgent insertions (marked with INSERTED)
 
-- [x] **Phase 6: Project Schema Foundation** - Status + provenance columns on projects and the quote→project FK that every v2.0 feature depends on (completed 2026-06-05)
-- [ ] **Phase 7: Project Status Backend & Auto-Sign** - Quotes linked to projects; an accepted quote atomically signs its project, escalation-only
-- [ ] **Phase 8: Route Rename (Dashboard → Calculation)** - Pricing workspace moves to /calculation; /dashboard freed and login lands there
-- [ ] **Phase 9: Calculation-Page Status Control** - Users set and see project status (potential/signed) with provenance inside the Calculation page
-- [ ] **Phase 10: Dashboard Metrics Page** - Read-only company-wide Dashboard with pipeline, contract value, margins, fleet utilization, and breakdowns
+- Integer phases (11, 12, 13): Planned milestone work. Numbering continues from v2.0, which ended at Phase 10.
+- Decimal phases (12.1, 12.2): Urgent insertions (marked with INSERTED)
+
+- [ ] **Phase 11: Install tracker-client v10** - The private dependency over `git+https`, the Vercel install script and a new `.env.example`
+- [ ] **Phase 12: Refresh-token capture and token route** - `offline_access`, an encrypted `tracker_rt` cookie, and `POST /api/tracker/token`
+- [ ] **Phase 13: Triggers and themed dialog** - A client wrapper, ACMI palette mapping, two sidebar icon buttons and two mobile More entries
+- [ ] **Phase 14: Deploy and production UAT** - Prerequisites, gated push to `main`, and the spec's UAT checklist
 
 ## Phase Details
 
-### Phase 6: Project Schema Foundation
-**Goal**: The database can represent project lifecycle state and quote-to-project ownership, so all subsequent v2.0 behavior has a place to live
-**Depends on**: Phase 5 (v1.0 shipped schema)
-**Requirements**: PROJ-01, PROJ-05
-**Success Criteria** (what must be TRUE):
-  1. Every existing and new pricing project has a `status` of `potential` or `signed`, with new projects defaulting to `potential`
-  2. Projects can record provenance: a `signed_at` timestamp and a `status_source` (automatic vs manual) distinguishing quote-driven changes from manual overrides
-  3. Every quote can be linked to a project via `quotes.project_id`; existing quotes remain valid with a null linkage and no existing quote or project is broken by the migration
-  4. The migrations are idempotent and re-runnable, following the established pattern of migrations 001–007
-**Plans**: 2 plans
-- [ ] 06-01-PLAN.md — pricing_projects status + provenance columns (migration 008) + ProjectResponse exposure (PROJ-01, PROJ-05)
-- [ ] 06-02-PLAN.md — nullable quotes.project_id FK (migration 009), foundation for project linkage (PROJ-03)
+### Phase 11: Install tracker-client v10
 
-### Phase 7: Project Status Backend & Auto-Sign
-**Goal**: When a sales user accepts a quote, that quote's project becomes signed automatically and atomically — without ever overwriting a manual decision
-**Depends on**: Phase 6
-**Requirements**: PROJ-03, PROJ-04
+**Goal**: ACMI's frontend depends on `@avora/tracker-client` v10 and builds locally, with the install script the Vercel build needs and the env manifest already in the tree.
+**Depends on**: Nothing (first phase of v2.1)
+**Requirements**: DEP-01, DEP-02, DEP-03
 **Success Criteria** (what must be TRUE):
-  1. A quote saved from a project is persisted with its `project_id`, so the quote is attributable to exactly one project through the save flow
-  2. Marking a linked quote as Accepted sets its project to `signed` in the same database transaction, and re-accepting the same quote is idempotent (no error, no duplicate side effect)
-  3. Auto-sign is escalation-only: un-accepting or rejecting a quote never auto-demotes a project back to potential
-  4. Auto-sign never fires when the project status was set manually (the manual-override guard is respected), and the change is stamped as automatic in provenance
+
+  1. In `nextjs-project/`, `npm ci && npm run build` passes on a clean tree, with the dependency resolved over `git+https` to `a369f81…`.
+  2. `grep -c git+ssh package-lock.json` is `0`, and the lockfile diff touches only the `@avora/tracker-client` entry.
+  3. `vercel.json`'s `installCommand` is `bash vercel-install.sh`. The script writes git credentials from `TRACKER_REPO_TOKEN` for all three GitHub URL forms before `npm install`, and `git ls-files --eol vercel-install.sh` shows `i/lf`.
+  4. `.env.example` is tracked by git despite the `.env*` ignore rule (`git ls-files .env.example` lists it). It holds names only: every `process.env` name read under `src/`, plus `TRACKER_API_SCOPE`, `TRACKER_RT_KEY`, `NEXT_PUBLIC_TRACKER_API_URL`, `NEXT_PUBLIC_TRACKER_URL` and `TRACKER_REPO_TOKEN`.
+
+The install on Vercel itself is first exercised by the Phase 14 deploy.
+
 **Plans**: TBD
 
-### Phase 8: Route Rename (Dashboard → Calculation)
-**Goal**: The pricing workspace lives at `/calculation` and the `/dashboard` URL is freed for the new metrics page, with navigation intact everywhere
-**Depends on**: Phase 5 (independent of Phases 6–7; must complete before Phase 10)
-**Requirements**: NAV-01, NAV-02
+### Phase 12: Refresh-token capture and token route
+
+**Goal**: A signed-in ACMI user's browser can obtain a tracker-scoped access token from its own origin. The Entra refresh token exists only as an encrypted, httpOnly cookie that the browser sends to `/api/tracker` and nowhere else.
+**Depends on**: Phase 11
+**Requirements**: RT-01, RT-02, RT-03, RT-04, RT-05, TOKEN-01, TOKEN-02, TOKEN-03, TOKEN-04
 **Success Criteria** (what must be TRUE):
-  1. The sidebar shows the pricing workspace as "Calculation" served at `/calculation`, and every navigation entry point reaches it correctly (Sidebar, BottomTabBar, QuoteHeader)
-  2. All route protection and viewer allowlists in middleware reference `/calculation`, so both standard users and viewers can reach the workspace without 403s or redirect loops
-  3. After login, the user lands on `/dashboard`; the root page redirect and the Azure SSO callback both target the Dashboard
-  4. A request to the old `/dashboard` workspace bookmark does not 404 — it resolves to the new location via a configured redirect
+
+  1. Both the authorize request and the code exchange send `openid email profile offline_access`. After a fresh local sign-in, the browser holds a `tracker_rt` cookie that is `HttpOnly`, `SameSite=Lax`, path `/api/tracker`, with a 7-day lifetime. Its value is a compact JWE (`dir` / `A256GCM`), and `document.cookie` does not show it.
+  2. From a signed-in tab, `POST /api/tracker/token` returns `200 { accessToken, expiresAt }` with `Cache-Control: no-store`. The token's `aud` is the tracker (`86fcee80-…`) and its `azp` is `ac19614d-…`. When Entra rotates the refresh token, the same response re-sets `tracker_rt` with the same attributes.
+  3. The route answers in JSON and never redirects: `401 reauth` without the `access_token` cookie, `401 reauth` when `tracker_rt` is missing or fails to decrypt, and `503 unconfigured` when `TRACKER_API_SCOPE` or `TRACKER_RT_KEY` is unset. Entra failures map through `tokenErrorResponse`, and the server log shows only the error code and Entra's numeric codes, never a token.
+  4. With `TRACKER_RT_KEY` unset, sign-in still sets `access_token` and redirects as it does today, and sets no `tracker_rt`. Signing out removes both `access_token` and `tracker_rt`.
+  5. The dashboard, Calculation and quotes still work after sign-in. `npm run build` passes, and `npm run lint` reports nothing beyond today's baseline (10 errors, 10 warnings).
+
 **Plans**: TBD
 
-### Phase 9: Calculation-Page Status Control
-**Goal**: A user can read and change a project's pipeline status directly in the Calculation page, and can tell whether a signed status came from a quote or from a manual decision
-**Depends on**: Phase 7 (status backend), Phase 8 (Calculation URL stable)
-**Requirements**: PROJ-02
-**Success Criteria** (what must be TRUE):
-  1. The Calculation page shows the current project status as a badge (potential or signed)
-  2. The user can toggle the status (potential ↔ signed) from the Calculation page, and the change persists and is reflected on reload
-  3. A manual status change is recorded as a manual override, so subsequent quote acceptances do not silently overwrite it
-  4. The UI distinguishes provenance to the user (e.g. "Signed — auto from accepted quote" vs "Signed — set manually")
-**Plans**: TBD
+### Phase 13: Triggers and themed dialog
 
-### Phase 10: Dashboard Metrics Page
-**Goal**: Any user can open the Dashboard and read accurate, company-wide pipeline metrics across all projects, split by potential vs signed
-**Depends on**: Phases 6, 7, 8, 9 (needs linked/signed data and the freed `/dashboard` URL)
-**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DASH-07
+**Goal**: ACMI users see **Request a feature** and **Report a bug** in the sidebar footer and in the mobile More list. Each opens the tracker dialog pinned to `acmi-app` and matching ACMI's light or dark palette.
+**Depends on**: Phase 12
+**Requirements**: EMBED-01, EMBED-02, EMBED-03, EMBED-04, EMBED-05, EMBED-06, EMBED-07, EMBED-08
 **Success Criteria** (what must be TRUE):
-  1. The Dashboard shows project counts split by status (X potential, Y signed) across all users' projects — it is read-only and company-wide
-  2. The Dashboard shows pipeline contract value (potential) and signed contract value in EUR, computed as EUR/BH × MGH × period months using one authoritative quote per project (latest accepted for signed, latest of any non-rejected status for potential), so revenue is never double-counted
-  3. The Dashboard shows average EUR/BH rate and average margin % across projects, with all monetary aggregation performed in SQL at NUMERIC precision (no money re-summed in JS)
-  4. The Dashboard shows fleet utilization — distinct MSNs committed to signed projects vs available fleet from the aircraft master — with a utilization % headline KPI where committed never exceeds fleet size
-  5. The Dashboard shows pipeline/signed value broken down by client and by aircraft type, plus a trend chart of value by month driven by `signed_at`/created timestamps
+
+  1. Locally, the expanded sidebar footer shows two icon buttons (`Lightbulb`, `Bug`) beside the theme toggle, each with its label as `aria-label` and `title`. They disappear when the sidebar is collapsed. At mobile width, both entries appear in the bottom bar's More list.
+  2. Each trigger opens the dialog with the right type, the project locked to ACMI App, and the signed-in user as requester: the email from the shell, the name from the token's `name` claim. Submitting shows the package notice, and its link opens the tracker's Requests view filtered to `acmi-app`.
+  3. When the token fetch fails, an error notice shows the error's message and no dialog opens.
+  4. In both light and dark, the dialog and notices match ACMI, with all 18 variables set on the dialog's own elements. The page behind does not change colour, and `documentElement` gains no inline style.
+  5. A viewer-role user can open the dialog from the sidebar and from the mobile bar, where viewers have no More list today. With `NEXT_PUBLIC_TRACKER_API_URL` unset, or with no `userEmail`, no trigger renders on desktop or mobile. `npm run build` passes and lint adds nothing to the baseline.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 14: Deploy and production UAT
+
+**Goal**: The embed is live on the addresses ACMI users land on, and passes the spec's per-app UAT checklist.
+**Depends on**: Phase 13
+**Requirements**: SHIP-01, SHIP-02, SHIP-03, SHIP-04, SHIP-05
+**Success Criteria** (what must be TRUE):
+
+  1. The user re-confirms the Entra consent and authorized-client entries for `ac19614d-…`. A live preflight to the tracker API returns `access-control-allow-origin` from both `https://pricing-model.avora.aero` and `https://acmi-pricing.vercel.app`.
+  2. The four tracker variables and `TRACKER_REPO_TOKEN` are on the Vercel project `pricing-model`. The rollback target is recorded before the push. After explicit sign-off, the `main` deploy reaches `READY`, and its install log shows the credential step.
+  3. On production, a feature (with a screenshot) and a bug each land in the tracker with `source_app` = `acmi-app` and `created_by` = the user. In light and dark the dialog matches ACMI, and the page behind it does not change colour.
+  4. A forced `reauth` shows the notice and no dialog opens. A session from before the deploy gets the `reauth` notice once, then works after signing in again. After logout, `tracker_rt` is gone.
+  5. ACMI's own session, quotes and dashboard still work after filing. The rollback path (a `git revert` of the milestone's commits, pushed after sign-off) is written down and understood.
+
 **Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-v2.0 phases execute in numeric order: 6 -> 7 -> 8 -> 9 -> 10. Phase 8 (route rename) is independent of Phases 6–7 and may run in parallel, but must complete before Phase 10.
+Phases execute in numeric order: 11 → 12 → 13 → 14
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. Project Schema Foundation | 2/2 | Complete    | 2026-06-05 |
-| 7. Project Status Backend & Auto-Sign | 0/0 | Not started | - |
-| 8. Route Rename (Dashboard → Calculation) | 0/0 | Not started | - |
-| 9. Calculation-Page Status Control | 0/0 | Not started | - |
-| 10. Dashboard Metrics Page | 0/0 | Not started | - |
+| 11. Install tracker-client v10 | 0/0 | Not started | - |
+| 12. Refresh-token capture and token route | 0/0 | Not started | - |
+| 13. Triggers and themed dialog | 0/0 | Not started | - |
+| 14. Deploy and production UAT | 0/0 | Not started | - |

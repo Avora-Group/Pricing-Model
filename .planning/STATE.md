@@ -1,16 +1,16 @@
 ---
-gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: milestone
-status: completed
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-06-05T16:02:58.018Z"
-last_activity: 2026-06-05 — Completed Phase 6 Plan 02 (migration 009 + quotes.project_id FK)
+gsd_state_version: "1.0"
+milestone: v2.1
+milestone_name: Tracker request embed
+status: planning
+last_updated: "2026-09-30T13:50:41.908Z"
+last_activity: 2026-09-30
 progress:
-  total_phases: 5
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,19 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-05)
 
 ## Current Position
 
-Phase: Phase 6 — Project Schema Foundation (complete)
-Plan: 06-02 complete (2/2) — phase done; next Phase 7
-Status: Phase 6 complete — quotes.project_id FK landed (migration 009); ready for Phase 7 wiring
-Last activity: 2026-06-05 — Completed Phase 6 Plan 02 (migration 009 + quotes.project_id FK)
-
-v2.0 phases (execute 6 -> 7 -> 8 -> 9 -> 10; Phase 8 independent of 6-7, must precede 10):
-- [x] Phase 6: Project Schema Foundation — PROJ-01, PROJ-05, PROJ-03 (foundation column)
-- [ ] Phase 7: Project Status Backend & Auto-Sign — PROJ-03, PROJ-04
-- [ ] Phase 8: Route Rename (Dashboard → Calculation) — NAV-01, NAV-02
-- [ ] Phase 9: Calculation-Page Status Control — PROJ-02
-- [ ] Phase 10: Dashboard Metrics Page — DASH-01..07
-
-Next: `/gsd:plan-phase 7`
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-09-30 — Milestone v2.1 started
 
 ## Performance Metrics
 

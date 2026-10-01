@@ -80,8 +80,14 @@ export async function GET(req: NextRequest) {
     )
 
     if (!tokenRes.ok) {
-      const err = await tokenRes.text()
-      console.error('[azure-callback] Token exchange failed:', err)
+      // Entra's OAuth error code and numeric error_codes only (IN-05):
+      // error_description is free text and can echo request details.
+      const err = await tokenRes.json().catch(() => null)
+      const oauthError = typeof err?.error === 'string' && /^[a-z_]{1,64}$/.test(err.error) ? err.error : 'unknown'
+      const errorCodes: number[] = Array.isArray(err?.error_codes)
+        ? err.error_codes.filter((c: unknown): c is number => typeof c === 'number')
+        : []
+      console.error('[azure-callback] Token exchange failed:', tokenRes.status, oauthError, JSON.stringify(errorCodes))
       return loginRedirect(req, 'token_failed', next)
     }
 
@@ -97,7 +103,8 @@ export async function GET(req: NextRequest) {
     const azureId = payload.oid // Azure object ID
 
     if (!email || !azureId) {
-      console.error('[azure-callback] Missing email or oid in token:', payload)
+      // Which claim is missing, never the id_token's claims themselves (IN-05).
+      console.error('[azure-callback] Missing email or oid in token:', { hasEmail: !!email, hasOid: !!azureId })
       return loginRedirect(req, 'missing_claims', next)
     }
 

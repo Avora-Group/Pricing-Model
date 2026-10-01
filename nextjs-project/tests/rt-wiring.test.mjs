@@ -102,6 +102,17 @@ test("callback leaves access_token and the redirect as they were", () => {
   assert.match(s, /\}\s*catch\s*\(e\)\s*\{\s*console\.error\('\[azure-callback\] Unexpected error:', e\)/);
 });
 
+test("callback logs neither id_token claims nor Entra's raw error body (IN-05)", () => {
+  const code = codeOnly(read(CALLBACK));
+  assert.doesNotMatch(code, /console\.error\([^)]*\bpayload\b/, "a log line carries the decoded id_token");
+  assert.ok(!code.includes("tokenRes.text()"), "the token exchange's raw body is read as text");
+  assert.ok(code.includes("{ hasEmail: !!email, hasOid: !!azureId }"));
+  assert.match(
+    code,
+    /console\.error\('\[azure-callback\] Token exchange failed:', tokenRes\.status, oauthError, JSON\.stringify\(errorCodes\)\)/,
+  );
+});
+
 test("logoutAction deletes access_token and tracker_rt before redirecting", () => {
   const code = codeOnly(read(ACTIONS));
   assert.ok(code.includes("import { TRACKER_RT_DELETE } from '@/lib/tracker-rt'"));

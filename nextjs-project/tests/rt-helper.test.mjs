@@ -6,20 +6,26 @@ import { EncryptJWT, jwtDecrypt } from "jose";
 import {
   TRACKER_RT_COOKIE,
   TRACKER_RT_DELETE,
+  TRACKER_RT_MAX_AGE,
   TRACKER_RT_MAX_LENGTH,
   TRACKER_RT_SKIP_MESSAGES,
   trackerRtCookieOptions,
+  trackerRtExp,
   parseTrackerRtKey,
   sealTrackerRt,
   openTrackerRt,
+  sessionClaims,
   sessionSubject,
   checkTrackerRt,
   captureTrackerRt,
 } from "../src/lib/tracker-rt.ts";
 
 const JWE_PREFIX = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..";
+const DAY = 24 * 3600;
 
 const nowSec = () => Math.floor(Date.now() / 1000);
+// A session deadline well past the 7-day window, so the window alone sets exp.
+const far = () => nowSec() + 30 * DAY;
 const keyStr = (n = 32) => randomBytes(n).toString("base64url");
 const newKey = () => parseTrackerRtKey(keyStr());
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
@@ -36,15 +42,16 @@ const ACCESS_TOKEN_OPTIONS = {
   path: "/",
 };
 
-test("seal/open round trip keeps rt and sub", async () => {
+test("seal/open round trip keeps rt, sub and sexp", async () => {
   const key = newKey();
-  const jwe = await sealTrackerRt({ rt: "RT-VALUE", sub: "7" }, key);
-  assert.deepEqual(await openTrackerRt(jwe, key), { rt: "RT-VALUE", sub: "7" });
+  const sexp = far();
+  const jwe = await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp }, key);
+  assert.deepEqual(await openTrackerRt(jwe, key), { rt: "RT-VALUE", sub: "7", sexp });
 });
 
 test("sealed value is a dir/A256GCM compact JWE with exp 7 days after iat", async () => {
   const key = newKey();
-  const jwe = await sealTrackerRt({ rt: "RT-VALUE", sub: "7" }, key);
+  const jwe = await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp: far() }, key);
   const parts = jwe.split(".");
   assert.equal(parts.length, 5);
   assert.equal(parts[1], "");
@@ -55,38 +62,109 @@ test("sealed value is a dir/A256GCM compact JWE with exp 7 days after iat", asyn
   assert.equal(payload.exp - payload.iat, 604800);
 });
 
-test("captureTrackerRt seals the refresh token for the session sub", async () => {
+// ---- WR-01: the sign-in session's exp (sexp) is an absolute deadline
+
+test("seal caps exp at sexp when the session ends inside 7 days", async () => {
+  const key = newKey();
+  const sexp = nowSec() + 3600;
+  const { payload } = await jwtDecrypt(await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp }, key), key);
+  assert.equal(payload.exp, sexp);
+  assert.equal(payload.sexp, sexp);
+});
+
+test("trackerRtExp is min(now + 7 days, sexp)", () => {
+  const now = 1_900_000_000;
+  assert.equal(trackerRtExp(now + 30 * DAY, now), now + TRACKER_RT_MAX_AGE);
+  assert.equal(trackerRtExp(now + 3600, now), now + 3600);
+});
+
+test("a re-seal at a later time never extends past the original sexp", async () => {
+  const key = newKey();
+  const start = nowSec();
+  const sexp = start + 6 * DAY;
+  const first = await openTrackerRt(await sealTrackerRt({ rt: "RT-ONE", sub: "7", sexp }, key, start), key);
+  assert.equal(first.sexp, sexp);
+  // Five days on, a rotation re-seals with what the cookie carried. Seven days
+  // from then would be start + 12 days; the deadline holds it at start + 6.
+  const later = start + 5 * DAY;
+  const resealed = await sealTrackerRt({ rt: "RT-TWO", sub: first.sub, sexp: first.sexp }, key, later);
+  const { payload } = await jwtDecrypt(resealed, key, { currentDate: new Date(later * 1000) });
+  assert.equal(payload.exp, sexp);
+  assert.equal(payload.sexp, sexp);
+  assert.ok(payload.exp < later + TRACKER_RT_MAX_AGE);
+});
+
+test("a forged far-future access_token does not move the deadline", async () => {
   const raw = keyStr();
-  const result = await captureTrackerRt({ rawKey: raw, sessionToken: session("42"), refreshToken: "RT-VALUE" });
+  const key = parseTrackerRtKey(raw);
+  const sexp = nowSec() + 3600;
+  const { sealed } = await captureTrackerRt({
+    rawKey: raw,
+    sessionToken: sessionToken({ sub: "42", exp: sexp }),
+    refreshToken: "RT-VALUE",
+  });
+  const forged = sessionToken({ sub: "42", exp: nowSec() + 365 * DAY });
+  const check = await checkTrackerRt({ accessToken: forged, trackerRt: sealed, key });
+  assert.equal(check.ok, true);
+  assert.equal(check.sexp, sexp);
+});
+
+test("sealTrackerRt refuses a past, missing or non-integer sexp", async () => {
+  const key = newKey();
+  for (const sexp of [nowSec() - 1, nowSec(), undefined, null, "9999999999", nowSec() + 3600.5, NaN, Infinity]) {
+    await assert.rejects(sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp }, key), `sexp ${String(sexp)}`);
+  }
+});
+
+test("captureTrackerRt seals the refresh token for the session sub and exp", async () => {
+  const raw = keyStr();
+  const sexp = nowSec() + 3600;
+  const result = await captureTrackerRt({
+    rawKey: raw,
+    sessionToken: sessionToken({ sub: "42", exp: sexp }),
+    refreshToken: "RT-VALUE",
+  });
   assert.equal(result.skipped, null);
   assert.equal(typeof result.sealed, "string");
   assert.ok(result.sealed.startsWith(JWE_PREFIX));
-  assert.deepEqual(await openTrackerRt(result.sealed, parseTrackerRtKey(raw)), { rt: "RT-VALUE", sub: "42" });
+  assert.deepEqual(await openTrackerRt(result.sealed, parseTrackerRtKey(raw)), { rt: "RT-VALUE", sub: "42", sexp });
+  // The cookie's maxAge runs out with the JWE: the session's remaining seconds.
+  assert.ok(result.maxAge > 3590 && result.maxAge <= 3600, `maxAge ${result.maxAge}`);
+});
+
+test("captureTrackerRt caps maxAge at 7 days for a longer session", async () => {
+  const result = await captureTrackerRt({ rawKey: keyStr(), sessionToken: session("42", 30 * DAY), refreshToken: "RT" });
+  assert.equal(result.maxAge, TRACKER_RT_MAX_AGE);
 });
 
 test("checkTrackerRt accepts the cookie the callback sets", async () => {
   const raw = keyStr();
-  const access = session("42");
+  const sexp = nowSec() + 3600;
+  const access = sessionToken({ sub: "42", exp: sexp });
   const { sealed } = await captureTrackerRt({ rawKey: raw, sessionToken: access, refreshToken: "RT-VALUE" });
   const check = await checkTrackerRt({ accessToken: access, trackerRt: sealed, key: parseTrackerRtKey(raw) });
-  assert.deepEqual(check, { ok: true, rt: "RT-VALUE", sub: "42" });
+  assert.deepEqual(check, { ok: true, rt: "RT-VALUE", sub: "42", sexp });
 });
 
-test("cookie options are RT-03", () => {
+test("cookie options are RT-03, with maxAge clamped to 0..7 days", () => {
   assert.equal(TRACKER_RT_COOKIE, "tracker_rt");
-  assert.equal(trackerRtCookieOptions.httpOnly, true);
-  assert.equal(trackerRtCookieOptions.sameSite, "lax");
-  assert.equal(trackerRtCookieOptions.maxAge, 604800);
-  assert.equal(trackerRtCookieOptions.path, "/api/tracker");
-  assert.equal(trackerRtCookieOptions.secure, process.env.NODE_ENV === "production");
+  const options = trackerRtCookieOptions(TRACKER_RT_MAX_AGE);
+  assert.equal(options.httpOnly, true);
+  assert.equal(options.sameSite, "lax");
+  assert.equal(options.maxAge, 604800);
+  assert.equal(options.path, "/api/tracker");
+  assert.equal(options.secure, process.env.NODE_ENV === "production");
+  assert.equal(trackerRtCookieOptions(3600.9).maxAge, 3600);
+  assert.equal(trackerRtCookieOptions(30 * DAY).maxAge, 604800);
+  assert.equal(trackerRtCookieOptions(-5).maxAge, 0);
   assert.deepEqual(TRACKER_RT_DELETE, { name: "tracker_rt", path: "/api/tracker" });
 });
 
 test("callback redirect carries access_token and tracker_rt as separate cookies", async () => {
-  const sealed = await sealTrackerRt({ rt: "RT-VALUE", sub: "7" }, newKey());
+  const sealed = await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp: far() }, newKey());
   const response = NextResponse.redirect(new URL("/dashboard", "http://localhost:3000/api/auth/callback/azure"));
   response.cookies.set("access_token", session("7"), ACCESS_TOKEN_OPTIONS);
-  response.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions);
+  response.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions(TRACKER_RT_MAX_AGE));
   const cookies = response.headers.getSetCookie();
   assert.equal(cookies.length, 2);
   const access = cookies.find((c) => c.startsWith("access_token="));
@@ -127,21 +205,35 @@ for (const [name, raw] of [
 }
 
 test("openTrackerRt rejects a wrong key", async () => {
-  const jwe = await sealTrackerRt({ rt: "RT-VALUE", sub: "7" }, newKey());
+  const jwe = await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp: far() }, newKey());
   assert.equal(await openTrackerRt(jwe, newKey()), null);
 });
 
 test("openTrackerRt rejects a past exp", async () => {
   const key = newKey();
-  const jwe = await rawJwe({ rt: "RT-VALUE", sub: "7" }, key, nowSec() - 60);
+  const jwe = await rawJwe({ rt: "RT-VALUE", sub: "7", sexp: far() }, key, nowSec() - 60);
   assert.equal(await openTrackerRt(jwe, key), null);
 });
 
 test("openTrackerRt rejects a JWE without exp", async () => {
   const key = newKey();
-  const jwe = await rawJwe({ rt: "RT-VALUE", sub: "7" }, key);
+  const jwe = await rawJwe({ rt: "RT-VALUE", sub: "7", sexp: far() }, key);
   assert.equal(await openTrackerRt(jwe, key), null);
 });
+
+for (const [name, claims] of [
+  ["no sexp", { rt: "RT-VALUE", sub: "7" }],
+  ["a string sexp", { rt: "RT-VALUE", sub: "7", sexp: String(nowSec() + 3600) }],
+  ["a fractional sexp", { rt: "RT-VALUE", sub: "7", sexp: nowSec() + 3600.5 }],
+  ["a zero sexp", { rt: "RT-VALUE", sub: "7", sexp: 0 }],
+  ["an exp later than sexp", { rt: "RT-VALUE", sub: "7", sexp: nowSec() + 60 }],
+]) {
+  test(`openTrackerRt rejects ${name}`, async () => {
+    const key = newKey();
+    const jwe = await rawJwe(claims, key, nowSec() + 3600);
+    assert.equal(await openTrackerRt(jwe, key), null);
+  });
+}
 
 {
   const key = newKey();
@@ -149,7 +241,7 @@ test("openTrackerRt rejects a JWE without exp", async () => {
     ['""', async () => ""],
     ['"garbage"', async () => "garbage"],
     ['"a.b.c.d.e"', async () => "a.b.c.d.e"],
-    ["a truncated JWE", async () => (await sealTrackerRt({ rt: "RT-VALUE", sub: "7" }, key)).slice(0, -4)],
+    ["a truncated JWE", async () => (await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp: far() }, key)).slice(0, -4)],
   ]) {
     test(`openTrackerRt rejects ${name}`, async () => {
       assert.equal(await openTrackerRt(await value(), key), null);
@@ -159,12 +251,18 @@ test("openTrackerRt rejects a JWE without exp", async () => {
 
 test("openTrackerRt rejects non-string claims", async () => {
   const key = newKey();
-  const jwe = await rawJwe({ rt: 12345, sub: "7" }, key, nowSec() + 3600);
+  const jwe = await rawJwe({ rt: 12345, sub: "7", sexp: far() }, key, nowSec() + 3600);
   assert.equal(await openTrackerRt(jwe, key), null);
 });
 
 test("sessionSubject reads sub from a FastAPI-shaped token", () => {
   assert.equal(sessionSubject(session("42")), "42");
+});
+
+test("sessionClaims reads sub and a whole-second exp", () => {
+  const exp = nowSec() + 3600;
+  assert.deepEqual(sessionClaims(sessionToken({ sub: "42", exp })), { sub: "42", exp });
+  assert.deepEqual(sessionClaims(sessionToken({ sub: "42", exp: exp + 0.7 })), { sub: "42", exp });
 });
 
 test("sessionSubject treats exp equal to now as expired", () => {
@@ -187,7 +285,7 @@ for (const [name, token] of [
 
 test("checkTrackerRt: no or expired session is reauth without clearing", async () => {
   const key = newKey();
-  const trackerRt = await sealTrackerRt({ rt: "RT-VALUE", sub: "42" }, key);
+  const trackerRt = await sealTrackerRt({ rt: "RT-VALUE", sub: "42", sexp: far() }, key);
   assert.deepEqual(await checkTrackerRt({ accessToken: undefined, trackerRt, key }), { ok: false, clear: false });
   assert.deepEqual(await checkTrackerRt({ accessToken: session("42", -60), trackerRt, key }), { ok: false, clear: false });
 });
@@ -203,10 +301,11 @@ test("checkTrackerRt: missing tracker_rt is reauth without clearing", async () =
   const key = newKey();
   for (const [name, cookie] of [
     ["garbage", async () => "garbage"],
-    ["a wrong key", async () => sealTrackerRt({ rt: "RT-VALUE", sub: "42" }, newKey())],
-    ["a past exp", async () => rawJwe({ rt: "RT-VALUE", sub: "42" }, key, nowSec() - 60)],
-    ["a missing exp", async () => rawJwe({ rt: "RT-VALUE", sub: "42" }, key)],
-    ["another user's sub", async () => sealTrackerRt({ rt: "RT-VALUE", sub: "99" }, key)],
+    ["a wrong key", async () => sealTrackerRt({ rt: "RT-VALUE", sub: "42", sexp: far() }, newKey())],
+    ["a past exp", async () => rawJwe({ rt: "RT-VALUE", sub: "42", sexp: far() }, key, nowSec() - 60)],
+    ["a missing exp", async () => rawJwe({ rt: "RT-VALUE", sub: "42", sexp: far() }, key)],
+    ["a missing sexp", async () => rawJwe({ rt: "RT-VALUE", sub: "42" }, key, nowSec() + 3600)],
+    ["another user's sub", async () => sealTrackerRt({ rt: "RT-VALUE", sub: "99", sexp: far() }, key)],
   ]) {
     test(`checkTrackerRt clears ${name}`, async () => {
       const check = await checkTrackerRt({ accessToken: session("42"), trackerRt: await cookie(), key });
@@ -217,16 +316,17 @@ test("checkTrackerRt: missing tracker_rt is reauth without clearing", async () =
 
 test("checkTrackerRt decisions are independent across parallel calls", async () => {
   const key = newKey();
+  const sexp = far();
   const [a, b] = await Promise.all([
-    sealTrackerRt({ rt: "RT-ONE", sub: "1" }, key),
-    sealTrackerRt({ rt: "RT-TWO", sub: "2" }, key),
+    sealTrackerRt({ rt: "RT-ONE", sub: "1", sexp }, key),
+    sealTrackerRt({ rt: "RT-TWO", sub: "2", sexp }, key),
   ]);
   const [ca, cb] = await Promise.all([
     checkTrackerRt({ accessToken: session("1"), trackerRt: a, key }),
     checkTrackerRt({ accessToken: session("2"), trackerRt: b, key }),
   ]);
-  assert.deepEqual(ca, { ok: true, rt: "RT-ONE", sub: "1" });
-  assert.deepEqual(cb, { ok: true, rt: "RT-TWO", sub: "2" });
+  assert.deepEqual(ca, { ok: true, rt: "RT-ONE", sub: "1", sexp });
+  assert.deepEqual(cb, { ok: true, rt: "RT-TWO", sub: "2", sexp });
 });
 
 test("captureTrackerRt skips with no-key for an unset or empty key", async () => {
@@ -290,10 +390,10 @@ test("TRACKER_RT_SKIP_MESSAGES names a step and carries no value", () => {
 });
 
 test("deleting tracker_rt emits an expired cookie on its path and replaces an earlier set", async () => {
-  const sealed = await sealTrackerRt({ rt: "RT-VALUE", sub: "7" }, newKey());
+  const sealed = await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp: far() }, newKey());
   const response = NextResponse.redirect(new URL("/dashboard", "http://localhost:3000/api/auth/callback/azure"));
   response.cookies.set("access_token", session("7"), ACCESS_TOKEN_OPTIONS);
-  response.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions);
+  response.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions(TRACKER_RT_MAX_AGE));
   const accessBefore = response.headers.getSetCookie().find((c) => c.startsWith("access_token="));
   response.cookies.delete(TRACKER_RT_DELETE);
   const cookies = response.headers.getSetCookie();

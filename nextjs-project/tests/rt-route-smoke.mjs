@@ -190,7 +190,7 @@ async function runCase(config, name, fn) {
 
 async function configA(server) {
   const s1 = session('rt-smoke-1')
-  const sealed1 = await sealTrackerRt({ rt: REFRESH, sub: 'rt-smoke-1' }, KEY_A_BYTES)
+  const sealed1 = await sealTrackerRt({ rt: REFRESH, sub: 'rt-smoke-1', sexp: nowSec() + 3600 }, KEY_A_BYTES)
   SECRETS.push(s1, sealed1)
 
   await runCase('A', 'no cookies is reauth', async () => {
@@ -224,7 +224,7 @@ async function configA(server) {
   })
 
   await runCase('A', "another user's tracker_rt is reauth and cleared", async () => {
-    const sealed2 = await sealTrackerRt({ rt: REFRESH, sub: 'rt-smoke-2' }, KEY_A_BYTES)
+    const sealed2 = await sealTrackerRt({ rt: REFRESH, sub: 'rt-smoke-2', sexp: nowSec() + 3600 }, KEY_A_BYTES)
     SECRETS.push(sealed2)
     const r = await request(server, { cookies: { access_token: s1, tracker_rt: sealed2 } })
     expectError(r, 401, 'reauth')
@@ -233,7 +233,7 @@ async function configA(server) {
 
   await runCase('A', 'tracker_rt under another key is reauth and cleared', async () => {
     const otherKey = keyStr()
-    const sealedOther = await sealTrackerRt({ rt: REFRESH, sub: 'rt-smoke-1' }, parseTrackerRtKey(otherKey))
+    const sealedOther = await sealTrackerRt({ rt: REFRESH, sub: 'rt-smoke-1', sexp: nowSec() + 3600 }, parseTrackerRtKey(otherKey))
     SECRETS.push(otherKey, sealedOther)
     const r = await request(server, { cookies: { access_token: s1, tracker_rt: sealedOther } })
     expectError(r, 401, 'reauth')
@@ -241,7 +241,7 @@ async function configA(server) {
   })
 
   await runCase('A', 'tracker_rt past its exp is reauth and cleared', async () => {
-    const sealedPast = await new EncryptJWT({ rt: REFRESH, sub: 'rt-smoke-1' })
+    const sealedPast = await new EncryptJWT({ rt: REFRESH, sub: 'rt-smoke-1', sexp: nowSec() + 3600 })
       .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
       .setIssuedAt(nowSec() - 120)
       .setExpirationTime(nowSec() - 60)

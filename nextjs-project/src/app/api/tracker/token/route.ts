@@ -12,6 +12,7 @@ import {
   parseTrackerRtKey,
   checkTrackerRt,
   sealTrackerRt,
+  trackerRtExp,
 } from '@/lib/tracker-rt'
 
 /**
@@ -43,7 +44,8 @@ import {
  * Cookies: a `tracker_rt` that will not open, is past its exp or was sealed
  * for another user is cleared on the same 401. A session or Entra failure
  * leaves it alone. When Entra rotates the refresh token, the 200 re-sets
- * `tracker_rt` with the same attributes, so the 7-day window slides.
+ * `tracker_rt` with the same attributes, so the 7-day window slides, but never
+ * past the exp of the sign-in session it was captured from (`sexp`, WR-01).
  */
 export const dynamic = 'force-dynamic'
 
@@ -86,13 +88,19 @@ export async function POST(req: NextRequest) {
 
     // A failed re-seal still answers the 200 without a cookie: Entra does not
     // revoke a refresh token on use, so the current tracker_rt keeps working.
-    const sealed = await sealTrackerRt({ rt: rotated, sub: check.sub }, key).catch(() => null)
+    // The re-seal keeps the sign-in deadline check.sexp, so rotation never
+    // pushes the cookie past the session it was captured from (WR-01).
+    const nowSec = Math.floor(Date.now() / 1000)
+    const sealed = await sealTrackerRt({ rt: rotated, sub: check.sub, sexp: check.sexp }, key, nowSec).catch(
+      () => null,
+    )
     if (sealed === null) {
       console.error('tracker-token: reseal failed')
       return res
     }
+    const maxAge = trackerRtExp(check.sexp, nowSec) - nowSec
     return withCookies(res, (out) => {
-      out.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions)
+      out.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions(maxAge))
     })
   } catch (e) {
     // The code and Entra's numeric error codes, never a token or a secret:

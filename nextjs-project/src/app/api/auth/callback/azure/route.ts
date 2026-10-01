@@ -123,9 +123,9 @@ export async function GET(req: NextRequest) {
     const skipped = capture?.skipped ?? null
     const skipMessage = skipped ? TRACKER_RT_SKIP_MESSAGES[skipped] : null
     if (skipMessage) console.error(`[azure-callback] tracker-rt: ${skipMessage}`)
-    const sealed = capture?.sealed ?? null
-    if (sealed) response.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions)
-    else response.cookies.delete(TRACKER_RT_DELETE)
+    if (capture && capture.skipped === null) {
+      response.cookies.set(TRACKER_RT_COOKIE, capture.sealed, trackerRtCookieOptions(capture.maxAge))
+    } else response.cookies.delete(TRACKER_RT_DELETE)
     return response
   } catch (e) {
     console.error('[azure-callback] Unexpected error:', e)

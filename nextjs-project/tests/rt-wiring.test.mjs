@@ -81,7 +81,7 @@ test("callback captures tracker_rt in its own try/catch after access_token", () 
 
   for (const needle of [
     "cookies.set(TRACKER_RT_COOKIE",
-    "trackerRtCookieOptions",
+    "trackerRtCookieOptions(capture.maxAge)",
     "cookies.delete(TRACKER_RT_DELETE)",
     "rawKey: process.env.TRACKER_RT_KEY",
     "sessionToken: token",
@@ -133,7 +133,7 @@ test("tracker_rt is set only with trackerRtCookieOptions", () => {
       const args = callArgs(code, m.index + m[0].length - 1);
       if (!/^(TRACKER_RT_COOKIE|'tracker_rt'|"tracker_rt")$/.test(args[0] ?? "")) continue;
       sets++;
-      if (args[2] === "trackerRtCookieOptions") withOptions++;
+      if (/^trackerRtCookieOptions\(/.test(args[2] ?? "")) withOptions++;
       else assert.fail(`${f} sets tracker_rt without trackerRtCookieOptions`);
     }
   }
@@ -222,10 +222,11 @@ test("token route clears and re-sets tracker_rt only through the helper constant
   const deleteAt = code.indexOf("cookies.delete(TRACKER_RT_DELETE)");
   assert.ok(deleteAt >= 0, "no cookies.delete(TRACKER_RT_DELETE)");
   assert.ok(clearAt >= 0 && clearAt < deleteAt, "the delete is not behind check.clear");
-  assert.ok(code.includes("cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions)"));
+  assert.ok(code.includes("cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions(maxAge))"));
   const sealAt = code.indexOf("sealTrackerRt(");
   assert.ok(sealAt >= 0, "no sealTrackerRt( call");
   const [value] = callArgs(code, sealAt + "sealTrackerRt".length);
   assert.match(value, /\bsub:\s*check\.sub\b/, "the re-seal does not bind check.sub");
+  assert.match(value, /\bsexp:\s*check\.sexp\b/, "the re-seal does not keep the sign-in deadline check.sexp");
   assert.ok(code.includes("new NextResponse(res.body, res)"));
 });

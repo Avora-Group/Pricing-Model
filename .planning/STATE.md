@@ -5,16 +5,16 @@ milestone_name: Tracker request embed
 current_phase: 11
 current_phase_name: Install tracker-client v10
 status: executing
-stopped_at: Phase 11 context gathered
-last_updated: "2026-09-30T15:37:51.040Z"
-last_activity: 2026-09-30
-last_activity_desc: Roadmap created for milestone v2.1 (phases 11–14)
-state_head: 34a68e40a2467151b7edfec34cdd1996102385d2
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-10-01T07:05:02.695Z"
+last_activity: 2026-10-01
+last_activity_desc: Plan 11-01 complete
+state_head: 39e3b6eabd87ab271b0eca828ba1b0c5dbfb2701
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 2
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Milestone v2.1 Tracker request embed — Phase 11: Install tracker-client v10
+**Current focus:** Phase 11 — Install tracker-client v10
 
 ## Current Position
 
-Phase: 11 (Install tracker-client v10) — READY TO EXECUTE
-Plan: —
+Phase: 11 (Install tracker-client v10) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-09-30 — Roadmap created for milestone v2.1 (phases 11–14)
+Last activity: 2026-10-01 — Plan 11-01 complete (state.json ignored in 39e3b6e, baseline green, package source approved)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -73,6 +73,11 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05 P02 | 5min | 3 tasks | 7 files |
 | Phase 06 P01 | 5min | 3 tasks | 5 files |
 | Phase 06 P02 | 2min | 2 tasks | 3 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 11 P01 | 17min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -93,6 +98,8 @@ Working rules from PROJECT.md Constraints:
 - Clean tree first: check `git status` before any dependency change or commit. A dirty tree means stop and ask.
 - `.env*` files are edited by the user. The refresh token never reaches a page script or a log line.
 - `nextjs-project/` only. The package is pinned to the `v10` tag (`a369f81`).
+- [Phase 11]: .planning/state.json is ignored, not committed: SDK machine state; STATE.md is the tracked record (D-12, commit 39e3b6e)
+- [Phase 11]: User approved the package source for 11-02: @avora/tracker-client from Avora-Group/tracker-client tag v10 at a369f81 (D-01)
 
 ### Pending Todos
 
@@ -101,7 +108,6 @@ None yet.
 ### Blockers/Concerns
 
 - **Unpushed docs commits.** `main` is ahead of `origin/main` by this milestone's `.planning/` commits. They stay local and go out with the Phase 14 push.
-- **Untracked `.planning/state.json`.** It is SDK output. Decide whether to commit or ignore it before Phase 11's clean-tree check.
 - **[Phase 11] `.env.example` is ignored today.** `nextjs-project/.gitignore` has `.env*`, so DEP-03 needs a negation rule or a forced add.
 - **[Phase 11] `NEXT_PUBLIC_API_URL`.** `src/lib/api.ts` reads it. DEP-03's list does not name it, but "every variable name the frontend reads" covers it.
 - **[Phase 12] `jose` is already a dependency (`^6.1.3`).** RT-02 adds no package, which keeps DEP-01's "no other package changes" true.
@@ -121,9 +127,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-30T14:32:52.693Z
-Stopped at: Phase 11 context gathered
-Resume file: .planning/phases/11-install-tracker-client-v10/11-CONTEXT.md
+Last session: 2026-10-01T07:05:02.673Z
+Stopped at: Completed 11-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

@@ -88,6 +88,8 @@ Phases 11 to 13 are local commits only. Nothing is pushed until Phase 14, becaus
 The install on Vercel itself is first exercised by the Phase 14 deploy.
 
 **Plans**: TBD
+- [x] 11-01-PLAN.md
+- [ ] 11-02-PLAN.md
 
 ### Phase 12: Refresh-token capture and token route
 
@@ -142,7 +144,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Install tracker-client v10 | 0/0 | Not started | - |
+| 11. Install tracker-client v10 | 1/2 | In Progress|  |
 | 12. Refresh-token capture and token route | 0/0 | Not started | - |
 | 13. Triggers and themed dialog | 0/0 | Not started | - |
 | 14. Deploy and production UAT | 0/0 | Not started | - |

@@ -24,15 +24,15 @@
 
 ### Token route (TOKEN)
 
-- [ ] **TOKEN-01**: `POST /api/tracker/token` (`src/app/api/tracker/token/route.ts`) decrypts `tracker_rt` and redeems it for `TRACKER_API_SCOPE` with `redeemTrackerToken`, using the existing `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET`. It returns `200 { accessToken, expiresAt }` with `Cache-Control: no-store`.
-- [ ] **TOKEN-02**: The route requires the app's own session. A request without the `access_token` cookie gets `401 reauth`, returned by the route itself, because `src/middleware.ts`'s matcher does not cover `/api`.
-- [ ] **TOKEN-03**: Failures map through `tokenErrorResponse`:
+- [x] **TOKEN-01**: `POST /api/tracker/token` (`src/app/api/tracker/token/route.ts`) decrypts `tracker_rt` and redeems it for `TRACKER_API_SCOPE` with `redeemTrackerToken`, using the existing `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET`. It returns `200 { accessToken, expiresAt }` with `Cache-Control: no-store`.
+- [x] **TOKEN-02**: The route requires the app's own session. A request without the `access_token` cookie gets `401 reauth`, returned by the route itself, because `src/middleware.ts`'s matcher does not cover `/api`.
+- [x] **TOKEN-03**: Failures map through `tokenErrorResponse`:
   - `503 unconfigured` when `TRACKER_API_SCOPE` or `TRACKER_RT_KEY` is unset
   - `401 reauth` when `tracker_rt` is missing or fails to decrypt (for example after a key rotation)
   - `403 consent`, `503 config` and `502 unavailable` from Entra
 
   The route logs only the error code and Entra's numeric codes, never a token.
-- [ ] **TOKEN-04**: When Entra returns a rotated refresh token, the route re-sets `tracker_rt` with the new value and the RT-03 attributes on the same response.
+- [x] **TOKEN-04**: When Entra returns a rotated refresh token, the route re-sets `tracker_rt` with the new value and the RT-03 attributes on the same response.
 
 ### Triggers & dialog (EMBED)
 
@@ -124,10 +124,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RT-03 | Phase 12 | Complete |
 | RT-04 | Phase 12 | Complete |
 | RT-05 | Phase 12 | Complete |
-| TOKEN-01 | Phase 12 | Pending |
-| TOKEN-02 | Phase 12 | Pending |
-| TOKEN-03 | Phase 12 | Pending |
-| TOKEN-04 | Phase 12 | Pending |
+| TOKEN-01 | Phase 12 | Complete |
+| TOKEN-02 | Phase 12 | Complete |
+| TOKEN-03 | Phase 12 | Complete |
+| TOKEN-04 | Phase 12 | Complete |
 | EMBED-01 | Phase 13 | Pending |
 | EMBED-02 | Phase 13 | Pending |
 | EMBED-03 | Phase 13 | Pending |

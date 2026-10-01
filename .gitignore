@@ -19,3 +19,6 @@ nextjs-project/.ds-css/
 
 # local DB rescue dumps (contain real quote/user data)
 /pgdata-*.sql
+
+# GSD SDK machine state (STATE.md is the tracked record)
+.planning/state.json

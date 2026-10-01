@@ -8,11 +8,9 @@ import {
   nonceMatches,
 } from '@/lib/oauth-flow'
 import {
-  TRACKER_RT_COOKIE,
-  TRACKER_RT_DELETE,
   TRACKER_RT_SKIP_MESSAGES,
-  trackerRtCookieOptions,
   captureTrackerRt,
+  applyTrackerRt,
   type TrackerRtCapture,
 } from '@/lib/tracker-rt'
 
@@ -146,9 +144,7 @@ export async function GET(req: NextRequest) {
     const skipped = capture?.skipped ?? null
     const skipMessage = skipped ? TRACKER_RT_SKIP_MESSAGES[skipped] : null
     if (skipMessage) console.error(`[azure-callback] tracker-rt: ${skipMessage}`)
-    if (capture && capture.skipped === null) {
-      response.cookies.set(TRACKER_RT_COOKIE, capture.sealed, trackerRtCookieOptions(capture.maxAge))
-    } else response.cookies.delete(TRACKER_RT_DELETE)
+    applyTrackerRt(response.cookies, capture)
     return response
   } catch (e) {
     console.error('[azure-callback] Unexpected error:', e)

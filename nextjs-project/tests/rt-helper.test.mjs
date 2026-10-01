@@ -19,6 +19,7 @@ import {
   sessionSubject,
   checkTrackerRt,
   captureTrackerRt,
+  applyTrackerRt,
 } from "../src/lib/tracker-rt.ts";
 
 const JWE_PREFIX = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..";
@@ -175,11 +176,15 @@ test("the shared cookie objects cannot be mutated (IN-02)", () => {
   assert.equal(trackerRtCookieOptions(TRACKER_RT_MAX_AGE).maxAge, 604800);
 });
 
-test("callback redirect carries access_token and tracker_rt as separate cookies", async () => {
-  const sealed = await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp: far() }, newKey());
+// IN-04: these drive applyTrackerRt, the function the callback calls on its
+// redirect, on a real NextResponse, so they break if the callback's cookie
+// handling does. The wiring test checks the callback calls it.
+test("applyTrackerRt sets tracker_rt beside access_token on the callback's redirect", async () => {
+  const raw = keyStr();
+  const capture = await captureTrackerRt({ rawKey: raw, sessionToken: session("7", 30 * DAY), refreshToken: "RT-VALUE" });
   const response = NextResponse.redirect(new URL("/dashboard", "http://localhost:3000/api/auth/callback/azure"));
   response.cookies.set("access_token", session("7"), ACCESS_TOKEN_OPTIONS);
-  response.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions(TRACKER_RT_MAX_AGE));
+  applyTrackerRt(response.cookies, capture);
   const cookies = response.headers.getSetCookie();
   assert.equal(cookies.length, 2);
   const access = cookies.find((c) => c.startsWith("access_token="));
@@ -191,7 +196,32 @@ test("callback redirect carries access_token and tracker_rt as separate cookies"
   assert.ok(rt.includes("Max-Age=604800"), "tracker_rt Max-Age");
   assert.ok(rt.includes("HttpOnly"), "tracker_rt HttpOnly");
   assert.ok(rt.includes("SameSite=lax"), "tracker_rt SameSite");
+  const value = decodeURIComponent(rt.slice("tracker_rt=".length).split(";")[0]);
+  assert.equal(value, capture.sealed);
+  assert.equal((await openTrackerRt(value, parseTrackerRtKey(raw))).rt, "RT-VALUE");
 });
+
+test("applyTrackerRt sets Max-Age to the session's remaining seconds when it ends sooner", async () => {
+  const capture = await captureTrackerRt({ rawKey: keyStr(), sessionToken: session("7", 3600), refreshToken: "RT-VALUE" });
+  const response = NextResponse.redirect(new URL("/dashboard", "http://localhost:3000/api/auth/callback/azure"));
+  applyTrackerRt(response.cookies, capture);
+  const [rt] = response.headers.getSetCookie();
+  const maxAge = Number(/Max-Age=(\d+)/.exec(rt)?.[1]);
+  assert.ok(maxAge > 3590 && maxAge <= 3600, `Max-Age ${maxAge}`);
+});
+
+for (const [name, capture] of [
+  ["a skipped capture", { sealed: null, skipped: "no-refresh-token" }],
+  ["a capture that threw (null)", null],
+]) {
+  test(`applyTrackerRt deletes tracker_rt on its path for ${name}`, () => {
+    const response = NextResponse.redirect(new URL("/dashboard", "http://localhost:3000/api/auth/callback/azure"));
+    applyTrackerRt(response.cookies, capture);
+    assert.deepEqual(response.headers.getSetCookie(), [
+      "tracker_rt=; Path=/api/tracker; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    ]);
+  });
+}
 
 // A JWE built directly with jose, so a test can choose its claims and exp (or leave exp out).
 const rawJwe = async (claims, key, exp) => {
@@ -434,7 +464,10 @@ test("TRACKER_RT_SKIP_MESSAGES names a step and carries no value", () => {
   }
 });
 
-test("deleting tracker_rt emits an expired cookie on its path and replaces an earlier set", async () => {
+// Pins Next's cookie serialization, not a route: a delete with TRACKER_RT_DELETE
+// after a set on the same response leaves one expired tracker_rt and keeps
+// access_token (IN-04 renamed this; applyTrackerRt is tested above).
+test("Next serialization: a TRACKER_RT_DELETE replaces an earlier tracker_rt set with one expired cookie", async () => {
   const sealed = await sealTrackerRt({ rt: "RT-VALUE", sub: "7", sexp: far() }, newKey());
   const response = NextResponse.redirect(new URL("/dashboard", "http://localhost:3000/api/auth/callback/azure"));
   response.cookies.set("access_token", session("7"), ACCESS_TOKEN_OPTIONS);

@@ -79,10 +79,11 @@ test("callback captures tracker_rt in its own try/catch after access_token", () 
   assert.ok(captureAt > tryAt, "captureTrackerRt( is not inside the inner try");
   assert.ok(catchMatch, "no catch { without a binding after captureTrackerRt(");
 
+  // applyTrackerRt sets or deletes tracker_rt; tests/rt-helper.test.mjs drives it on a NextResponse (IN-04).
+  const applyAt = seg.indexOf("applyTrackerRt(response.cookies, capture)");
+  assert.ok(applyAt > captureAt, "applyTrackerRt(response.cookies, capture) does not follow the capture");
+  assert.doesNotMatch(seg, /cookies\.(set|delete)\(\s*(TRACKER_RT_|['"]tracker_rt)/, "callback sets or deletes tracker_rt by hand");
   for (const needle of [
-    "cookies.set(TRACKER_RT_COOKIE",
-    "trackerRtCookieOptions(capture.maxAge)",
-    "cookies.delete(TRACKER_RT_DELETE)",
     "rawKey: process.env.TRACKER_RT_KEY",
     "sessionToken: token",
     "refreshToken: tokens.refresh_token",
@@ -119,7 +120,7 @@ test("tracker_rt is deleted only through TRACKER_RT_DELETE", () => {
     assert.doesNotMatch(code, /\.delete\(\s*\{[^}]*\.\.\.\s*trackerRtCookieOptions/, `${f} spreads trackerRtCookieOptions into a delete`);
     good += (code.match(/\.delete\(TRACKER_RT_DELETE\)/g) ?? []).length;
   }
-  assert.ok(good >= 2, `expected the callback and logoutAction deletes, found ${good}`);
+  assert.ok(good >= 2, `expected the applyTrackerRt (callback) and logoutAction deletes, found ${good}`);
 });
 
 test("tracker_rt is set only with trackerRtCookieOptions", () => {

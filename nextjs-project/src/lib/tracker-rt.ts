@@ -256,3 +256,26 @@ export async function captureTrackerRt(input: {
   if (typeof rt !== 'string' || !rt) return { sealed: null, skipped: 'no-refresh-token' }
   return sealTrackerRtCookie({ rt, sub: session.sub, sexp: session.exp }, key, nowSec)
 }
+
+/**
+ * The cookie half of a response, as NextResponse's `cookies` provides it.
+ * Typed structurally so this module needs no `next/*` import (D-12).
+ */
+export interface TrackerRtCookieJar {
+  set(name: string, value: string, options: ReturnType<typeof trackerRtCookieOptions>): unknown
+  delete(options: typeof TRACKER_RT_DELETE): unknown
+}
+
+/**
+ * Applies the sign-in capture to the callback's redirect (D-07): sets
+ * tracker_rt when it sealed, and deletes any old one otherwise, including when
+ * `capture` is null because the step threw. The callback calls exactly this,
+ * so the tests that drive it cover the callback's cookie handling (IN-04).
+ */
+export function applyTrackerRt(cookies: TrackerRtCookieJar, capture: TrackerRtCapture | null): void {
+  if (capture && capture.skipped === null) {
+    cookies.set(TRACKER_RT_COOKIE, capture.sealed, trackerRtCookieOptions(capture.maxAge))
+  } else {
+    cookies.delete(TRACKER_RT_DELETE)
+  }
+}

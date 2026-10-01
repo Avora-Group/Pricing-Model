@@ -158,7 +158,21 @@ test("cookie options are RT-03, with maxAge clamped to 0..7 days", () => {
   assert.equal(trackerRtCookieOptions(3600.9).maxAge, 3600);
   assert.equal(trackerRtCookieOptions(30 * DAY).maxAge, 604800);
   assert.equal(trackerRtCookieOptions(-5).maxAge, 0);
-  assert.deepEqual(TRACKER_RT_DELETE, { name: "tracker_rt", path: "/api/tracker" });
+  assert.deepEqual({ ...TRACKER_RT_DELETE }, { name: "tracker_rt", path: "/api/tracker" });
+});
+
+test("the shared cookie objects cannot be mutated (IN-02)", () => {
+  const options = trackerRtCookieOptions(TRACKER_RT_MAX_AGE);
+  assert.ok(Object.isFrozen(options));
+  assert.ok(Object.isFrozen(TRACKER_RT_DELETE));
+  assert.throws(() => {
+    options.maxAge = 0;
+  }, TypeError);
+  assert.throws(() => {
+    TRACKER_RT_DELETE.path = "/";
+  }, TypeError);
+  assert.notEqual(trackerRtCookieOptions(TRACKER_RT_MAX_AGE), options, "options are shared between calls");
+  assert.equal(trackerRtCookieOptions(TRACKER_RT_MAX_AGE).maxAge, 604800);
 });
 
 test("callback redirect carries access_token and tracker_rt as separate cookies", async () => {

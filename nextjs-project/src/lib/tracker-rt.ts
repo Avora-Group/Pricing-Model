@@ -46,24 +46,26 @@ export function trackerRtExp(sexp: number, nowSec: number): number {
 /**
  * Every set of tracker_rt uses exactly these attributes (RT-03). `maxAge` is
  * the seconds left until the JWE's exp, so the cookie and the JWE end
- * together; it is clamped to 0..7 days.
+ * together; it is clamped to 0..7 days. Each call returns a new frozen object,
+ * so no caller can change the attributes another set uses (IN-02).
  */
 export function trackerRtCookieOptions(maxAge: number) {
-  return {
+  return Object.freeze({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
     maxAge: Math.max(0, Math.min(TRACKER_RT_MAX_AGE, Math.floor(maxAge))),
     path: TRACKER_RT_PATH,
-  }
+  })
 }
 
 /**
  * Every delete of tracker_rt uses exactly this: name and path only. A maxAge
  * here would turn the delete into a 7-day empty cookie, and no path would
- * target `Path=/` and miss the real one.
+ * target `Path=/` and miss the real one. Frozen, because every delete shares
+ * it (IN-02).
  */
-export const TRACKER_RT_DELETE = { name: TRACKER_RT_COOKIE, path: TRACKER_RT_PATH }
+export const TRACKER_RT_DELETE = Object.freeze({ name: TRACKER_RT_COOKIE, path: TRACKER_RT_PATH })
 
 export interface TrackerRt {
   rt: string

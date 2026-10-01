@@ -4,17 +4,17 @@ milestone: v2.1
 milestone_name: Tracker request embed
 current_phase: 11
 current_phase_name: Install tracker-client v10
-status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-10-01T07:05:02.695Z"
+status: verifying
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-10-01T07:13:59.018Z"
 last_activity: 2026-10-01
-last_activity_desc: Plan 11-01 complete
-state_head: 39e3b6eabd87ab271b0eca828ba1b0c5dbfb2701
+last_activity_desc: Plan 11-02 complete
+state_head: f20debfd71cb786837d2cc695b5bb6421b620e3a
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -31,8 +31,8 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 
 Phase: 11 (Install tracker-client v10) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-10-01 — Plan 11-01 complete (state.json ignored in 39e3b6e, baseline green, package source approved)
+Status: Phase complete — ready for verification
+Last activity: 2026-10-01 — Plan 11-02 complete (tracker-client v10 installed, Vercel install script and .env.example in local commit f20debf, not pushed)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -78,6 +78,7 @@ Progress: [░░░░░░░░░░] 0%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 11 P01 | 17min | 2 tasks | 1 files |
+| Phase 11 P02 | 5min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,7 @@ Working rules from PROJECT.md Constraints:
 - `nextjs-project/` only. The package is pinned to the `v10` tag (`a369f81`).
 - [Phase 11]: .planning/state.json is ignored, not committed: SDK machine state; STATE.md is the tracked record (D-12, commit 39e3b6e)
 - [Phase 11]: User approved the package source for 11-02: @avora/tracker-client from Avora-Group/tracker-client tag v10 at a369f81 (D-01)
+- [Phase 11]: tracker-client v10 installed and locked to a369f81 over git+https (lock diff 9 0, additions only, no D-14 retry); HR's normalizer and vercel-install.sh copied verbatim; phase work is the single local commit f20debf, not pushed
 
 ### Pending Todos
 
@@ -108,8 +110,6 @@ None yet.
 ### Blockers/Concerns
 
 - **Unpushed docs commits.** `main` is ahead of `origin/main` by this milestone's `.planning/` commits. They stay local and go out with the Phase 14 push.
-- **[Phase 11] `.env.example` is ignored today.** `nextjs-project/.gitignore` has `.env*`, so DEP-03 needs a negation rule or a forced add.
-- **[Phase 11] `NEXT_PUBLIC_API_URL`.** `src/lib/api.ts` reads it. DEP-03's list does not name it, but "every variable name the frontend reads" covers it.
 - **[Phase 12] `jose` is already a dependency (`^6.1.3`).** RT-02 adds no package, which keeps DEP-01's "no other package changes" true.
 - **[Phases 12–13] Lint is not clean today.** `npm run lint` reports 10 errors and 10 warnings, two of them in `Sidebar.tsx` and `ThemeToggle.tsx`. The gate is "nothing new".
 - **[Phases 12–13] Local UAT needs the user.** The tracker variables go into `.env.local` by hand. Whether the tracker's CORS accepts ACMI's local origin is unconfirmed.
@@ -127,8 +127,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-01T07:05:02.673Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-10-01T07:13:58.994Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

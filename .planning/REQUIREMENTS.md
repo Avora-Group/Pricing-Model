@@ -10,9 +10,9 @@
 
 ### Dependency & build (DEP)
 
-- [ ] **DEP-01**: `@avora/tracker-client` v10 is a dependency pinned to the `v10` git tag. The lockfile resolves it over `git+https` to `a369f81…`, contains no `git+ssh`, and no other package changes.
-- [ ] **DEP-02**: The Vercel build installs the private dependency. `vercel.json`'s `installCommand` changes from `npm install` to `bash vercel-install.sh`, and that script writes git credentials from `TRACKER_REPO_TOKEN` for all three GitHub URL forms before `npm install`. It is committed with LF line endings.
-- [ ] **DEP-03**: A new `.env.example` lists every variable name the frontend reads, name-only: the existing `AZURE_*` and `API_URL` names, `TRACKER_API_SCOPE` and `TRACKER_RT_KEY` (server-only), `NEXT_PUBLIC_TRACKER_API_URL`, `NEXT_PUBLIC_TRACKER_URL`, and the build-only `TRACKER_REPO_TOKEN`.
+- [x] **DEP-01**: `@avora/tracker-client` v10 is a dependency pinned to the `v10` git tag. The lockfile resolves it over `git+https` to `a369f81…`, contains no `git+ssh`, and no other package changes.
+- [x] **DEP-02**: The Vercel build installs the private dependency. `vercel.json`'s `installCommand` changes from `npm install` to `bash vercel-install.sh`, and that script writes git credentials from `TRACKER_REPO_TOKEN` for all three GitHub URL forms before `npm install`. It is committed with LF line endings.
+- [x] **DEP-03**: A new `.env.example` lists every variable name the frontend reads, name-only: the existing `AZURE_*` and `API_URL` names, `TRACKER_API_SCOPE` and `TRACKER_RT_KEY` (server-only), `NEXT_PUBLIC_TRACKER_API_URL`, `NEXT_PUBLIC_TRACKER_URL`, and the build-only `TRACKER_REPO_TOKEN`.
 
 ### Refresh-token capture (RT)
 
@@ -116,9 +116,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEP-01 | Phase 11 | Pending |
-| DEP-02 | Phase 11 | Pending |
-| DEP-03 | Phase 11 | Pending |
+| DEP-01 | Phase 11 | Complete |
+| DEP-02 | Phase 11 | Complete |
+| DEP-03 | Phase 11 | Complete |
 | RT-01 | Phase 12 | Pending |
 | RT-02 | Phase 12 | Pending |
 | RT-03 | Phase 12 | Pending |

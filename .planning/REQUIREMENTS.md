@@ -16,11 +16,11 @@
 
 ### Refresh-token capture (RT)
 
-- [ ] **RT-01**: A Microsoft sign-in requests `openid email profile offline_access` in both places: the authorize request in `src/app/api/auth/login/azure/route.ts` and the code exchange in `src/app/api/auth/callback/azure/route.ts`.
-- [ ] **RT-02**: When the code exchange returns a `refresh_token`, the callback sets a `tracker_rt` cookie whose value is `EncryptJWT({ rt })` (jose, `dir` / `A256GCM`) keyed by `TRACKER_RT_KEY` (32 random bytes, base64url).
-- [ ] **RT-03**: The `tracker_rt` cookie is `httpOnly`, `secure` in production, `sameSite: 'lax'`, `maxAge` 7 days and `path: '/api/tracker'`, so the browser sends it only to the token route and page scripts cannot read it.
-- [ ] **RT-04**: `logoutAction` clears `tracker_rt` with the same path, alongside `access_token`.
-- [ ] **RT-05**: Sign-in is unaffected when the embed is not configured. With `TRACKER_RT_KEY` unset, or when Entra returns no refresh token, the callback still sets `access_token` and redirects as it does today, and sets no `tracker_rt`.
+- [x] **RT-01**: A Microsoft sign-in requests `openid email profile offline_access` in both places: the authorize request in `src/app/api/auth/login/azure/route.ts` and the code exchange in `src/app/api/auth/callback/azure/route.ts`.
+- [x] **RT-02**: When the code exchange returns a `refresh_token`, the callback sets a `tracker_rt` cookie whose value is `EncryptJWT({ rt })` (jose, `dir` / `A256GCM`) keyed by `TRACKER_RT_KEY` (32 random bytes, base64url).
+- [x] **RT-03**: The `tracker_rt` cookie is `httpOnly`, `secure` in production, `sameSite: 'lax'`, `maxAge` 7 days and `path: '/api/tracker'`, so the browser sends it only to the token route and page scripts cannot read it.
+- [x] **RT-04**: `logoutAction` clears `tracker_rt` with the same path, alongside `access_token`.
+- [x] **RT-05**: Sign-in is unaffected when the embed is not configured. With `TRACKER_RT_KEY` unset, or when Entra returns no refresh token, the callback still sets `access_token` and redirects as it does today, and sets no `tracker_rt`.
 
 ### Token route (TOKEN)
 
@@ -119,11 +119,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEP-01 | Phase 11 | Complete |
 | DEP-02 | Phase 11 | Complete |
 | DEP-03 | Phase 11 | Complete |
-| RT-01 | Phase 12 | Pending |
-| RT-02 | Phase 12 | Pending |
-| RT-03 | Phase 12 | Pending |
-| RT-04 | Phase 12 | Pending |
-| RT-05 | Phase 12 | Pending |
+| RT-01 | Phase 12 | Complete |
+| RT-02 | Phase 12 | Complete |
+| RT-03 | Phase 12 | Complete |
+| RT-04 | Phase 12 | Complete |
+| RT-05 | Phase 12 | Complete |
 | TOKEN-01 | Phase 12 | Pending |
 | TOKEN-02 | Phase 12 | Pending |
 | TOKEN-03 | Phase 12 | Pending |

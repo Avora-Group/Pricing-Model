@@ -5,16 +5,16 @@ milestone_name: Tracker request embed
 current_phase: 12
 current_phase_name: Refresh-token capture and token route
 status: executing
-stopped_at: Phase 12 context gathered
-last_updated: "2026-10-01T12:11:59.219Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-10-01T12:26:10.157Z"
 last_activity: 2026-10-01
-last_activity_desc: Phase 11 complete, transitioned to Phase 12
-state_head: 2a3958a53a0197909f760139d49f4771708983d9
+last_activity_desc: Phase 12 execution started
+state_head: 3f5b33416595c5a63976e684392d8b12105f60c1
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 25
 ---
 
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-10-01)
 
 ## Current Position
 
-Phase: 12 (Refresh-token capture and token route) — READY TO EXECUTE
-Plan: Not started
+Phase: 12 (Refresh-token capture and token route) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-10-01 — Phase 11 complete, transitioned to Phase 12
+Last activity: 2026-10-01 — Phase 12 execution started
 
 Progress: [███░░░░░░░] 25%
 
@@ -80,6 +80,7 @@ Progress: [███░░░░░░░] 25%
 |------|----------|-------|-------|
 | Phase 11 P01 | 17min | 2 tasks | 1 files |
 | Phase 11 P02 | 5min | 3 tasks | 7 files |
+| Phase 12 P01 | 6min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,9 @@ Working rules from PROJECT.md Constraints:
 - [Phase 11]: tracker-client v10 installed and locked to a369f81 over git+https (lock diff 9 0, additions only, no D-14 retry); HR's normalizer and vercel-install.sh copied verbatim; phase work is the single local commit f20debf, not pushed
 - [Phase 11]: Code review fixes WR-01..04: vercel-install.sh now keeps git state in a process-scoped temp config (no longer HR's blob), a prebuild guard fails a git+ssh tracker lock, and .env.example comments out the two API vars that have code defaults
 - [Phase 11]: Verified (passed), UAT 1/1, Nyquist-compliant (22 node:test checks in nextjs-project/tests, run with `node --test "tests/*.test.mjs"`), threats_open 0
+- [Phase 12]: [Phase 12]: 12-01 captureTrackerRt holds the callback's tracker_rt capture decision (key, sub, refresh token, seal, length) and never throws; the callback still wraps it in its own bindingless try/catch (D-10, A2)
+- [Phase 12]: [Phase 12]: 12-01 sealed tracker_rt values over 3800 chars are deleted and logged, not set (A3)
+- [Phase 12]: [Phase 12]: 12-01 code is the single local commit 3f5b334 on main, not pushed; 73/73 node:test, lint 10/10 baseline, build green
 
 ### Pending Todos
 
@@ -132,9 +136,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-01T10:49:40.056Z
-Stopped at: Phase 12 context gathered
-Resume file: .planning/phases/12-refresh-token-capture-and-token-route/12-CONTEXT.md
+Last session: 2026-10-01T12:26:10.117Z
+Stopped at: Completed 12-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

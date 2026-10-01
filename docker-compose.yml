@@ -43,9 +43,9 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/acmi_platform
       JWT_SECRET: local-dev-secret-not-for-production-use
       ENVIRONMENT: development
-      FRONTEND_URL: http://localhost:3000
+      FRONTEND_URL: http://localhost:3001
     ports:
-      - "8000:8000"
+      - "8079:8000"
     depends_on:
       db:
         condition: service_healthy

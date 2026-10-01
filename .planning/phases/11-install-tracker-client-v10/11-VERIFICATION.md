@@ -1,10 +1,14 @@
 ---
 phase: 11-install-tracker-client-v10
-verified: 2026-10-01T13:00:00Z
+verified: 2026-10-01T09:10:00Z
 status: passed
 score: 4/4 roadmap success criteria verified (plan truths: 14 satisfied as written, 5 satisfied in intent via documented review-fix deviations, 0 failed)
 covered_files:
   - .gitignore
+  - .planning/phases/11-install-tracker-client-v10/11-01-PLAN.md
+  - .planning/phases/11-install-tracker-client-v10/11-01-SUMMARY.md
+  - .planning/phases/11-install-tracker-client-v10/11-02-PLAN.md
+  - .planning/phases/11-install-tracker-client-v10/11-02-SUMMARY.md
   - nextjs-project/.env.example
   - nextjs-project/.gitignore
   - nextjs-project/package-lock.json
@@ -16,7 +20,7 @@ covered_files:
   - nextjs-project/tests/dep03-env-manifest.test.mjs
   - nextjs-project/vercel-install.sh
   - nextjs-project/vercel.json
-covered_digest: "v2:sha256:cb08b7e9f5f2cd06ac47054097d4a84040baf788820bd3d45095eb9f45eb98fe"
+covered_digest: "v2:sha256:e03aebcd25a20a61b1ea3ca1babfc3c02e52e4c10825e009cad18d8f2b6a09af"
 behavior_unverified: 0
 overrides_applied: 0
 re_verification:
@@ -37,7 +41,7 @@ deferred:
 # Phase 11: Install tracker-client v10 Verification Report
 
 **Phase Goal:** ACMI's frontend depends on `@avora/tracker-client` v10 and builds locally, with the install script the Vercel build needs and the env manifest already in the tree.
-**Verified:** 2026-10-01T13:00:00Z (HEAD `c5eee6d`)
+**Verified:** 2026-10-01T09:10:00Z (HEAD `c5eee6d`)
 **Status:** passed
 **Re-verification:** Yes. The earlier `human_needed` report was stale after the review fixes. Every ROADMAP criterion and plan must-have was re-checked against the current tree, including the build, the lockfile, the install script (in a sandbox) and the Nyquist tests.
 
@@ -160,5 +164,5 @@ No gaps. The phase goal is achieved and remains achieved after the review fixes.
 
 ---
 
-_Verified: 2026-10-01T13:00:00Z_
+_Verified: 2026-10-01T09:10:00Z_
 _Verifier: Claude (gsd-verifier)_

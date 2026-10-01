@@ -38,7 +38,8 @@ Requirements: DEP-01, DEP-02, DEP-03.
 - **D-05:** No other package changes. `jose` is already a dependency (`^6.1.3`), so Phase 12 adds nothing either.
 
 ### Lockfile normalizer
-- **D-06:** ACMI gets the postinstall lockfile normalizer, as HR, Finance and MXT have, even though DEP-01..03 and the roadmap do not list it. It counts as part of delivering DEP-01: it keeps success criterion 2 (`git+ssh` count of `0`) true after any later `npm install`.
+- **D-06:** ACMI gets the postinstall lockfile normalizer, as HR, Finance and MXT have, even though DEP-01..03 and the roadmap do not list it. It counts as part of delivering DEP-01: it keeps success criterion 2 (`git+ssh` count of `0`) true after any later bare `npm install`.
+  - Correction (code review WR-03): npm runs the root `postinstall` only for a bare `npm install`. `npm install <pkg>`, `npm uninstall`, `npm update`, `npm dedupe` and `--ignore-scripts` re-save the lockfile with `git+ssh` and skip the normalizer. Run a bare `npm install` after any dependency change. A `prebuild` guard (`scripts/check-tracker-lock.mjs`) now fails `npm run build` if the SSH URL is in the lockfile.
   - Create `nextjs-project/scripts/` (it does not exist) and copy `C:/Projects/hr-app/nextjs-project/scripts/normalize-tracker-lock.mjs` into it.
   - Add `"postinstall": "node scripts/normalize-tracker-lock.mjs"` to `scripts` in `package.json`. ACMI has no `postinstall` today.
 - **D-07:** The script is **verbatim**, byte-for-byte in content, including its header comment about the Actions runner and the CI credential step that ACMI does not have. The four apps keep one identical file.

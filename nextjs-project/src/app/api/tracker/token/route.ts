@@ -8,11 +8,11 @@ import {
 import {
   TRACKER_RT_COOKIE,
   TRACKER_RT_DELETE,
+  TRACKER_RT_SKIP_MESSAGES,
   trackerRtCookieOptions,
   parseTrackerRtKey,
   checkTrackerRt,
-  sealTrackerRt,
-  trackerRtExp,
+  sealTrackerRtCookie,
 } from '@/lib/tracker-rt'
 
 /**
@@ -86,19 +86,17 @@ export async function POST(req: NextRequest) {
     const rotated = result.refreshToken
     if (!rotated) return res
 
-    // A failed re-seal still answers the 200 without a cookie: Entra does not
-    // revoke a refresh token on use, so the current tracker_rt keeps working.
-    // The re-seal keeps the sign-in deadline check.sexp, so rotation never
-    // pushes the cookie past the session it was captured from (WR-01).
-    const nowSec = Math.floor(Date.now() / 1000)
-    const sealed = await sealTrackerRt({ rt: rotated, sub: check.sub, sexp: check.sexp }, key, nowSec).catch(
-      () => null,
-    )
-    if (sealed === null) {
-      console.error('tracker-token: reseal failed')
+    // A failed or oversized re-seal still answers the 200 without a cookie:
+    // Entra does not revoke a refresh token on use, so the current tracker_rt
+    // keeps working. The re-seal keeps the sign-in deadline check.sexp, so
+    // rotation never pushes the cookie past the session it was captured from
+    // (WR-01), and it goes through the callback's size guard (WR-02).
+    const reseal = await sealTrackerRtCookie({ rt: rotated, sub: check.sub, sexp: check.sexp }, key)
+    if (reseal.skipped !== null) {
+      console.error(`tracker-token: reseal skipped, ${TRACKER_RT_SKIP_MESSAGES[reseal.skipped]}`)
       return res
     }
-    const maxAge = trackerRtExp(check.sexp, nowSec) - nowSec
+    const { sealed, maxAge } = reseal
     return withCookies(res, (out) => {
       out.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions(maxAge))
     })

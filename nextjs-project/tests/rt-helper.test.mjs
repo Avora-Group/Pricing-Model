@@ -13,6 +13,7 @@ import {
   trackerRtExp,
   parseTrackerRtKey,
   sealTrackerRt,
+  sealTrackerRtCookie,
   openTrackerRt,
   sessionClaims,
   sessionSubject,
@@ -361,6 +362,28 @@ test("captureTrackerRt skips with too-large above TRACKER_RT_MAX_LENGTH", async 
   assert.equal(TRACKER_RT_MAX_LENGTH, 3800);
   const result = await captureTrackerRt({ rawKey: keyStr(), sessionToken: session("42"), refreshToken: "r".repeat(4000) });
   assert.deepEqual(result, { sealed: null, skipped: "too-large" });
+});
+
+// ---- WR-02: one size-guarded seal for the callback and the rotation re-seal
+
+test("sealTrackerRtCookie seals and reports maxAge until the JWE's exp", async () => {
+  const key = newKey();
+  const now = nowSec();
+  const sexp = now + 3 * DAY;
+  const result = await sealTrackerRtCookie({ rt: "RT-VALUE", sub: "7", sexp }, key, now);
+  assert.equal(result.skipped, null);
+  assert.equal(result.maxAge, 3 * DAY);
+  assert.deepEqual(await openTrackerRt(result.sealed, key), { rt: "RT-VALUE", sub: "7", sexp });
+});
+
+test("sealTrackerRtCookie skips too-large for a rotated token that would not fit", async () => {
+  const result = await sealTrackerRtCookie({ rt: "r".repeat(4000), sub: "7", sexp: far() }, newKey());
+  assert.deepEqual(result, { sealed: null, skipped: "too-large" });
+});
+
+test("sealTrackerRtCookie skips seal-failed instead of throwing", async () => {
+  const result = await sealTrackerRtCookie({ rt: "RT-VALUE", sub: "7", sexp: nowSec() - 1 }, newKey());
+  assert.deepEqual(result, { sealed: null, skipped: "seal-failed" });
 });
 
 test("captureTrackerRt reports the first failure in key, session, refresh-token order", async () => {

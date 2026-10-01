@@ -213,7 +213,16 @@ test("token route logs only a code, numeric Entra codes or a fixed step", () => 
     code,
     /console\.error\(\s*'tracker-token:',\s*e\s+instanceof\s+TrackerTokenError\s*\?\s*`\$\{e\.code\} \$\{JSON\.stringify\(e\.entraCodes\)\}`\s*:\s*'unexpected',?\s*\)/,
   );
-  assert.ok(code.includes("console.error('tracker-token: reseal failed')"));
+  assert.ok(code.includes("console.error(`tracker-token: reseal skipped, ${TRACKER_RT_SKIP_MESSAGES[reseal.skipped]}`)"));
+});
+
+test("token route re-seals only through the size-guarded sealTrackerRtCookie (WR-02)", () => {
+  const code = routeCode();
+  assert.doesNotMatch(code, /\bsealTrackerRt\(/, "route calls sealTrackerRt( directly, skipping the size guard");
+  assert.ok(code.includes("sealTrackerRtCookie("), "no sealTrackerRtCookie( call");
+  const skipAt = code.indexOf("reseal.skipped !== null");
+  const setAt = code.indexOf("cookies.set(TRACKER_RT_COOKIE");
+  assert.ok(skipAt >= 0 && setAt > skipAt, "the set is not behind the skip check");
 });
 
 test("token route clears and re-sets tracker_rt only through the helper constants", () => {
@@ -223,9 +232,9 @@ test("token route clears and re-sets tracker_rt only through the helper constant
   assert.ok(deleteAt >= 0, "no cookies.delete(TRACKER_RT_DELETE)");
   assert.ok(clearAt >= 0 && clearAt < deleteAt, "the delete is not behind check.clear");
   assert.ok(code.includes("cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions(maxAge))"));
-  const sealAt = code.indexOf("sealTrackerRt(");
-  assert.ok(sealAt >= 0, "no sealTrackerRt( call");
-  const [value] = callArgs(code, sealAt + "sealTrackerRt".length);
+  const sealAt = code.indexOf("sealTrackerRtCookie(");
+  assert.ok(sealAt >= 0, "no sealTrackerRtCookie( call");
+  const [value] = callArgs(code, sealAt + "sealTrackerRtCookie".length);
   assert.match(value, /\bsub:\s*check\.sub\b/, "the re-seal does not bind check.sub");
   assert.match(value, /\bsexp:\s*check\.sexp\b/, "the re-seal does not keep the sign-in deadline check.sexp");
   assert.ok(code.includes("new NextResponse(res.body, res)"));

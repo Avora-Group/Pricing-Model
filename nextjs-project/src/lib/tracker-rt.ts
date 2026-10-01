@@ -88,6 +88,12 @@ export type TrackerRtCapture =
   | { sealed: string; maxAge: number; skipped: null } // maxAge: seconds until the JWE's exp
   | { sealed: null; skipped: TrackerRtCaptureSkip }
 
+export type TrackerRtSealSkip = Extract<TrackerRtCaptureSkip, 'seal-failed' | 'too-large'>
+
+export type TrackerRtSeal =
+  | { sealed: string; maxAge: number; skipped: null }
+  | { sealed: null; skipped: TrackerRtSealSkip }
+
 /**
  * What the sign-in callback logs for each skip: fixed text naming the step,
  * never a value. An unset key means the embed is not configured, which is
@@ -128,6 +134,27 @@ export async function sealTrackerRt(
     .setIssuedAt(nowSec)
     .setExpirationTime(trackerRtExp(value.sexp, nowSec))
     .encrypt(key)
+}
+
+/**
+ * Seals `value` for the cookie and checks the sealed length against
+ * TRACKER_RT_MAX_LENGTH. The sign-in capture and the route's rotation re-seal
+ * both go through here, so the size guard cannot drift between them (WR-02).
+ * `maxAge` is the seconds until the JWE's exp. Never throws.
+ */
+export async function sealTrackerRtCookie(
+  value: TrackerRt,
+  key: Uint8Array,
+  nowSec = nowEpochSec(),
+): Promise<TrackerRtSeal> {
+  let sealed: string
+  try {
+    sealed = await sealTrackerRt(value, key, nowSec)
+  } catch {
+    return { sealed: null, skipped: 'seal-failed' }
+  }
+  if (sealed.length > TRACKER_RT_MAX_LENGTH) return { sealed: null, skipped: 'too-large' }
+  return { sealed, maxAge: trackerRtExp(value.sexp, nowSec) - nowSec, skipped: null }
 }
 
 /**
@@ -215,12 +242,5 @@ export async function captureTrackerRt(input: {
   if (!session) return { sealed: null, skipped: 'no-session' }
   const rt = input.refreshToken
   if (typeof rt !== 'string' || !rt) return { sealed: null, skipped: 'no-refresh-token' }
-  let sealed: string
-  try {
-    sealed = await sealTrackerRt({ rt, sub: session.sub, sexp: session.exp }, key, nowSec)
-  } catch {
-    return { sealed: null, skipped: 'seal-failed' }
-  }
-  if (sealed.length > TRACKER_RT_MAX_LENGTH) return { sealed: null, skipped: 'too-large' }
-  return { sealed, maxAge: trackerRtExp(session.exp, nowSec) - nowSec, skipped: null }
+  return sealTrackerRtCookie({ rt, sub: session.sub, sexp: session.exp }, key, nowSec)
 }

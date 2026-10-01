@@ -1,19 +1,6 @@
-import { NextResponse, type NextRequest } from 'next/server'
-import {
-  redeemTrackerToken,
-  tokenResponse,
-  tokenErrorResponse,
-  TrackerTokenError,
-} from '@avora/tracker-client/server'
-import {
-  TRACKER_RT_COOKIE,
-  TRACKER_RT_DELETE,
-  TRACKER_RT_SKIP_MESSAGES,
-  trackerRtCookieOptions,
-  parseTrackerRtKey,
-  checkTrackerRt,
-  sealTrackerRtCookie,
-} from '@/lib/tracker-rt'
+import type { NextRequest } from 'next/server'
+import { TRACKER_RT_COOKIE } from '@/lib/tracker-rt'
+import { trackerTokenResponse } from '@/lib/tracker-token'
 
 /**
  * POST /api/tracker/token: an access token for the Avora tracker API, for the
@@ -49,65 +36,12 @@ import {
  */
 export const dynamic = 'force-dynamic'
 
-/** The package's Response with cookie changes; keeps status, Content-Type and no-store. */
-function withCookies(res: Response, apply: (out: NextResponse) => void): NextResponse {
-  const out = new NextResponse(res.body, res)
-  apply(out)
-  return out
-}
-
+// The logic lives in src/lib/tracker-token.ts so tests can drive it with a
+// mocked Entra (IN-03). This handler only reads the two cookies and the env.
 export async function POST(req: NextRequest) {
-  const scope = process.env.TRACKER_API_SCOPE
-  const key = parseTrackerRtKey(process.env.TRACKER_RT_KEY)
-  if (!scope || !key) return tokenErrorResponse(new TrackerTokenError('unconfigured'))
-
-  const check = await checkTrackerRt({
+  return trackerTokenResponse({
     accessToken: req.cookies.get('access_token')?.value,
     trackerRt: req.cookies.get(TRACKER_RT_COOKIE)?.value,
-    key,
+    env: process.env,
   })
-  if (!check.ok) {
-    const res = tokenErrorResponse(new TrackerTokenError('reauth'))
-    if (!check.clear) return res
-    return withCookies(res, (out) => {
-      out.cookies.delete(TRACKER_RT_DELETE)
-    })
-  }
-
-  try {
-    const result = await redeemTrackerToken({
-      tenantId: process.env.AZURE_TENANT_ID,
-      clientId: process.env.AZURE_CLIENT_ID,
-      clientSecret: process.env.AZURE_CLIENT_SECRET,
-      refreshToken: check.rt,
-      scope,
-    })
-    const res = tokenResponse(result)
-    const rotated = result.refreshToken
-    if (!rotated) return res
-
-    // A failed or oversized re-seal still answers the 200 without a cookie:
-    // Entra does not revoke a refresh token on use, so the current tracker_rt
-    // keeps working. The re-seal keeps the sign-in deadline check.sexp, so
-    // rotation never pushes the cookie past the session it was captured from
-    // (WR-01), and it goes through the callback's size guard (WR-02).
-    const reseal = await sealTrackerRtCookie({ rt: rotated, sub: check.sub, sexp: check.sexp }, key)
-    if (reseal.skipped !== null) {
-      console.error(`tracker-token: reseal skipped, ${TRACKER_RT_SKIP_MESSAGES[reseal.skipped]}`)
-      return res
-    }
-    const { sealed, maxAge } = reseal
-    return withCookies(res, (out) => {
-      out.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions(maxAge))
-    })
-  } catch (e) {
-    // The code and Entra's numeric error codes, never a token or a secret:
-    // TrackerTokenError's message is derived from the code and its entraCodes
-    // are filtered to numbers by the package.
-    console.error(
-      'tracker-token:',
-      e instanceof TrackerTokenError ? `${e.code} ${JSON.stringify(e.entraCodes)}` : 'unexpected',
-    )
-    return tokenErrorResponse(e)
-  }
 }

@@ -158,37 +158,53 @@ test("the helper imports only jose and reads only NODE_ENV", () => {
 });
 
 // ---- plan 12-02: POST /api/tracker/token
+// The route reads the request; its logic lives in src/lib/tracker-token.ts
+// (IN-03), which tests/rt-token-route.test.mjs also drives behaviourally.
 
 const TOKEN_ROUTE = "src/app/api/tracker/token/route.ts";
+const TOKEN_LOGIC = "src/lib/tracker-token.ts";
 const routeCode = () => codeOnly(read(TOKEN_ROUTE));
+const logicCode = () => codeOnly(read(TOKEN_LOGIC));
 
-test("token route exports POST and force-dynamic", () => {
+test("token route exports POST and force-dynamic, and hands the cookies and env to the logic", () => {
   const code = routeCode();
   assert.ok(code.includes("export const dynamic = 'force-dynamic'"));
   assert.ok(code.includes("export async function POST(req: NextRequest)"));
+  assert.ok(code.includes("return trackerTokenResponse({"));
+  assert.ok(code.includes("env: process.env"));
+  assert.ok(code.includes("import { trackerTokenResponse } from '@/lib/tracker-token'"));
 });
 
-test("token route checks configuration before the session", () => {
+test("token route holds no logic of its own", () => {
   const code = routeCode();
+  assert.ok(!code.includes("@avora/tracker-client"), "route imports the package itself");
+  assert.doesNotMatch(code, /console\.(error|log|warn)\(/, "route logs");
+  assert.doesNotMatch(code, /\bcookies\.(set|delete)\(/, "route sets or deletes a cookie itself");
+  assert.doesNotMatch(code, /\bfetch\s*:/, "route passes a fetch override");
+});
+
+test("token logic checks configuration before the session", () => {
+  const code = logicCode();
   const session = code.indexOf("checkTrackerRt(");
   assert.ok(session >= 0, "no checkTrackerRt( call");
-  for (const needle of ["'unconfigured'", "process.env.TRACKER_API_SCOPE", "parseTrackerRtKey(process.env.TRACKER_RT_KEY)"]) {
+  for (const needle of ["'unconfigured'", "env.TRACKER_API_SCOPE", "parseTrackerRtKey(env.TRACKER_RT_KEY)"]) {
     const at = code.indexOf(needle);
     assert.ok(at >= 0 && at < session, `${needle} is not before checkTrackerRt(`);
   }
 });
 
-test("token route redeems with ACMI's Azure names and TRACKER_API_SCOPE", () => {
-  const code = routeCode();
+test("token logic redeems with ACMI's Azure names and TRACKER_API_SCOPE", () => {
+  const code = logicCode();
   for (const needle of [
-    "tenantId: process.env.AZURE_TENANT_ID",
-    "clientId: process.env.AZURE_CLIENT_ID",
-    "clientSecret: process.env.AZURE_CLIENT_SECRET",
+    "tenantId: env.AZURE_TENANT_ID",
+    "clientId: env.AZURE_CLIENT_ID",
+    "clientSecret: env.AZURE_CLIENT_SECRET",
     "refreshToken: check.rt",
+    "fetch: input.fetch",
   ]) {
-    assert.ok(code.includes(needle), `route lacks ${needle}`);
+    assert.ok(code.includes(needle), `token logic lacks ${needle}`);
   }
-  assert.doesNotMatch(code, /_AD_/, "route uses an _AD_ env name");
+  for (const c of [code, routeCode()]) assert.doesNotMatch(c, /_AD_/, "an _AD_ env name");
 });
 
 test("token route reads only its two cookies from the request", () => {
@@ -196,19 +212,22 @@ test("token route reads only its two cookies from the request", () => {
   assert.ok(code.includes("req.cookies.get('access_token')"));
   assert.ok(code.includes("req.cookies.get(TRACKER_RT_COOKIE)"));
   assert.doesNotMatch(code, /\breq\.(?!cookies\b)\w+/, "route reads more than cookies from the request");
+  assert.doesNotMatch(logicCode(), /\breq\./, "token logic reads a request");
 });
 
 test("token route never redirects and sends no CORS headers", () => {
-  const code = routeCode();
-  assert.doesNotMatch(code, /\bredirect\s*\(/, "route calls redirect(");
-  assert.ok(!code.includes("NextResponse.redirect"), "route uses NextResponse.redirect");
-  assert.ok(!code.includes("Access-Control-"), "route names an Access-Control- header");
-  assert.doesNotMatch(code, /headers\.(set|append)\(/, "route sets a header by hand");
+  for (const code of [routeCode(), logicCode()]) {
+    assert.doesNotMatch(code, /\bredirect\s*\(/, "calls redirect(");
+    assert.ok(!code.includes("NextResponse.redirect"), "uses NextResponse.redirect");
+    assert.ok(!code.includes("Access-Control-"), "names an Access-Control- header");
+    assert.doesNotMatch(code, /headers\.(set|append)\(/, "sets a header by hand");
+  }
 });
 
-test("token route logs only a code, numeric Entra codes or a fixed step", () => {
-  const code = routeCode();
+test("token logic logs only a code, numeric Entra codes or a fixed step", () => {
+  const code = logicCode();
   assert.equal((code.match(/console\.error\(/g) ?? []).length, 2);
+  assert.doesNotMatch(code, /console\.(log|warn|info|debug)\(/);
   assert.match(
     code,
     /console\.error\(\s*'tracker-token:',\s*e\s+instanceof\s+TrackerTokenError\s*\?\s*`\$\{e\.code\} \$\{JSON\.stringify\(e\.entraCodes\)\}`\s*:\s*'unexpected',?\s*\)/,
@@ -216,17 +235,17 @@ test("token route logs only a code, numeric Entra codes or a fixed step", () => 
   assert.ok(code.includes("console.error(`tracker-token: reseal skipped, ${TRACKER_RT_SKIP_MESSAGES[reseal.skipped]}`)"));
 });
 
-test("token route re-seals only through the size-guarded sealTrackerRtCookie (WR-02)", () => {
-  const code = routeCode();
-  assert.doesNotMatch(code, /\bsealTrackerRt\(/, "route calls sealTrackerRt( directly, skipping the size guard");
+test("token logic re-seals only through the size-guarded sealTrackerRtCookie (WR-02)", () => {
+  const code = logicCode();
+  assert.doesNotMatch(code, /\bsealTrackerRt\(/, "calls sealTrackerRt( directly, skipping the size guard");
   assert.ok(code.includes("sealTrackerRtCookie("), "no sealTrackerRtCookie( call");
   const skipAt = code.indexOf("reseal.skipped !== null");
   const setAt = code.indexOf("cookies.set(TRACKER_RT_COOKIE");
   assert.ok(skipAt >= 0 && setAt > skipAt, "the set is not behind the skip check");
 });
 
-test("token route clears and re-sets tracker_rt only through the helper constants", () => {
-  const code = routeCode();
+test("token logic clears and re-sets tracker_rt only through the helper constants", () => {
+  const code = logicCode();
   const clearAt = code.indexOf("check.clear");
   const deleteAt = code.indexOf("cookies.delete(TRACKER_RT_DELETE)");
   assert.ok(deleteAt >= 0, "no cookies.delete(TRACKER_RT_DELETE)");

@@ -2,6 +2,6 @@
   "$schema": "https://vercel.com/schema.json",
   "framework": "nextjs",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
+  "installCommand": "bash vercel-install.sh",
   "buildCommand": "npm run build"
 }

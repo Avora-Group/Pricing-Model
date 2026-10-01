@@ -5,11 +5,11 @@ milestone_name: Tracker request embed
 current_phase: 12
 current_phase_name: Refresh-token capture and token route
 status: planning
-stopped_at: Phase 11 complete, ready to plan Phase 12
-last_updated: "2026-10-01T09:15:24.402Z"
+stopped_at: Phase 12 context gathered
+last_updated: "2026-10-01T10:49:40.088Z"
 last_activity: 2026-10-01
 last_activity_desc: Phase 11 complete, transitioned to Phase 12
-state_head: 0c55ec476bcd72d6c6b6f41af1554e82d479cfce
+state_head: 3d813f98e95aca64e6606483b9ab115825629e67
 progress:
   total_phases: 4
   completed_phases: 1
@@ -132,9 +132,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-01T09:20:00Z
-Stopped at: Phase 11 complete, ready to plan Phase 12
-Resume file: None
+Last session: 2026-10-01T10:49:40.056Z
+Stopped at: Phase 12 context gathered
+Resume file: .planning/phases/12-refresh-token-capture-and-token-route/12-CONTEXT.md
 
 ## Operator Next Steps
 

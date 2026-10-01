@@ -108,11 +108,21 @@ export const TRACKER_RT_SKIP_MESSAGES: Record<TrackerRtCaptureSkip, string | nul
   'seal-failed': 'sealing failed',
 }
 
-/** D-09: unset, empty, undecodable or not exactly 32 bytes gives null (unconfigured). */
+// 32 bytes as unpadded base64url is exactly 43 characters of [A-Za-z0-9_-].
+const TRACKER_RT_KEY_RE = /^[A-Za-z0-9_-]{43}$/
+
+/**
+ * D-09: unset, empty, undecodable or not exactly 32 bytes gives null
+ * (unconfigured). The format is checked before decoding, so standard base64
+ * (`+`, `/`, `=`) is refused on every runtime: jose's decoder accepts it on
+ * Node 24 but not where Uint8Array.fromBase64 exists (IN-01).
+ */
 export function parseTrackerRtKey(raw: string | undefined): Uint8Array | null {
   if (!raw) return null
+  const trimmed = raw.trim()
+  if (!TRACKER_RT_KEY_RE.test(trimmed)) return null
   try {
-    const key = base64url.decode(raw.trim())
+    const key = base64url.decode(trimmed)
     return key.length === 32 ? key : null
   } catch {
     return null

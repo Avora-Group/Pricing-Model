@@ -192,6 +192,11 @@ test("parseTrackerRtKey accepts exactly 32 bytes", () => {
   assert.equal(key.length, 32);
 });
 
+test("parseTrackerRtKey trims surrounding whitespace", () => {
+  const raw = keyStr(32);
+  assert.deepEqual(parseTrackerRtKey(` ${raw}\n`), parseTrackerRtKey(raw));
+});
+
 for (const [name, raw] of [
   ["undefined", undefined],
   ['""', ""],
@@ -199,6 +204,9 @@ for (const [name, raw] of [
   ["16 random bytes", keyStr(16)],
   ["31 random bytes", keyStr(31)],
   ["33 random bytes", keyStr(33)],
+  // IN-01: standard base64 of 32 bytes (openssl rand -base64 32) is refused on every runtime.
+  ["standard base64 of 32 bytes", randomBytes(32).toString("base64")],
+  ["43 characters with a + or /", `${keyStr().slice(0, 41)}+/`],
 ]) {
   test(`parseTrackerRtKey rejects ${name}`, () => {
     assert.equal(parseTrackerRtKey(raw), null);

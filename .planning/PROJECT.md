@@ -39,12 +39,13 @@ Accurate, repeatable ACMI pricing quotes that the sales team can generate, save,
 - ✓ Project status lifecycle with provenance (`status_source`, `signed_at`), set inside Calculation — v2.0
 - ✓ Quote→project linkage (`quotes.project_id`) — v2.0
 - ✓ Company-wide Dashboard: pipeline metrics and the fleet deployment board — v2.0
+- ✓ tracker-client v10 dependency that installs and builds locally, with the Vercel install script and a name-only `.env.example` in the tree (DEP-01..03) — Phase 11
 
 The v2.0 entries were closed on 2026-09-30 from code evidence, not from per-requirement verification. Phase 6 ran under GSD. Phases 7–10 were built outside GSD, and the design moved past the v2.0 spec (migrations 010–013 add `active` and `completed` states). See MILESTONES.md.
 
 ### Active
 
-- [ ] tracker-client v10 dependency that builds locally and on Vercel
+- [ ] tracker-client v10 dependency that builds on Vercel (local build done in Phase 11; the real Vercel install with `TRACKER_REPO_TOKEN` is first exercised by the Phase 14 deploy)
 - [ ] Refresh token captured at sign-in and held only in the encrypted `tracker_rt` cookie
 - [ ] Same-origin token route with the spec's error contract
 - [ ] Sidebar and mobile triggers opening the themed, project-locked dialog
@@ -57,7 +58,7 @@ The v2.0 entries were closed on 2026-09-30 from code evidence, not from per-requ
 - Full financial reporting — future milestone, larger scope
 - Real-time aircraft tracking — not relevant to pricing
 - Mobile app — web-first
-- A test runner for the frontend — the spec verifies ACMI by `next build`, lint and UAT
+- A test runner for the frontend — the spec verifies ACMI by `next build`, lint and UAT. (Phase 11's install-path checks use Node's built-in `node:test` in `nextjs-project/tests/`, with no runner dependency.)
 - Any tracker read view, status sync or notification inside ACMI — spec non-goal; the embed is create-only
 - Changing `AZURE_REDIRECT_URI` — sessions land on `acmi-pricing.vercel.app` today; the embed must work there as-is
 
@@ -78,7 +79,7 @@ The v2.0 entries were closed on 2026-09-30 from code evidence, not from per-requ
 - **Theme:** next-themes with a `.dark` class. The palette lives in `src/app/globals.css` as `--card`, `--line`, `--ink`, `--muted`, `--cyan`, `--neg`, `--shadow-lg` and friends. ACMI defines `--shadow-lg` on `:root`, one of the dialog's 18 names.
 - **Tracker side, verified 2026-09-15:** ACMI's Entra client `ac19614d-e6c8-4e6c-966f-2e6de3ee1516` has `access_as_user` with admin consent and is an authorized client on the tracker registration; it is mapped to `acmi-app` in `tracker.config.json`; both ACMI origins pass the tracker's CORS. Re-check each before the deploy.
 - **Lessons carried from HR, MXT and Finance:**
-  - npm resolves the private dependency over `ssh://` whatever the URL says, so the lockfile needs normalizing to `git+https` and `vercel-install.sh` must rewrite all three GitHub URL forms.
+  - npm resolves the private dependency over `ssh://` whatever the URL says, so the lockfile needs normalizing to `git+https` and `vercel-install.sh` must cover all three GitHub URL forms. (ACMI's Phase 11 version rewrites the two SSH forms to HTTPS and serves HTTPS from a credential store, all in a process-scoped temp config.)
   - Vercel binds env vars at deploy time. Every change needs a redeploy.
   - `TRACKER_API_SCOPE` has no `NEXT_PUBLIC_` prefix and holds the tracker's client id, not the app's.
   - Host-app tokens are create-only: UAT rows must be deleted from the tracker itself.
@@ -110,7 +111,10 @@ The v2.0 entries were closed on 2026-09-30 from code evidence, not from per-requ
 | v2.1: a same-origin token route, not a proxy or in-browser MSAL | Spec decision for all server-auth host apps; the browser calls the tracker directly | — Pending |
 | v2.1: refresh token in its own `tracker_rt` cookie, `EncryptJWT` (`dir` / `A256GCM`) under `TRACKER_RT_KEY`, path `/api/tracker` | ACMI has no next-auth JWT to hold it; the path keeps the cookie off every other request | — Pending |
 | v2.1: theme passed to the dialog inline, never written to `documentElement` | ACMI defines `--shadow-lg` and switches dark mode by class | — Pending |
-| v2.1: phases continue at 11 | GSD default; v2.0 ended at Phase 10 | — Pending |
+| v2.1: phases continue at 11 | GSD default; v2.0 ended at Phase 10 | ✓ Good |
+| v2.1 (Phase 11): ignore `.planning/state.json`, keep STATE.md as the tracked record | SDK machine state churns; STATE.md is the human-readable record | ✓ Good |
+| v2.1 (Phase 11): `vercel-install.sh` keeps all git state in a process-scoped temp config (review WR-01/02), diverging from HR's verbatim script | A local run can no longer clobber a developer's `~/.gitconfig` or credentials, and no token sits in config keys | ✓ Good. Sibling apps still run the older form |
+| v2.1 (Phase 11): `prebuild` fails on a `git+ssh` tracker-client lock entry (review WR-03) | The postinstall normalizer is skipped by `npm install <pkg>`, `uninstall`, `update` and `--ignore-scripts` | ✓ Good |
 
 ## Evolution
 
@@ -130,4 +134,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-30 after starting milestone v2.1*
+*Last updated: 2026-10-01 after Phase 11*

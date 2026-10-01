@@ -2,44 +2,44 @@
 gsd_state_version: "1.0"
 milestone: v2.1
 milestone_name: Tracker request embed
-current_phase: 11
-current_phase_name: Install tracker-client v10
-status: verifying
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-10-01T07:13:59.018Z"
+current_phase: 12
+current_phase_name: Refresh-token capture and token route
+status: planning
+stopped_at: Phase 11 complete, ready to plan Phase 12
+last_updated: "2026-10-01T09:15:24.402Z"
 last_activity: 2026-10-01
-last_activity_desc: Plan 11-02 complete
-state_head: f20debfd71cb786837d2cc695b5bb6421b620e3a
+last_activity_desc: Phase 11 complete, transitioned to Phase 12
+state_head: 0c55ec476bcd72d6c6b6f41af1554e82d479cfce
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
   completed_plans: 2
-  percent: 0
+  percent: 25
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-30)
+See: .planning/PROJECT.md (updated 2026-10-01)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 11 — Install tracker-client v10
+**Current focus:** Phase 12 — Refresh-token capture and token route
 
 ## Current Position
 
-Phase: 11 (Install tracker-client v10) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-10-01 — Plan 11-02 complete (tracker-client v10 installed, Vercel install script and .env.example in local commit f20debf, not pushed)
+Phase: 12 — Refresh-token capture and token route
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-01 — Phase 11 complete, transitioned to Phase 12
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17 (v1.0)
+- Total plans completed: 17 (v1.0), 2 (v2.1)
 - Average duration: 6min
 - Total execution time: 1.25 hours
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 | 3 - Pricing Engine | 5/5 | 26min | 5min |
 | 4 - Quote Persistence | 4/4 | 17min | 4min |
 | 5 - Polish | 2/2 | 13min | 7min |
+| 11 | 2 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (8min), 05-02 (5min)
@@ -102,6 +103,8 @@ Working rules from PROJECT.md Constraints:
 - [Phase 11]: .planning/state.json is ignored, not committed: SDK machine state; STATE.md is the tracked record (D-12, commit 39e3b6e)
 - [Phase 11]: User approved the package source for 11-02: @avora/tracker-client from Avora-Group/tracker-client tag v10 at a369f81 (D-01)
 - [Phase 11]: tracker-client v10 installed and locked to a369f81 over git+https (lock diff 9 0, additions only, no D-14 retry); HR's normalizer and vercel-install.sh copied verbatim; phase work is the single local commit f20debf, not pushed
+- [Phase 11]: Code review fixes WR-01..04: vercel-install.sh now keeps git state in a process-scoped temp config (no longer HR's blob), a prebuild guard fails a git+ssh tracker lock, and .env.example comments out the two API vars that have code defaults
+- [Phase 11]: Verified (passed), UAT 1/1, Nyquist-compliant (22 node:test checks in nextjs-project/tests, run with `node --test "tests/*.test.mjs"`), threats_open 0
 
 ### Pending Todos
 
@@ -110,6 +113,8 @@ None yet.
 ### Blockers/Concerns
 
 - **Unpushed docs commits.** `main` is ahead of `origin/main` by this milestone's `.planning/` commits. They stay local and go out with the Phase 14 push.
+- **[Phase 11] Sibling apps' install script.** ACMI's `vercel-install.sh` is now the hardened, process-scoped form; HR, MXT and Finance still run the older one that writes `~/.gitconfig`. Port it there separately (outside this milestone).
+- **[Phase 11] The DEP-02 test has only run on Windows Git Bash.** Run `node --test "tests/*.test.mjs"` once on Linux.
 - **[Phase 12] `jose` is already a dependency (`^6.1.3`).** RT-02 adds no package, which keeps DEP-01's "no other package changes" true.
 - **[Phases 12–13] Lint is not clean today.** `npm run lint` reports 10 errors and 10 warnings, two of them in `Sidebar.tsx` and `ThemeToggle.tsx`. The gate is "nothing new".
 - **[Phases 12–13] Local UAT needs the user.** The tracker variables go into `.env.local` by hand. Whether the tracker's CORS accepts ACMI's local origin is unconfirmed.
@@ -127,10 +132,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-01T07:13:58.994Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-10-01T09:20:00Z
+Stopped at: Phase 11 complete, ready to plan Phase 12
 Resume file: None
 
 ## Operator Next Steps
 
-- Discuss the first phase with `/gsd-discuss-phase 11`
+- Discuss Phase 12 with `/gsd-discuss-phase 12`

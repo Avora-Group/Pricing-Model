@@ -66,7 +66,7 @@ Phases 11 to 13 are local commits only. Nothing is pushed until Phase 14, becaus
 - Integer phases (11, 12, 13): Planned milestone work. Numbering continues from v2.0, which ended at Phase 10.
 - Decimal phases (12.1, 12.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 11: Install tracker-client v10** - The private dependency over `git+https`, the Vercel install script and a new `.env.example`
+- [x] **Phase 11: Install tracker-client v10** - The private dependency over `git+https`, the Vercel install script and a new `.env.example` (completed 2026-10-01)
 - [ ] **Phase 12: Refresh-token capture and token route** - `offline_access`, an encrypted `tracker_rt` cookie, and `POST /api/tracker/token`
 - [ ] **Phase 13: Triggers and themed dialog** - A client wrapper, ACMI palette mapping, two sidebar icon buttons and two mobile More entries
 - [ ] **Phase 14: Deploy and production UAT** - Prerequisites, gated push to `main`, and the spec's UAT checklist
@@ -144,7 +144,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Install tracker-client v10 | 2/2 | In Progress|  |
+| 11. Install tracker-client v10 | 2/2 | Complete    | 2026-10-01 |
 | 12. Refresh-token capture and token route | 0/0 | Not started | - |
 | 13. Triggers and themed dialog | 0/0 | Not started | - |
 | 14. Deploy and production UAT | 0/0 | Not started | - |

@@ -156,3 +156,76 @@ test("the helper imports only jose and reads only NODE_ENV", () => {
   assert.ok(envReads.length >= 1);
   for (const name of envReads) assert.equal(name, "NODE_ENV");
 });
+
+// ---- plan 12-02: POST /api/tracker/token
+
+const TOKEN_ROUTE = "src/app/api/tracker/token/route.ts";
+const routeCode = () => codeOnly(read(TOKEN_ROUTE));
+
+test("token route exports POST and force-dynamic", () => {
+  const code = routeCode();
+  assert.ok(code.includes("export const dynamic = 'force-dynamic'"));
+  assert.ok(code.includes("export async function POST(req: NextRequest)"));
+});
+
+test("token route checks configuration before the session", () => {
+  const code = routeCode();
+  const session = code.indexOf("checkTrackerRt(");
+  assert.ok(session >= 0, "no checkTrackerRt( call");
+  for (const needle of ["'unconfigured'", "process.env.TRACKER_API_SCOPE", "parseTrackerRtKey(process.env.TRACKER_RT_KEY)"]) {
+    const at = code.indexOf(needle);
+    assert.ok(at >= 0 && at < session, `${needle} is not before checkTrackerRt(`);
+  }
+});
+
+test("token route redeems with ACMI's Azure names and TRACKER_API_SCOPE", () => {
+  const code = routeCode();
+  for (const needle of [
+    "tenantId: process.env.AZURE_TENANT_ID",
+    "clientId: process.env.AZURE_CLIENT_ID",
+    "clientSecret: process.env.AZURE_CLIENT_SECRET",
+    "refreshToken: check.rt",
+  ]) {
+    assert.ok(code.includes(needle), `route lacks ${needle}`);
+  }
+  assert.doesNotMatch(code, /_AD_/, "route uses an _AD_ env name");
+});
+
+test("token route reads only its two cookies from the request", () => {
+  const code = routeCode();
+  assert.ok(code.includes("req.cookies.get('access_token')"));
+  assert.ok(code.includes("req.cookies.get(TRACKER_RT_COOKIE)"));
+  assert.doesNotMatch(code, /\breq\.(?!cookies\b)\w+/, "route reads more than cookies from the request");
+});
+
+test("token route never redirects and sends no CORS headers", () => {
+  const code = routeCode();
+  assert.doesNotMatch(code, /\bredirect\s*\(/, "route calls redirect(");
+  assert.ok(!code.includes("NextResponse.redirect"), "route uses NextResponse.redirect");
+  assert.ok(!code.includes("Access-Control-"), "route names an Access-Control- header");
+  assert.doesNotMatch(code, /headers\.(set|append)\(/, "route sets a header by hand");
+});
+
+test("token route logs only a code, numeric Entra codes or a fixed step", () => {
+  const code = routeCode();
+  assert.equal((code.match(/console\.error\(/g) ?? []).length, 2);
+  assert.match(
+    code,
+    /console\.error\(\s*'tracker-token:',\s*e\s+instanceof\s+TrackerTokenError\s*\?\s*`\$\{e\.code\} \$\{JSON\.stringify\(e\.entraCodes\)\}`\s*:\s*'unexpected',?\s*\)/,
+  );
+  assert.ok(code.includes("console.error('tracker-token: reseal failed')"));
+});
+
+test("token route clears and re-sets tracker_rt only through the helper constants", () => {
+  const code = routeCode();
+  const clearAt = code.indexOf("check.clear");
+  const deleteAt = code.indexOf("cookies.delete(TRACKER_RT_DELETE)");
+  assert.ok(deleteAt >= 0, "no cookies.delete(TRACKER_RT_DELETE)");
+  assert.ok(clearAt >= 0 && clearAt < deleteAt, "the delete is not behind check.clear");
+  assert.ok(code.includes("cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions)"));
+  const sealAt = code.indexOf("sealTrackerRt(");
+  assert.ok(sealAt >= 0, "no sealTrackerRt( call");
+  const [value] = callArgs(code, sealAt + "sealTrackerRt".length);
+  assert.match(value, /\bsub:\s*check\.sub\b/, "the re-seal does not bind check.sub");
+  assert.ok(code.includes("new NextResponse(res.body, res)"));
+});

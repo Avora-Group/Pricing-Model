@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DEFAULT_NEXT, sanitizeNext } from '@/lib/safe-next'
 import {
+  OAUTH_FLOW_COOKIE,
+  OAUTH_FLOW_DELETE,
+  parseOAuthFlow,
+  parseOAuthState,
+  nonceMatches,
+} from '@/lib/oauth-flow'
+import {
   TRACKER_RT_COOKIE,
   TRACKER_RT_DELETE,
   TRACKER_RT_SKIP_MESSAGES,
@@ -18,19 +25,24 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
 /**
  * Back to the login screen, keeping the intended destination so a retry still
- * lands on the shared link rather than the dashboard.
+ * lands on the shared link rather than the dashboard. The sign-in's
+ * azure_oauth cookie is single-use, so every answer deletes it.
  */
 function loginRedirect(req: NextRequest, error: string, next: string) {
   const url = new URL('/login', req.url)
   url.searchParams.set('error', error)
   if (next !== DEFAULT_NEXT) url.searchParams.set('next', next)
-  return NextResponse.redirect(url)
+  const response = NextResponse.redirect(url)
+  response.cookies.delete(OAUTH_FLOW_DELETE)
+  return response
 }
 
 export async function GET(req: NextRequest) {
-  // `state` carries the post-login destination set by /api/auth/login/azure.
-  // It came back through the browser, so it is validated again here.
-  const next = sanitizeNext(req.nextUrl.searchParams.get('state'))
+  // `state` is `nonce.next`, set by /api/auth/login/azure: a per-browser nonce,
+  // then the post-login destination. It came back through the browser, so the
+  // destination is validated again here and the nonce is checked below.
+  const state = parseOAuthState(req.nextUrl.searchParams.get('state'))
+  const next = sanitizeNext(state?.next)
 
   try {
     const code = req.nextUrl.searchParams.get('code')
@@ -39,6 +51,15 @@ export async function GET(req: NextRequest) {
     if (error || !code) {
       const desc = req.nextUrl.searchParams.get('error_description') ?? 'Azure login failed'
       console.error('[azure-callback] Error:', error, desc)
+      return loginRedirect(req, 'azure_failed', next)
+    }
+
+    // Login CSRF guard (WR-03): this callback must finish the flow that this
+    // browser started. The state's nonce must match the azure_oauth cookie's,
+    // and the cookie's PKCE verifier goes into the code exchange below.
+    const flow = parseOAuthFlow(req.cookies.get(OAUTH_FLOW_COOKIE)?.value)
+    if (!state || !flow || !nonceMatches(state.nonce, flow.nonce)) {
+      console.error('[azure-callback] state check failed')
       return loginRedirect(req, 'azure_failed', next)
     }
 
@@ -52,6 +73,7 @@ export async function GET(req: NextRequest) {
           client_id: CLIENT_ID,
           client_secret: CLIENT_SECRET,
           code,
+          code_verifier: flow.verifier,
           redirect_uri: REDIRECT_URI,
           grant_type: 'authorization_code',
           scope: 'openid email profile offline_access',
@@ -108,6 +130,7 @@ export async function GET(req: NextRequest) {
       maxAge: 7 * 24 * 3600,
       path: '/',
     })
+    response.cookies.delete(OAUTH_FLOW_DELETE)
 
     // tracker_rt is always freshly set or deleted (D-07); nothing in this step can change how sign-in ends (D-10).
     let capture: TrackerRtCapture | null = null

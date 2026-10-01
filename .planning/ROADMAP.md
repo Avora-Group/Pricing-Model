@@ -104,7 +104,12 @@ The install on Vercel itself is first exercised by the Phase 14 deploy.
   4. With `TRACKER_RT_KEY` unset, sign-in still sets `access_token` and redirects as it does today, and sets no `tracker_rt`. Signing out removes both `access_token` and `tracker_rt`.
   5. The dashboard, Calculation and quotes still work after sign-in. `npm run build` passes, and `npm run lint` reports nothing beyond today's baseline (10 errors, 10 warnings).
 
-**Plans**: TBD
+**Plans**: 2 plans
+**Wave 1**
+- [ ] 12-01-PLAN.md — the jose-only `tracker_rt` helper, `offline_access` in both sign-in requests, cookie capture in the callback, and the logout delete (RT-01..05)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 12-02-PLAN.md — `POST /api/tracker/token` with clear-on-bad-cookie and re-set on rotation, an HTTP smoke of the built route, then the Entra consent and local env checkpoint (TOKEN-01..04)
 
 ### Phase 13: Triggers and themed dialog
 

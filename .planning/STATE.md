@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2.1
 milestone_name: Tracker request embed
-current_phase: 12
-current_phase_name: Refresh-token capture and token route
-status: verifying
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-10-01T13:10:12.665Z"
+current_phase: 13
+current_phase_name: Triggers and themed dialog
+status: planning
+stopped_at: Phase 12 complete, ready to plan Phase 13
+last_updated: "2026-10-01T15:13:27.532Z"
 last_activity: 2026-10-01
-last_activity_desc: Phase 12 execution started
-state_head: ecfd5fc154e95cbf17644f9a35ba1ad1d9d18c4e
+last_activity_desc: Phase 12 complete, transitioned to Phase 13
+state_head: 7f681c5fa1bbe28f2ae1f1ee99aed87bf4a3870a
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
   completed_plans: 4
-  percent: 25
+  percent: 50
 ---
 
 # Project State
@@ -25,21 +25,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-01)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 12 — Refresh-token capture and token route
+**Current focus:** Phase 13 — Triggers and themed dialog
 
 ## Current Position
 
-Phase: 12 (Refresh-token capture and token route) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-10-01 — Phase 12 execution started
+Phase: 13 — Triggers and themed dialog
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-01 — Phase 12 complete, transitioned to Phase 13
 
-Progress: [███░░░░░░░] 25%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17 (v1.0), 2 (v2.1)
+- Total plans completed: 17 (v1.0), 4 (v2.1)
 - Average duration: 6min
 - Total execution time: 1.25 hours
 
@@ -53,6 +53,7 @@ Progress: [███░░░░░░░] 25%
 | 4 - Quote Persistence | 4/4 | 17min | 4min |
 | 5 - Polish | 2/2 | 13min | 7min |
 | 11 | 2 | - | - |
+| 12 | 2 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (8min), 05-02 (5min)
@@ -111,6 +112,8 @@ Working rules from PROJECT.md Constraints:
 - [Phase 12]: 12-01 sealed tracker_rt values over 3800 chars are deleted and logged, not set (A3)
 - [Phase 12]: 12-01 code is the single local commit 3f5b334 on main, not pushed; 73/73 node:test, lint 10/10 baseline, build green
 - [Phase 12]: 12-02 token route is the single local commit ecfd5fc on main, not pushed; 80/80 node:test, lint 10/10 baseline, build green, smoke 12/12; Task 3 approved (consent OK, local UAT at :3001 with backend :8079)
+- [Phase 12]: All 8 review findings fixed (7905685 … eac0d2d): WR-01 caps tracker_rt at the session exp (`sexp` sealed in, D-04 amended), WR-02 shared size-guarded `sealTrackerRtCookie`, WR-03 OAuth state nonce + PKCE S256 (`src/lib/oauth-flow.ts`), route logic moved to `src/lib/tracker-token.ts` (IN-03)
+- [Phase 12]: COMPLETE — UAT 18/18 (b732b5f), Nyquist-compliant 141 tests (b23a8cf), threats_open 0 (f59f106), re-verification passed 5/5 (7f681c5)
 
 ### Pending Todos
 
@@ -121,7 +124,8 @@ None yet.
 - **Unpushed docs commits.** `main` is ahead of `origin/main` by this milestone's `.planning/` commits. They stay local and go out with the Phase 14 push.
 - **[Phase 11] Sibling apps' install script.** ACMI's `vercel-install.sh` is now the hardened, process-scoped form; HR, MXT and Finance still run the older one that writes `~/.gitconfig`. Port it there separately (outside this milestone).
 - **[Phase 11] The DEP-02 test has only run on Windows Git Bash.** Run `node --test "tests/*.test.mjs"` once on Linux.
-- **[Phase 12] `jose` is already a dependency (`^6.1.3`).** RT-02 adds no package, which keeps DEP-01's "no other package changes" true.
+- **[Phase 14] `TRACKER_RT_KEY` format.** It must be 43 base64url characters (`node -p "require('crypto').randomBytes(32).toString('base64url')"`). An `openssl rand -base64 32` key is rejected and silently disables the embed (sign-in works, the route answers 503 `unconfigured`) — this happened in Phase 12 UAT. After the deploy, probe `POST /api/tracker/token` for a 200, not just a working sign-in.
+- **[Phase 14] Sign-ins in flight during the deploy** end once at `/login?error=azure_failed` (WR-03 flow cookie); signing in again fixes it.
 - **[Phases 12–13] Lint is not clean today.** `npm run lint` reports 10 errors and 10 warnings, two of them in `Sidebar.tsx` and `ThemeToggle.tsx`. The gate is "nothing new".
 - **[Phases 12–13] Local UAT needs the user.** The tracker variables go into `.env.local` by hand. Whether the tracker's CORS accepts ACMI's local origin is unconfirmed.
 - **[Phase 13] `BottomTabBar` takes only `userRole` and hides More from viewers** (`showMore = !isViewer`). EMBED-02, -07 and -08 need `userEmail` there and a More list for viewers.
@@ -139,9 +143,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-10-01T13:10:07.102Z
-Stopped at: Completed 12-02-PLAN.md
+Stopped at: Phase 12 complete, ready to plan Phase 13
 Resume file: None
 
 ## Operator Next Steps
 
-- Discuss Phase 12 with `/gsd-discuss-phase 12`
+- Discuss Phase 13 with `/gsd-discuss-phase 13`

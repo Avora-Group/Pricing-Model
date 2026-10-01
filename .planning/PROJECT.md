@@ -40,14 +40,15 @@ Accurate, repeatable ACMI pricing quotes that the sales team can generate, save,
 - ✓ Quote→project linkage (`quotes.project_id`) — v2.0
 - ✓ Company-wide Dashboard: pipeline metrics and the fleet deployment board — v2.0
 - ✓ tracker-client v10 dependency that installs and builds locally, with the Vercel install script and a name-only `.env.example` in the tree (DEP-01..03) — Phase 11
+- ✓ Refresh token captured at sign-in and held only in the encrypted, httpOnly `tracker_rt` cookie on `/api/tracker`, capped at the sign-in session's expiry (RT-01..05) — Phase 12 (local; production in Phase 14)
+- ✓ Same-origin `POST /api/tracker/token` with the spec's error contract, re-sealing a rotated refresh token (TOKEN-01..04) — Phase 12 (local; production in Phase 14)
+- ✓ Microsoft sign-in hardened with an OAuth state nonce and PKCE S256 (review WR-03, beyond the spec) — Phase 12
 
 The v2.0 entries were closed on 2026-09-30 from code evidence, not from per-requirement verification. Phase 6 ran under GSD. Phases 7–10 were built outside GSD, and the design moved past the v2.0 spec (migrations 010–013 add `active` and `completed` states). See MILESTONES.md.
 
 ### Active
 
 - [ ] tracker-client v10 dependency that builds on Vercel (local build done in Phase 11; the real Vercel install with `TRACKER_REPO_TOKEN` is first exercised by the Phase 14 deploy)
-- [ ] Refresh token captured at sign-in and held only in the encrypted `tracker_rt` cookie
-- [ ] Same-origin token route with the spec's error contract
 - [ ] Sidebar and mobile triggers opening the themed, project-locked dialog
 - [ ] Production deploy after sign-off, passing the spec's UAT
 
@@ -108,8 +109,11 @@ The v2.0 entries were closed on 2026-09-30 from code evidence, not from per-requ
 | v2.0: project status lives on pricing_projects, auto-updated by accepted quotes | Single source of truth for pipeline state with quote-driven automation + manual override | ✓ Good |
 | v2.0: status managed inside Calculation page, Dashboard is read-only metrics | Keep the workspace and reporting concerns separate | ✓ Good |
 | v2.0: contract value = EUR/BH × MGH × period months | Full projected contract value per project for pipeline metrics | ✓ Good |
-| v2.1: a same-origin token route, not a proxy or in-browser MSAL | Spec decision for all server-auth host apps; the browser calls the tracker directly | — Pending |
-| v2.1: refresh token in its own `tracker_rt` cookie, `EncryptJWT` (`dir` / `A256GCM`) under `TRACKER_RT_KEY`, path `/api/tracker` | ACMI has no next-auth JWT to hold it; the path keeps the cookie off every other request | — Pending |
+| v2.1: a same-origin token route, not a proxy or in-browser MSAL | Spec decision for all server-auth host apps; the browser calls the tracker directly | ✓ Good (Phase 12 local UAT: 200 with tracker `aud`, ACMI `azp`) |
+| v2.1: refresh token in its own `tracker_rt` cookie, `EncryptJWT` (`dir` / `A256GCM`) under `TRACKER_RT_KEY`, path `/api/tracker` | ACMI has no next-auth JWT to hold it; the path keeps the cookie off every other request | ✓ Good (Phase 12) |
+| v2.1 (Phase 12): the JWE carries `{ rt, sub, sexp }`; every seal expires at min(now + 7 d, session `exp`) (review WR-01, D-04 amended) | Next.js cannot verify the FastAPI `access_token`, so a forged session must not be able to renew a copied cookie | ✓ Good |
+| v2.1 (Phase 12): OAuth state nonce + PKCE S256 via an `azure_oauth` cookie on the callback path (review WR-03) | Login CSRF would otherwise plant an attacker's refresh token in `tracker_rt` | ✓ Good. A sign-in in flight during a deploy fails once with `azure_failed` |
+| v2.1 (Phase 12): `TRACKER_RT_KEY` must be exactly 43 base64url characters (review IN-01) | jose's leniency toward standard base64 is runtime-dependent | ⚠️ Revisit: a wrong-format key silently disables the embed (sign-in still works, route answers 503). Generate with `node -p "require('crypto').randomBytes(32).toString('base64url')"`, never `openssl rand -base64` |
 | v2.1: theme passed to the dialog inline, never written to `documentElement` | ACMI defines `--shadow-lg` and switches dark mode by class | — Pending |
 | v2.1: phases continue at 11 | GSD default; v2.0 ended at Phase 10 | ✓ Good |
 | v2.1 (Phase 11): ignore `.planning/state.json`, keep STATE.md as the tracked record | SDK machine state churns; STATE.md is the human-readable record | ✓ Good |
@@ -134,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-01 after Phase 11*
+*Last updated: 2026-10-01 after Phase 12*

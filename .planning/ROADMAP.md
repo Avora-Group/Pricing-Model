@@ -67,7 +67,7 @@ Phases 11 to 13 are local commits only. Nothing is pushed until Phase 14, becaus
 - Decimal phases (12.1, 12.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 11: Install tracker-client v10** - The private dependency over `git+https`, the Vercel install script and a new `.env.example` (completed 2026-10-01)
-- [ ] **Phase 12: Refresh-token capture and token route** - `offline_access`, an encrypted `tracker_rt` cookie, and `POST /api/tracker/token`
+- [x] **Phase 12: Refresh-token capture and token route** - `offline_access`, an encrypted `tracker_rt` cookie, and `POST /api/tracker/token` (completed 2026-10-01)
 - [ ] **Phase 13: Triggers and themed dialog** - A client wrapper, ACMI palette mapping, two sidebar icon buttons and two mobile More entries
 - [ ] **Phase 14: Deploy and production UAT** - Prerequisites, gated push to `main`, and the spec's UAT checklist
 
@@ -104,7 +104,7 @@ The install on Vercel itself is first exercised by the Phase 14 deploy.
   4. With `TRACKER_RT_KEY` unset, sign-in still sets `access_token` and redirects as it does today, and sets no `tracker_rt`. Signing out removes both `access_token` and `tracker_rt`.
   5. The dashboard, Calculation and quotes still work after sign-in. `npm run build` passes, and `npm run lint` reports nothing beyond today's baseline (10 errors, 10 warnings).
 
-**Plans**: 2/2 plans executed
+**Plans**: 2/2 plans complete
 **Wave 1**
 - [x] 12-01-PLAN.md — the jose-only `tracker_rt` helper, `offline_access` in both sign-in requests, cookie capture in the callback, and the logout delete (RT-01..05)
 
@@ -150,6 +150,6 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11. Install tracker-client v10 | 2/2 | Complete    | 2026-10-01 |
-| 12. Refresh-token capture and token route | 2/2 | In Progress|  |
+| 12. Refresh-token capture and token route | 2/2 | Complete    | 2026-10-01 |
 | 13. Triggers and themed dialog | 0/0 | Not started | - |
 | 14. Deploy and production UAT | 0/0 | Not started | - |

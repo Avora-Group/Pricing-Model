@@ -106,9 +106,9 @@ Working rules from PROJECT.md Constraints:
 - [Phase 11]: tracker-client v10 installed and locked to a369f81 over git+https (lock diff 9 0, additions only, no D-14 retry); HR's normalizer and vercel-install.sh copied verbatim; phase work is the single local commit f20debf, not pushed
 - [Phase 11]: Code review fixes WR-01..04: vercel-install.sh now keeps git state in a process-scoped temp config (no longer HR's blob), a prebuild guard fails a git+ssh tracker lock, and .env.example comments out the two API vars that have code defaults
 - [Phase 11]: Verified (passed), UAT 1/1, Nyquist-compliant (22 node:test checks in nextjs-project/tests, run with `node --test "tests/*.test.mjs"`), threats_open 0
-- [Phase 12]: [Phase 12]: 12-01 captureTrackerRt holds the callback's tracker_rt capture decision (key, sub, refresh token, seal, length) and never throws; the callback still wraps it in its own bindingless try/catch (D-10, A2)
-- [Phase 12]: [Phase 12]: 12-01 sealed tracker_rt values over 3800 chars are deleted and logged, not set (A3)
-- [Phase 12]: [Phase 12]: 12-01 code is the single local commit 3f5b334 on main, not pushed; 73/73 node:test, lint 10/10 baseline, build green
+- [Phase 12]: 12-01 captureTrackerRt holds the callback's tracker_rt capture decision (key, sub, refresh token, seal, length) and never throws; the callback still wraps it in its own bindingless try/catch (D-10, A2)
+- [Phase 12]: 12-01 sealed tracker_rt values over 3800 chars are deleted and logged, not set (A3)
+- [Phase 12]: 12-01 code is the single local commit 3f5b334 on main, not pushed; 73/73 node:test, lint 10/10 baseline, build green
 
 ### Pending Todos
 

@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DEFAULT_NEXT, sanitizeNext } from '@/lib/safe-next'
+import {
+  TRACKER_RT_COOKIE,
+  TRACKER_RT_DELETE,
+  TRACKER_RT_SKIP_MESSAGES,
+  trackerRtCookieOptions,
+  captureTrackerRt,
+  type TrackerRtCapture,
+} from '@/lib/tracker-rt'
 
 const TENANT_ID = process.env.AZURE_TENANT_ID!
 const CLIENT_ID = process.env.AZURE_CLIENT_ID!
@@ -46,7 +54,7 @@ export async function GET(req: NextRequest) {
           code,
           redirect_uri: REDIRECT_URI,
           grant_type: 'authorization_code',
-          scope: 'openid email profile',
+          scope: 'openid email profile offline_access',
         }),
       },
     )
@@ -100,6 +108,24 @@ export async function GET(req: NextRequest) {
       maxAge: 7 * 24 * 3600,
       path: '/',
     })
+
+    // tracker_rt is always freshly set or deleted (D-07); nothing in this step can change how sign-in ends (D-10).
+    let capture: TrackerRtCapture | null = null
+    try {
+      capture = await captureTrackerRt({
+        rawKey: process.env.TRACKER_RT_KEY,
+        sessionToken: token,
+        refreshToken: tokens.refresh_token,
+      })
+    } catch {
+      console.error('[azure-callback] tracker-rt: capture failed')
+    }
+    const skipped = capture?.skipped ?? null
+    const skipMessage = skipped ? TRACKER_RT_SKIP_MESSAGES[skipped] : null
+    if (skipMessage) console.error(`[azure-callback] tracker-rt: ${skipMessage}`)
+    const sealed = capture?.sealed ?? null
+    if (sealed) response.cookies.set(TRACKER_RT_COOKIE, sealed, trackerRtCookieOptions)
+    else response.cookies.delete(TRACKER_RT_DELETE)
     return response
   } catch (e) {
     console.error('[azure-callback] Unexpected error:', e)

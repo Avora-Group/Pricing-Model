@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     response_type: 'code',
     redirect_uri: REDIRECT_URI,
     response_mode: 'query',
-    scope: 'openid email profile',
+    scope: 'openid email profile offline_access',
     state: next,
   })
 

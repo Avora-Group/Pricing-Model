@@ -5,19 +5,19 @@ titles: json
 findings:
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "vercel-install.sh fails on a second run and prints the token to the log"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Running the install script outside Vercel truncates credentials and hijacks all GitHub auth"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The postinstall normalizer skips most npm commands, so the lockfile can still get git+ssh"
   - id: WR-04
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Copying .env.example as instructed defeats the localhost:8000 fallback it documents"
   - id: IN-01
     severity: info
@@ -35,19 +35,19 @@ findings:
     severity: info
     disposition: open
     title: "The `insteadOf` rewrite covers all of github.com, not just the tracker-client repo"
-open: 8
+open: 4
 total: 8
-recorded: 2026-10-01T07:21:51.947Z
+recorded: 2026-10-01T07:38:02.177Z
 ---
 
 # Phase 11: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
-| WR-03 | warning | open | - |
-| WR-04 | warning | open | - |
+| WR-01 | warning | fixed | 11-REVIEW-FIX.md |
+| WR-02 | warning | fixed | 11-REVIEW-FIX.md |
+| WR-03 | warning | fixed | 11-REVIEW-FIX.md |
+| WR-04 | warning | fixed | 11-REVIEW-FIX.md |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |

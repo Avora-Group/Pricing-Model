@@ -272,6 +272,9 @@ input[type="number"].av-num::-webkit-inner-spin-button { -webkit-appearance: non
 .av-fb-seg.sent { background: color-mix(in srgb, #18B4D8 16%, transparent); border: 1.5px dashed #18B4D8; color: var(--cyan-ink); }
 .av-fb-seg.signed { background: #3f56b0; }
 .av-fb-seg.active { background: #2cc39c; }
+.av-fb-seg.clash { box-shadow: 0 0 0 1.5px var(--amber); }
+.av-fb-flag, .av-fb-flag-legend { display: inline-flex; align-items: center; gap: 3px; color: var(--amber); font-weight: 700; }
+.av-fb-flag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
 .av-fb-util { font-size: 11.5px; font-weight: 800; text-align: right; color: var(--ink-2); }
 .av-fb-util .idle { color: var(--muted-2); font-weight: 600; font-size: 10.5px; }
 .av-fb-today { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid var(--amber); z-index: 2; }

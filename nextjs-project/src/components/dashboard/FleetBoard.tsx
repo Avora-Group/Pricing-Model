@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { AlertTriangle } from 'lucide-react'
 import {
   LineDetailPopover,
   type BreakdownItem,
@@ -47,6 +48,10 @@ interface BoardSeg {
   m0: number
   m1: number // exclusive
   src: CalendarSegment
+  /** Stacking lane within the row; overlapping deals never share a lane. */
+  lane: number
+  /** Other deals on the same tail whose months overlap this one. */
+  overlaps: CalendarSegment[]
 }
 
 interface BoardRow {
@@ -56,6 +61,16 @@ interface BoardRow {
   /** Committed share of the window (0..1), or null when nothing is committed. */
   util: number | null
   pending: boolean
+  lanes: number
+  /** Any two deals on this tail overlap in time. */
+  conflict: boolean
+}
+
+const LANE_PX = 22
+
+/** "Overlaps EasyJet (signed), Wizz (sent)" — hover title for a clashing deal. */
+function overlapNote(others: CalendarSegment[]): string {
+  return `Overlaps ${others.map((o) => `${o.client} (${o.status})`).join(', ')}`
 }
 
 function fmtRate(v: string | null | undefined): string | null {
@@ -127,13 +142,37 @@ export function FleetBoard({
             m0,
             m1,
             src: s,
+            lane: 0,
+            overlaps: [],
           })
         })
-      // Committed segments render after (= above) dashed sent ones, so an
-      // overlapping quote's label never bleeds through a firm deal.
-      segs.sort((a, b) => Number(COMMITTED.has(a.status)) - Number(COMMITTED.has(b.status)))
+      // Stack overlapping deals in lanes instead of drawing them on top of each
+      // other. Committed deals are placed first so they hold the top lane; each
+      // deal then takes the first lane that is free for its months.
+      segs.sort(
+        (a, b) =>
+          Number(COMMITTED.has(b.status)) - Number(COMMITTED.has(a.status)) || a.m0 - b.m0 || b.m1 - a.m1,
+      )
+      const laneEnds: number[] = []
+      for (const seg of segs) {
+        let lane = laneEnds.findIndex((end) => end <= seg.m0)
+        if (lane === -1) lane = laneEnds.length
+        laneEnds[lane] = seg.m1
+        seg.lane = lane
+      }
+      for (const seg of segs) {
+        seg.overlaps = segs.filter((o) => o !== seg && o.m0 < seg.m1 && seg.m0 < o.m1).map((o) => o.src)
+      }
       const committedMonths = covered.filter(Boolean).length
-      return { msn, type, segs, util: committedMonths > 0 ? committedMonths / 12 : null, pending }
+      return {
+        msn,
+        type,
+        segs,
+        util: committedMonths > 0 ? committedMonths / 12 : null,
+        pending,
+        lanes: Math.max(1, laneEnds.length),
+        conflict: segs.some((x) => x.overlaps.length > 0),
+      }
     })
 
   if (rows.length === 0) {
@@ -168,8 +207,17 @@ export function FleetBoard({
             <div className="av-fb-tail">
               <span className="av-msn">{row.msn}</span>
               {row.type && <span className="ty">{row.type}</span>}
+              {row.conflict && (
+                <span className="av-fb-flag" title="Deals on this aircraft overlap in time">
+                  <AlertTriangle size={11} />
+                  overlap
+                </span>
+              )}
             </div>
-            <div className={`av-fb-track${row.segs.length === 0 ? ' idle' : ''}`}>
+            <div
+              className={`av-fb-track${row.segs.length === 0 ? ' idle' : ''}`}
+              style={row.lanes > 1 ? { height: row.lanes * LANE_PX + 2 } : undefined}
+            >
               <div className="av-fb-today" style={{ left: `${todayLeft}%` }}>
                 {row === rows[0] && <i>today</i>}
               </div>
@@ -180,9 +228,17 @@ export function FleetBoard({
                     key={s.key}
                     role={href ? 'button' : undefined}
                     tabIndex={href ? 0 : undefined}
-                    title={href ? `Open ${s.src.client}'s quote` : undefined}
-                    className={`av-fb-seg ${COMMITTED.has(s.status) ? s.status : 'sent'}`}
-                    style={{ left: pct(s.m0), width: pct(s.m1 - s.m0), cursor: href ? 'pointer' : undefined }}
+                    title={[href ? `Open ${s.src.client}'s quote` : '', s.overlaps.length ? overlapNote(s.overlaps) : '']
+                      .filter(Boolean).join(' · ') || undefined}
+                    className={`av-fb-seg ${COMMITTED.has(s.status) ? s.status : 'sent'}${s.overlaps.length ? ' clash' : ''}`}
+                    style={{
+                      left: pct(s.m0),
+                      width: pct(s.m1 - s.m0),
+                      top: 2 + s.lane * LANE_PX,
+                      height: LANE_PX - 2,
+                      bottom: 'auto',
+                      cursor: href ? 'pointer' : undefined,
+                    }}
                     onMouseEnter={(e) => setHover({ seg: s.src, x: e.clientX, y: e.clientY })}
                     onMouseLeave={() => setHover(null)}
                     onClick={href ? () => router.push(href) : undefined}
@@ -217,6 +273,10 @@ export function FleetBoard({
               style={{ background: 'color-mix(in srgb, #18B4D8 20%, transparent)', border: '1.5px dashed #18B4D8', width: 8, height: 8 }}
             />
             Quoted / sent
+          </span>
+          <span className="av-fb-flag-legend">
+            <AlertTriangle size={11} />
+            Overlapping dates — stacked on separate lines
           </span>
           <span style={{ marginLeft: 'auto' }}>Utilisation = committed share of the next 12 months</span>
         </div>

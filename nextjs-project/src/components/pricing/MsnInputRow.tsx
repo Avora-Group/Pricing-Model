@@ -257,7 +257,9 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
   } = usePricingStore()
   const canViewNaked = useCanViewNaked()
 
-  const swapOptions = aircraftList.filter((ac) => ac.msn === input.msn || !usedMsns.includes(ac.msn))
+  const swapOptions = aircraftList.filter(
+    (ac) => ac.msn === input.msn || (!usedMsns.includes(ac.msn) && ac.is_active !== false),
+  )
   const currencyLabel = input.rateCurrency?.toUpperCase() || 'EUR'
 
   const handleSwap = (aircraftId: string) => {

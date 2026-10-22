@@ -18,12 +18,34 @@ from app.aircraft.schemas import (
     AircraftDetailResponse,
     AircraftListResponse,
     CreateAircraftRequest,
+    ImportAircraftRequest,
     UpdateAircraftRequest,
     UpdateEprMatrixRequest,
     UpdateRatesRequest,
 )
 
 router = APIRouter(prefix="/aircraft", tags=["aircraft"])
+
+
+async def _detail_payload(repo: AircraftRepository, row: dict, user: dict) -> dict:
+    """Full aircraft detail for a response: current EPR matrix always; naked
+    rates and naked EPR only for users with naked access (stripped otherwise)."""
+    data = dict(row)
+    data["epr_matrix"] = [dict(r) for r in await repo.fetch_epr_matrix(row["id"], "current")]
+    if user_can_view_naked(user) and data.get("has_naked_rates"):
+        data["naked_epr_matrix"] = [dict(r) for r in await repo.fetch_epr_matrix(row["id"], "naked")]
+    else:
+        for key in [k for k in data if k.startswith("naked_")]:
+            data.pop(key, None)
+        data["has_naked_rates"] = False
+        data["naked_epr_matrix"] = []
+    return data
+
+
+def _check_naked_write(fields: dict, user: dict) -> None:
+    """Naked rates are visible (and writable) only with naked access."""
+    if any(k.startswith("naked_") for k in fields) and not user_can_view_naked(user):
+        raise HTTPException(status_code=403, detail="Naked rates require cost access")
 
 
 @router.get("", response_model=list[AircraftListResponse])
@@ -101,10 +123,7 @@ async def create_aircraft(
 
     # Re-fetch to get complete data
     full = await repo.fetch_by_msn(body.msn)
-    epr_rows = await repo.fetch_epr_matrix(full["id"])
-    data = dict(full)
-    data["epr_matrix"] = [dict(r) for r in epr_rows]
-    return data
+    return await _detail_payload(repo, full, current_user)
 
 
 @router.get("/{msn}", response_model=AircraftDetailResponse)
@@ -122,20 +141,7 @@ async def get_aircraft(
     aircraft = await repo.fetch_by_msn(msn)
     if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found")
-    epr_rows = await repo.fetch_epr_matrix(aircraft["id"], "current")
-    data = dict(aircraft)
-    data["epr_matrix"] = [dict(r) for r in epr_rows]
-
-    if user_can_view_naked(current_user) and data.get("has_naked_rates"):
-        naked_epr = await repo.fetch_epr_matrix(aircraft["id"], "naked")
-        data["naked_epr_matrix"] = [dict(r) for r in naked_epr]
-    else:
-        # Strip every naked_* field for users without cost access.
-        for key in [k for k in data if k.startswith("naked_")]:
-            data.pop(key, None)
-        data["has_naked_rates"] = False
-        data["naked_epr_matrix"] = []
-    return data
+    return await _detail_payload(repo, aircraft, current_user)
 
 
 @router.patch("/{msn}", response_model=AircraftDetailResponse)
@@ -147,34 +153,25 @@ async def update_aircraft(
 ):
     """Update aircraft identity fields (admin or user).
 
-    Currently supports registration; sending null or an empty string clears it.
-    Returns the full aircraft detail (naked fields stripped without cost access).
+    Supports registration (null or an empty string clears it) and is_active,
+    the fleet on/off switch. Returns the full aircraft detail.
     """
     repo = AircraftRepository(db)
     aircraft = await repo.fetch_by_msn(msn)
     if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found")
 
-    if "registration" not in body.model_fields_set:
+    fields: dict = {}
+    if "registration" in body.model_fields_set:
+        fields["registration"] = (body.registration or "").strip() or None
+    if body.is_active is not None:
+        fields["is_active"] = body.is_active
+    if not fields:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    registration = (body.registration or "").strip() or None
-    await repo.update_aircraft(aircraft["id"], registration=registration)
-
+    await repo.update_aircraft(aircraft["id"], **fields)
     updated = await repo.fetch_by_msn(msn)
-    epr_rows = await repo.fetch_epr_matrix(updated["id"], "current")
-    data = dict(updated)
-    data["epr_matrix"] = [dict(r) for r in epr_rows]
-
-    if user_can_view_naked(current_user) and data.get("has_naked_rates"):
-        naked_epr = await repo.fetch_epr_matrix(updated["id"], "naked")
-        data["naked_epr_matrix"] = [dict(r) for r in naked_epr]
-    else:
-        for key in [k for k in data if k.startswith("naked_")]:
-            data.pop(key, None)
-        data["has_naked_rates"] = False
-        data["naked_epr_matrix"] = []
-    return data
+    return await _detail_payload(repo, updated, current_user)
 
 
 @router.put("/{msn}/rates", response_model=AircraftDetailResponse)
@@ -186,7 +183,8 @@ async def update_rates(
 ):
     """Update aircraft cost parameters (admin or user).
 
-    Accepts partial updates — only non-None fields are written.
+    Accepts partial updates — only non-None fields are written. Naked fields
+    need naked access and mark the aircraft as having naked rates.
     Returns the full aircraft detail with updated values.
     """
     repo = AircraftRepository(db)
@@ -197,14 +195,13 @@ async def update_rates(
     fields = {k: v for k, v in body.model_dump().items() if v is not None}
     if not fields:
         raise HTTPException(status_code=400, detail="No fields to update")
+    _check_naked_write(fields, current_user)
+    if any(k.startswith("naked_") for k in fields):
+        fields["has_naked_rates"] = True
 
     await repo.update_rates(aircraft["id"], **fields)
-    # Re-fetch to return updated data
     updated = await repo.fetch_by_msn(msn)
-    epr_rows = await repo.fetch_epr_matrix(updated["id"])
-    data = dict(updated)
-    data["epr_matrix"] = [dict(r) for r in epr_rows]
-    return data
+    return await _detail_payload(repo, updated, current_user)
 
 
 @router.put("/{msn}/epr-matrix", response_model=AircraftDetailResponse)
@@ -237,9 +234,57 @@ async def update_epr_matrix(
     ]
     await repo.bulk_replace_epr_matrix(aircraft["id"], row_tuples)
 
-    # Re-fetch and return
     updated = await repo.fetch_by_msn(msn)
-    epr_rows = await repo.fetch_epr_matrix(updated["id"])
-    data = dict(updated)
-    data["epr_matrix"] = [dict(r) for r in epr_rows]
-    return data
+    return await _detail_payload(repo, updated, current_user)
+
+
+@router.post("/import")
+async def import_aircraft(
+    body: ImportAircraftRequest,
+    db: asyncpg.Connection = Depends(get_db),
+    current_user: dict = Depends(require_editor),
+):
+    """Apply an Aircraft-tab Excel import in one transaction (admin or user).
+
+    Every MSN must already exist; nothing is written if any item is invalid.
+    Per item, only the fields present change, and a present EPR matrix replaces
+    that basis' whole matrix. Naked fields/matrices need naked access.
+    """
+    repo = AircraftRepository(db)
+    resolved = []
+    for item in body.aircraft:
+        aircraft = await repo.fetch_by_msn(item.msn)
+        if not aircraft:
+            raise HTTPException(status_code=404, detail=f"Aircraft MSN {item.msn} not found")
+        fields = {k: v for k, v in item.rates.model_dump().items() if v is not None}
+        naked_matrix = {"naked_epr_matrix": True} if item.naked_epr_matrix is not None else {}
+        _check_naked_write({**fields, **naked_matrix}, current_user)
+        for matrix in (item.epr_matrix, item.naked_epr_matrix):
+            if matrix is not None:
+                ratios = [r.cycle_ratio for r in matrix]
+                if len(ratios) != len(set(ratios)):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"MSN {item.msn}: duplicate cycle ratios in EPR matrix",
+                    )
+        resolved.append((aircraft, item, fields))
+
+    async with db.transaction():
+        for aircraft, item, fields in resolved:
+            if item.is_active is not None:
+                await repo.update_aircraft(aircraft["id"], is_active=item.is_active)
+            if any(k.startswith("naked_") for k in fields) or item.naked_epr_matrix is not None:
+                fields["has_naked_rates"] = True
+            if fields:
+                await repo.upsert_rates(aircraft["id"], **fields)
+            if item.epr_matrix is not None:
+                await repo.bulk_replace_epr_matrix(
+                    aircraft["id"], [(r.cycle_ratio, r.benign_rate, r.hot_rate) for r in item.epr_matrix]
+                )
+            if item.naked_epr_matrix is not None:
+                await repo.bulk_replace_epr_matrix(
+                    aircraft["id"],
+                    [(r.cycle_ratio, r.benign_rate, r.hot_rate) for r in item.naked_epr_matrix],
+                    "naked",
+                )
+    return {"updated": len(resolved)}

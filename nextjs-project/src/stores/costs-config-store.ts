@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { deepEqual } from '@/lib/deep-equal'
 
 // ---- Types ----
 
@@ -102,9 +103,8 @@ const INITIAL_OVERHEAD: OverheadItem[] = [
   { name: 'Selling & Marketing Cost', total: 118298.94, mapping: 'Selling & Marketing Cost' },
 ]
 
-// ---- Store ----
-
-interface CostsConfigStore {
+/** The Costs page tables — what quotes snapshot and the company defaults hold. */
+export interface CostsConfigData {
   maintPersonnel: MaintPersonnel[]
   maintCosts: MaintCostItem[]
   insurance: InsuranceItem[]
@@ -112,6 +112,41 @@ interface CostsConfigStore {
   otherCogs: OtherCogsItem[]
   overhead: OverheadItem[]
   avgAc: number
+}
+
+const BUILT_IN_DEFAULTS: CostsConfigData = {
+  maintPersonnel: INITIAL_MAINT_PERSONNEL,
+  maintCosts: INITIAL_MAINT_COSTS,
+  insurance: INITIAL_INSURANCE,
+  doc: INITIAL_DOC,
+  otherCogs: INITIAL_OTHER_COGS,
+  overhead: INITIAL_OVERHEAD,
+  avgAc: 10.166667,
+}
+
+/** Company defaults: the saved Costs page (see applyCompanyDefaults), else the
+ *  built-in seed above. New quotes and resetToDefaults start from these. */
+let companyDefaults: CostsConfigData = BUILT_IN_DEFAULTS
+
+export function getCostsDefaults(): CostsConfigData {
+  return companyDefaults
+}
+
+export function pickCostsConfig(s: CostsConfigData): CostsConfigData {
+  const { maintPersonnel, maintCosts, insurance, doc, otherCogs, overhead, avgAc } = s
+  return { maintPersonnel, maintCosts, insurance, doc, otherCogs, overhead, avgAc }
+}
+
+const sameConfig = (a: CostsConfigData, b: CostsConfigData) => deepEqual(pickCostsConfig(a), pickCostsConfig(b))
+
+/** True when the store holds exactly the company defaults (no unsaved edits). */
+export function isCostsAtDefaults(s: CostsConfigData): boolean {
+  return sameConfig(s, companyDefaults)
+}
+
+// ---- Store ----
+
+interface CostsConfigStore extends CostsConfigData {
 
   updateMaintPersonnel: (idx: number, field: keyof MaintPersonnel, value: number) => void
   updateMaintCost: (idx: number, value: number) => void
@@ -120,8 +155,10 @@ interface CostsConfigStore {
   updateOtherCogs: (idx: number, field: 'perMonth' | 'total', value: number) => void
   updateOverhead: (idx: number, value: number) => void
   setAvgAc: (v: number) => void
-  /** Restore all cost tables and the average-AC scalar to their seed defaults. */
+  /** Restore all cost tables and the average-AC scalar to the company defaults. */
   resetToDefaults: () => void
+  /** Replace the company defaults; the store follows only if it held the old ones. */
+  setCompanyDefaults: (defaults: CostsConfigData) => void
   loadFromSnapshot: (snapshot: {
     maintPersonnel: MaintPersonnel[]
     maintCosts: MaintCostItem[]
@@ -133,14 +170,8 @@ interface CostsConfigStore {
   }) => void
 }
 
-export const useCostsConfigStore = create<CostsConfigStore>()((set) => ({
-  maintPersonnel: INITIAL_MAINT_PERSONNEL,
-  maintCosts: INITIAL_MAINT_COSTS,
-  insurance: INITIAL_INSURANCE,
-  doc: INITIAL_DOC,
-  otherCogs: INITIAL_OTHER_COGS,
-  overhead: INITIAL_OVERHEAD,
-  avgAc: 10.166667,
+export const useCostsConfigStore = create<CostsConfigStore>()((set, get) => ({
+  ...BUILT_IN_DEFAULTS,
 
   updateMaintPersonnel: (idx, field, value) =>
     set((s) => ({
@@ -174,16 +205,17 @@ export const useCostsConfigStore = create<CostsConfigStore>()((set) => ({
 
   setAvgAc: (v) => set({ avgAc: v }),
 
-  resetToDefaults: () =>
-    set({
-      maintPersonnel: INITIAL_MAINT_PERSONNEL,
-      maintCosts: INITIAL_MAINT_COSTS,
-      insurance: INITIAL_INSURANCE,
-      doc: INITIAL_DOC,
-      otherCogs: INITIAL_OTHER_COGS,
-      overhead: INITIAL_OVERHEAD,
-      avgAc: 10.166667,
-    }),
+  resetToDefaults: () => set({ ...companyDefaults }),
+
+  setCompanyDefaults: (defaults) => {
+    if (sameConfig(defaults, companyDefaults)) {
+      companyDefaults = defaults
+      return
+    }
+    const wasAtDefaults = isCostsAtDefaults(get())
+    companyDefaults = pickCostsConfig(defaults)
+    if (wasAtDefaults) set({ ...companyDefaults })
+  },
 
   loadFromSnapshot: (snapshot) => set({ ...snapshot }),
 }))

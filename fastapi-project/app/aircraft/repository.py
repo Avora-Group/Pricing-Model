@@ -9,14 +9,16 @@ class AircraftRepository(BaseRepository):
     async def list_aircraft(self, search: str | None = None) -> list[dict]:
         """List all aircraft with their rates, optionally filtered by MSN or registration."""
         query = """
-            SELECT a.id, a.msn, a.aircraft_type, a.registration,
+            SELECT a.id, a.msn, a.aircraft_type, a.registration, a.is_active,
                    r.lease_rent_usd, r.six_year_check_usd,
                    r.twelve_year_check_usd, r.ldg_usd,
                    r.apu_rate_usd, r.llp1_rate_usd, r.llp2_rate_usd,
+                   r.epr_escalation, r.llp_escalation, r.af_apu_escalation,
                    r.has_naked_rates,
                    r.naked_lease_rent_usd, r.naked_six_year_check_usd,
                    r.naked_twelve_year_check_usd, r.naked_ldg_usd,
-                   r.naked_apu_rate_usd, r.naked_llp1_rate_usd, r.naked_llp2_rate_usd
+                   r.naked_apu_rate_usd, r.naked_llp1_rate_usd, r.naked_llp2_rate_usd,
+                   r.naked_epr_escalation, r.naked_llp_escalation, r.naked_af_apu_escalation
             FROM aircraft a
             LEFT JOIN aircraft_rates r ON r.aircraft_id = a.id
         """
@@ -115,13 +117,14 @@ class AircraftRepository(BaseRepository):
             *args,
         )
 
-    async def update_aircraft(
-        self, aircraft_id: int, registration: str | None
-    ) -> dict | None:
-        """Update aircraft identity fields. Returns the updated row."""
+    async def update_aircraft(self, aircraft_id: int, **fields) -> dict | None:
+        """Update aircraft identity fields (registration, is_active). Returns the row."""
+        if not fields:
+            return None
+        set_clause = ", ".join(f"{key} = ${i}" for i, key in enumerate(fields, start=1))
         return await self.fetch_one(
-            "UPDATE aircraft SET registration = $1 WHERE id = $2 RETURNING *",
-            registration,
+            f"UPDATE aircraft SET {set_clause} WHERE id = ${len(fields) + 1} RETURNING *",
+            *fields.values(),
             aircraft_id,
         )
 

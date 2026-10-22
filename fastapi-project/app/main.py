@@ -118,9 +118,11 @@ from app.users.router import router as users_router
 from app.aircraft.router import router as aircraft_router
 from app.pricing.router import router as pricing_router
 from app.quotes.router import router as quotes_router
+from app.assumptions.router import router as assumptions_router
 
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(aircraft_router)
 app.include_router(pricing_router)
 app.include_router(quotes_router)
+app.include_router(assumptions_router)

@@ -49,9 +49,13 @@ async function getJson<T>(path: string, token: string): Promise<T | null> {
 async function buildDashboard(token: string): Promise<DashboardData> {
   const [envelope, fleetRaw] = await Promise.all([
     getJson<DashboardEnvelope>('/pricing/dashboard', token),
-    getJson<{ msn: number; aircraft_type: string | null }[]>('/aircraft', token),
+    getJson<{ msn: number; aircraft_type: string | null; is_active?: boolean }[]>('/aircraft', token),
   ])
-  const fleet: FleetTail[] = (fleetRaw ?? []).map((a) => ({ msn: a.msn, aircraft_type: a.aircraft_type }))
+  // Switched-off aircraft (Aircraft tab) leave the fleet board with their deals.
+  const offFleet = new Set((fleetRaw ?? []).filter((a) => a.is_active === false).map((a) => a.msn))
+  const fleet: FleetTail[] = (fleetRaw ?? [])
+    .filter((a) => !offFleet.has(a.msn))
+    .map((a) => ({ msn: a.msn, aircraft_type: a.aircraft_type }))
   if (!envelope) return { ...emptyData(), fleet }
 
   // Fetch each project's authoritative quote and compute financials with the
@@ -153,7 +157,7 @@ async function buildDashboard(token: string): Promise<DashboardData> {
       eur_per_bh: rateWeight > 0 ? String(rateWeightSum / rateWeight) : null,
       margin_percent: sumRev > 0 ? String((sumProfit / sumRev) * 100) : null,
     },
-    calendar,
+    calendar: calendar.filter((seg) => !offFleet.has(seg.msn)),
     fleet,
     today: todayIso(),
   }

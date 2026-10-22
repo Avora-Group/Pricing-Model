@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers'
 import { AircraftTable } from '@/components/aircraft/AircraftTable'
 import { CreateAircraftDialog } from '@/components/aircraft/CreateAircraftDialog'
+import { AircraftExcel } from '@/components/aircraft/AircraftExcel'
+import type { AircraftRecord } from '@/lib/aircraft-excel'
 import type { Aircraft } from '@/components/aircraft/AircraftTable'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
@@ -55,9 +57,12 @@ export default async function AircraftPage() {
             Master data and cost parameters — feeds the pricing model
           </p>
         </div>
-        {canEdit && <CreateAircraftDialog />}
+        <div className="flex flex-wrap items-center gap-2">
+          <AircraftExcel fleet={aircraft as unknown as AircraftRecord[]} canEdit={canEdit} />
+          {canEdit && <CreateAircraftDialog />}
+        </div>
       </div>
-      <AircraftTable aircraft={aircraft} />
+      <AircraftTable aircraft={aircraft} canEdit={canEdit} />
     </div>
   )
 }

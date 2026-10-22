@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers'
 import { CostsConfigTable } from '@/components/costs/CostsConfigTable'
 import { ReadOnlyProvider } from '@/components/ui/ReadOnlyContext'
+import { AssumptionsBar } from '@/components/config/AssumptionsBar'
+import { fetchAssumptions } from '@/app/actions/assumptions'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
 
@@ -22,7 +24,10 @@ async function getCanEdit(token: string): Promise<boolean> {
 export default async function CostsPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get('access_token')?.value
-  const canEdit = token ? await getCanEdit(token) : false
+  const [canEdit, saved] = await Promise.all([
+    token ? getCanEdit(token) : Promise.resolve(false),
+    fetchAssumptions(),
+  ])
 
   return (
     <div className="space-y-[18px]">
@@ -34,6 +39,7 @@ export default async function CostsPage() {
             : 'Maintenance, insurance, DOC, other COGS and overhead drivers — read-only'}
         </p>
       </div>
+      <AssumptionsBar kind="costs" canEdit={canEdit} savedAt={saved.costs?.updated_at ?? null} />
       <ReadOnlyProvider readOnly={!canEdit}>
         <CostsConfigTable />
       </ReadOnlyProvider>

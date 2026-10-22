@@ -273,6 +273,15 @@ input[type="number"].av-num::-webkit-inner-spin-button { -webkit-appearance: non
 .av-fb-seg.signed { background: #3f56b0; }
 .av-fb-seg.active { background: #2cc39c; }
 .av-fb-seg.clash { box-shadow: 0 0 0 1.5px var(--amber); }
+
+/* ---------- On/off switch ---------- */
+.av-switch { position: relative; width: 32px; height: 18px; border-radius: 9px; border: 0; padding: 0; cursor: pointer;
+  background: var(--line); transition: background .15s; flex-shrink: 0; }
+.av-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.av-switch.on { background: var(--pos); }
+.av-switch.on::after { transform: translateX(14px); }
+.av-switch:disabled { cursor: default; opacity: .6; }
 .av-fb-flag, .av-fb-flag-legend { display: inline-flex; align-items: center; gap: 3px; color: var(--amber); font-weight: 700; }
 .av-fb-flag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
 .av-fb-util { font-size: 11.5px; font-weight: 800; text-align: right; color: var(--ink-2); }

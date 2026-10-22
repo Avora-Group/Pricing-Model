@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { deepEqual } from '@/lib/deep-equal'
 
 // ---- Types ----
 
@@ -53,15 +54,48 @@ const INITIAL_TRAINING: TrainingRow[] = [
   { item: 'Upgrades in the company', amount: 30000 },
 ]
 
-// ---- Store ----
-
-interface CrewConfigStore {
+/** The Crew page tables — what quotes snapshot and the company defaults hold. */
+export interface CrewConfigData {
   payroll: PayrollRow[]
   otherCost: CostRow[]
   training: TrainingRow[]
   averageAC: number
   fdDays: number
   nfdDays: number
+}
+
+const BUILT_IN_DEFAULTS: CrewConfigData = {
+  payroll: INITIAL_PAYROLL,
+  otherCost: INITIAL_OTHER_COST,
+  training: INITIAL_TRAINING,
+  averageAC: 10.17,
+  fdDays: 18,
+  nfdDays: 10,
+}
+
+/** Company defaults: the saved Crew page (see applyCompanyDefaults), else the
+ *  built-in seed above. New quotes and resetToDefaults start from these. */
+let companyDefaults: CrewConfigData = BUILT_IN_DEFAULTS
+
+export function getCrewDefaults(): CrewConfigData {
+  return companyDefaults
+}
+
+export function pickCrewConfig(s: CrewConfigData): CrewConfigData {
+  const { payroll, otherCost, training, averageAC, fdDays, nfdDays } = s
+  return { payroll, otherCost, training, averageAC, fdDays, nfdDays }
+}
+
+const sameConfig = (a: CrewConfigData, b: CrewConfigData) => deepEqual(pickCrewConfig(a), pickCrewConfig(b))
+
+/** True when the store holds exactly the company defaults (no unsaved edits). */
+export function isCrewAtDefaults(s: CrewConfigData): boolean {
+  return sameConfig(s, companyDefaults)
+}
+
+// ---- Store ----
+
+interface CrewConfigStore extends CrewConfigData {
 
   updatePayroll: (idx: number, field: keyof PayrollRow, value: number) => void
   updateOtherCost: (idx: number, value: number | null) => void
@@ -69,8 +103,10 @@ interface CrewConfigStore {
   setAverageAC: (v: number) => void
   setFdDays: (v: number) => void
   setNfdDays: (v: number) => void
-  /** Restore payroll/costs/training and the scalar fields to their seed defaults. */
+  /** Restore payroll/costs/training and the scalar fields to the company defaults. */
   resetToDefaults: () => void
+  /** Replace the company defaults; the store follows only if it held the old ones. */
+  setCompanyDefaults: (defaults: CrewConfigData) => void
   loadFromSnapshot: (snapshot: {
     payroll: PayrollRow[]
     otherCost: CostRow[]
@@ -81,13 +117,8 @@ interface CrewConfigStore {
   }) => void
 }
 
-export const useCrewConfigStore = create<CrewConfigStore>()((set) => ({
-  payroll: INITIAL_PAYROLL,
-  otherCost: INITIAL_OTHER_COST,
-  training: INITIAL_TRAINING,
-  averageAC: 10.17,
-  fdDays: 18,
-  nfdDays: 10,
+export const useCrewConfigStore = create<CrewConfigStore>()((set, get) => ({
+  ...BUILT_IN_DEFAULTS,
 
   updatePayroll: (idx, field, value) =>
     set((s) => ({
@@ -108,15 +139,17 @@ export const useCrewConfigStore = create<CrewConfigStore>()((set) => ({
   setFdDays: (v) => set({ fdDays: v }),
   setNfdDays: (v) => set({ nfdDays: v }),
 
-  resetToDefaults: () =>
-    set({
-      payroll: INITIAL_PAYROLL,
-      otherCost: INITIAL_OTHER_COST,
-      training: INITIAL_TRAINING,
-      averageAC: 10.17,
-      fdDays: 18,
-      nfdDays: 10,
-    }),
+  resetToDefaults: () => set({ ...companyDefaults }),
+
+  setCompanyDefaults: (defaults) => {
+    if (sameConfig(defaults, companyDefaults)) {
+      companyDefaults = defaults
+      return
+    }
+    const wasAtDefaults = isCrewAtDefaults(get())
+    companyDefaults = pickCrewConfig(defaults)
+    if (wasAtDefaults) set({ ...companyDefaults })
+  },
 
   loadFromSnapshot: (snapshot) => set({ ...snapshot }),
 }))

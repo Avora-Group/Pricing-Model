@@ -95,11 +95,16 @@ export function useAddAircraft(
 
   const draft = useMemo(() => msnInputs.find((i) => i.isDraft) ?? null, [msnInputs])
 
-  // Exclude committed MSNs only — the draft's aircraft stays listed so the
-  // dropdown's value binding to it remains valid.
+  // Exclude committed MSNs and aircraft switched off from the fleet — the
+  // draft's aircraft stays listed so the dropdown's value binding remains valid.
   const availableAircraft = useMemo(
-    () => aircraftList.filter((ac) => !msnInputs.some((i) => !i.isDraft && i.msn === ac.msn)),
-    [aircraftList, msnInputs],
+    () =>
+      aircraftList.filter(
+        (ac) =>
+          !msnInputs.some((i) => !i.isDraft && i.msn === ac.msn) &&
+          (ac.is_active !== false || ac.id === draft?.aircraftId),
+      ),
+    [aircraftList, msnInputs, draft],
   )
 
   /** Replace the current draft (if any) with a new draft for this aircraft.

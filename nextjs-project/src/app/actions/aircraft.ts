@@ -238,3 +238,53 @@ export async function updateEprMatrixAction(
     return { error: 'Network error — could not reach API' }
   }
 }
+
+async function sendJson(path: string, method: string, body: unknown): Promise<{ error?: string; data?: unknown }> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+  if (!token) return { error: 'Not authenticated' }
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json', Cookie: `access_token=${token}` },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const detail = (data as { detail?: unknown }).detail
+      return { error: typeof detail === 'string' ? detail : 'Request failed' }
+    }
+    return { data }
+  } catch {
+    return { error: 'Network error — could not reach API' }
+  }
+}
+
+/** Fleet on/off switch. Switched-off aircraft can't be priced and are hidden
+ *  from the dashboard board. */
+export async function setAircraftActiveAction(msn: number, isActive: boolean): Promise<{ error?: string }> {
+  const { error } = await sendJson(`/aircraft/${msn}`, 'PATCH', { is_active: isActive })
+  if (!error) {
+    revalidatePath('/aircraft')
+    revalidatePath('/dashboard')
+  }
+  return { error }
+}
+
+export interface AircraftImportItem {
+  msn: number
+  is_active?: boolean
+  rates: Record<string, number>
+  epr_matrix?: { cycle_ratio: number; benign_rate: number; hot_rate: number }[]
+  naked_epr_matrix?: { cycle_ratio: number; benign_rate: number; hot_rate: number }[]
+}
+
+/** Apply an Aircraft-tab Excel import (one transaction server-side). */
+export async function importAircraftAction(items: AircraftImportItem[]): Promise<{ error?: string }> {
+  const { error } = await sendJson('/aircraft/import', 'POST', { aircraft: items })
+  if (!error) {
+    revalidatePath('/aircraft', 'layout')
+    revalidatePath('/dashboard')
+  }
+  return { error }
+}

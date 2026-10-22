@@ -3,6 +3,8 @@ import { TopBar } from '@/components/layout/TopBar'
 import { BottomTabBar } from '@/components/navigation/BottomTabBar'
 import { CostVisibilityProvider } from '@/providers/CostVisibilityProvider'
 import { getSession } from '@/lib/session'
+import { CompanyDefaultsLoader } from '@/components/config/CompanyDefaultsLoader'
+import { fetchAssumptions } from '@/app/actions/assumptions'
 import { redirect } from 'next/navigation'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
@@ -42,10 +44,14 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  const { role: userRole, email: userEmail, canViewCosts, canViewNaked } = await getUser(session.token)
+  const [{ role: userRole, email: userEmail, canViewCosts, canViewNaked }, savedAssumptions] = await Promise.all([
+    getUser(session.token),
+    fetchAssumptions(),
+  ])
 
   return (
     <CostVisibilityProvider value={{ canViewCosts, canViewNaked }}>
+      <CompanyDefaultsLoader saved={savedAssumptions} />
       {/* h-dvh (not h-screen/100vh) so the shell tracks the real viewport as the
           iOS Safari URL bar collapses. Only <main> scrolls; the BottomTabBar is
           an in-flow sibling below it, so scroll content ends above the bar

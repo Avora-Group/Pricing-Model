@@ -86,15 +86,9 @@ export function QuoteDetailClient({ quote, aircraftList = [], isViewer = false }
         <Link href={`/pnl?quote=${quote.id}`} className="av-link">
           P&amp;L
         </Link>{' '}
-        page. The{' '}
-        <Link href="/crew" className="av-link">
-          Crew
-        </Link>{' '}
-        and{' '}
-        <Link href="/costs" className="av-link">
-          Costs
-        </Link>{' '}
-        pages show the config snapshot loaded with this quote.
+        page. This quote&apos;s own crew and cost assumptions are edited in its Edit
+        dialog (Crew / Costs tabs); the Crew and Costs pages hold the company
+        defaults for new quotes.
       </div>
 
       {/* In-place edit dialog. After an update, router.refresh() re-fetches

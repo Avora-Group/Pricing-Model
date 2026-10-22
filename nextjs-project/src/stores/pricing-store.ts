@@ -388,7 +388,7 @@ export const usePricingStore = create<PricingStore>()((set) => ({
 
   setLastError: (err) => set({ lastError: err }),
 
-  reset: () => set({ ...initialState }),
+  reset: () => set({ ...initialState, ...defaultRatios }),
 
   loadFromQuote: (quoteData) =>
     set({
@@ -411,3 +411,25 @@ export const usePricingStore = create<PricingStore>()((set) => ({
       lastError: null,
     }),
 }))
+
+/** Company-default BH:FH and APU FH:FH ratios — edited and saved on the Costs
+ *  page alongside the cost defaults. reset() starts from these. */
+let defaultRatios = { bhFhRatio: initialState.bhFhRatio, apuFhRatio: initialState.apuFhRatio }
+
+export function getDefaultRatios() {
+  return defaultRatios
+}
+
+/** Replace the default ratios; the store follows only when it is not editing a
+ *  quote and still holds the old defaults. */
+export function setDefaultRatios(next: { bhFhRatio: string; apuFhRatio: string }) {
+  const s = usePricingStore.getState()
+  const wasAtDefaults =
+    s.editingQuoteId === null &&
+    s.bhFhRatio === defaultRatios.bhFhRatio &&
+    s.apuFhRatio === defaultRatios.apuFhRatio
+  defaultRatios = next
+  if (wasAtDefaults && (s.bhFhRatio !== next.bhFhRatio || s.apuFhRatio !== next.apuFhRatio)) {
+    usePricingStore.setState(next)
+  }
+}

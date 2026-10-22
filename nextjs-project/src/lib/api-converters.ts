@@ -21,6 +21,8 @@ export interface AircraftOption {
   msn: number
   aircraft_type: string
   registration: string | null
+  /** False = switched off from the fleet: not offered for new pricing. */
+  is_active?: boolean
   lease_rent_usd: string | null
   six_year_check_usd: string | null
   twelve_year_check_usd: string | null

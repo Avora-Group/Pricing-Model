@@ -32,6 +32,7 @@ import {
   deriveCostsValues,
   computeMsnConfig,
 } from '@/lib/pnl-msn-config'
+import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthlyData } from '@/lib/pnl-monthly-builder'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { PNL_ROWS } from '@/lib/pnl-row-defs'
@@ -660,8 +661,8 @@ export async function buildCalculationWorkbook(data: CalcExportData) {
   acWs.mergeCells('A1:I1')
 
   const acHeadRow = 3
-  ;['Entry', 'MSN / Type', 'Lease Rent (EUR)', '6Y Check (EUR)', '12Y Check (EUR)',
-    'LDG (EUR)', 'APU Rate (USD)', 'LLP#1 (USD)', 'LLP#2 (USD)']
+  ;['Entry', 'MSN / Type', 'Lease Rent (USD)', '6Y Check (USD)', '12Y Check (USD)',
+    'LDG (USD)', 'APU Rate (USD)', 'LLP#1 (USD)', 'LLP#2 (USD)']
     .forEach((h, i) => {
       const c = acWs.getCell(acHeadRow, i + 1); c.value = h; c.font = { bold: true }; c.fill = headFill
     })
@@ -675,10 +676,11 @@ export async function buildCalculationWorkbook(data: CalcExportData) {
     entryAcRow.push(rr)
     acWs.getCell(rr, 1).value = e.label
     acWs.getCell(rr, 2).value = `${e.input.msn} ${e.input.aircraftType}`
-    acWs.getCell(rr, 3).value = parseFloat(e.input.leaseRentEur || '0')
-    acWs.getCell(rr, 4).value = parseFloat(e.input.sixYearCheckEur || '0')
-    acWs.getCell(rr, 5).value = parseFloat(e.input.twelveYearCheckEur || '0')
-    acWs.getCell(rr, 6).value = parseFloat(e.input.ldgEur || '0')
+    const ar = pickAircraftRates(e.input, false)
+    acWs.getCell(rr, 3).value = ar.leaseRentUsd
+    acWs.getCell(rr, 4).value = ar.sixYearCheckUsd
+    acWs.getCell(rr, 5).value = ar.twelveYearCheckUsd
+    acWs.getCell(rr, 6).value = ar.ldgUsd
     acWs.getCell(rr, 7).value = parseFloat(e.input.apuRateUsd || '0')
     acWs.getCell(rr, 8).value = parseFloat(e.input.llp1RateUsd || '0')
     acWs.getCell(rr, 9).value = parseFloat(e.input.llp2RateUsd || '0')
@@ -945,9 +947,9 @@ export async function buildCalculationWorkbook(data: CalcExportData) {
   writeRow('maintReservesVariable', 'Maint. Reserves — Variable', (e, i) => ({
     formula: `${cellRef('eprMr', i)}+${cellRef('llpMr', i)}+${cellRef('apuMr', i)}`, result: e.cfg.cfg.maintReservesVariable,
   }), {})
-  writeRow('dryLease', 'Dry Lease', (e, i) => ({ formula: `${acRefs[i].lease}`, result: e.cfg.cfg.leaseRentEur }), {})
+  writeRow('dryLease', 'Dry Lease', (e, i) => ({ formula: `${acRefs[i].lease}*${exchR}`, result: e.cfg.cfg.leaseRentEur }), {})
   writeRow('maintReservesFixed', 'Maint. Reserves — Fixed', (e, i) => ({
-    formula: `${acRefs[i].sixY}+${acRefs[i].twelveY}+${acRefs[i].ldg}`, result: e.cfg.cfg.maintReservesFixedEur,
+    formula: `(${acRefs[i].sixY}+${acRefs[i].twelveY}+${acRefs[i].ldg})*${exchR}`, result: e.cfg.cfg.maintReservesFixedEur,
   }), {})
   // C
   writeRow('pilotSalary', 'Pilot — Salary', (e, i) => ({

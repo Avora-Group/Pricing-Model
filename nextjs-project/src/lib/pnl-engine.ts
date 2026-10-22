@@ -10,6 +10,7 @@
 import { computePeriodMonths, generateMonthRange } from '@/stores/pricing-store'
 import { buildMonthDayInfos } from './pnl-proration'
 import { periodBhWeightsFromStrings } from './mgh-distribution'
+import { aircraftFixedEur, pickAircraftRates } from './aircraft-rate-basis'
 import type { MsnInput, EprMatrixRow } from '@/stores/pricing-store'
 import type { PayrollRow, CostRow, TrainingRow } from '@/stores/crew-config-store'
 import type {
@@ -292,10 +293,7 @@ export function computeMsnPnlSummary(
   const spareParts = totalBhPerMonth * sparePartsRatePerBh + tiresWheelsCost
 
   // Maintenance reserves fixed (6yr + 12yr + LDG)
-  const maintReservesFixed =
-    parseFloat(input.sixYearCheckEur || '0') +
-    parseFloat(input.twelveYearCheckEur || '0') +
-    parseFloat(input.ldgEur || '0')
+  const { dryLease, maintReservesFixed } = aircraftFixedEur(pickAircraftRates(input, false), exchangeRate)
 
   // ── Proration info ──
   const monthDayInfos = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
@@ -356,7 +354,7 @@ export function computeMsnPnlSummary(
 
     // Fixed costs (prorated by day fraction, same as variable)
     const totalFixed =
-      (parseFloat(input.leaseRentEur || '0') +
+      (dryLease +
         maintReservesFixed +
         pilotSalary +
         cabinCrewSalary +
@@ -419,11 +417,8 @@ export function computeMsnMonthlyFixedCosts(
   exchangeRate: number,
 ): { aircraft: number; crew: number; maintenance: number; insurance: number; doc: number; overhead: number } {
   // Aircraft: dry lease + fixed maintenance reserves (6Y + 12Y + LDG)
-  const aircraft =
-    parseFloat(input.leaseRentEur || '0') +
-    parseFloat(input.sixYearCheckEur || '0') +
-    parseFloat(input.twelveYearCheckEur || '0') +
-    parseFloat(input.ldgEur || '0')
+  const fixedEur = aircraftFixedEur(pickAircraftRates(input, false), exchangeRate)
+  const aircraft = fixedEur.dryLease + fixedEur.maintReservesFixed
 
   // Crew fixed: salaries × crew sets + uniform + training (per AC per month)
   const pilotSalaryPerSet =

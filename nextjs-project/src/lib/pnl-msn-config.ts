@@ -16,7 +16,7 @@ import type {
 } from '@/stores/costs-config-store'
 import type { MsnInput, EprMatrixRow } from '@/stores/pricing-store'
 import { interpolateEpr } from './pnl-engine'
-import { pickAircraftRates } from './aircraft-rate-basis'
+import { aircraftFixedEur, pickAircraftRates } from './aircraft-rate-basis'
 import type { PnlLineConfig } from './pnl-monthly-builder'
 
 // ---- Crew derived values ----
@@ -312,18 +312,16 @@ export function computeMsnConfig(
   const msnSpareParts_tiresWheels = costs.tiresWheelsCost
   const msnSpareParts = msnSpareParts_bh + msnSpareParts_tiresWheels
 
-  // Sum of 6yr + 12yr + LDG (current or naked basis)
-  const msnMaintReservesFixed_6yr = ar.sixYearCheckEur
-  const msnMaintReservesFixed_12yr = ar.twelveYearCheckEur
-  const msnMaintReservesFixed_ldg = ar.ldgEur
-  const maintReservesFixedEur = msnMaintReservesFixed_6yr + msnMaintReservesFixed_12yr + msnMaintReservesFixed_ldg
+  // Dry lease + sum of 6yr + 12yr + LDG (current or naked basis), USD -> EUR
+  const fixedEur = aircraftFixedEur(ar, exchangeRate)
+  const maintReservesFixedEur = fixedEur.maintReservesFixed
 
   const cfg: PnlLineConfig = {
     maintReservesVariable: msnMaintReservesVariable,
     eprMr: msnEprMr,
     llpMr: msnLlpMr,
     apuMr: msnApuMr,
-    leaseRentEur: ar.leaseRentEur,
+    leaseRentEur: fixedEur.dryLease,
     maintReservesFixedEur,
     pilotPerDiem: msnPilotPerDiem,
     cabinCrewPerDiem: msnCabinCrewPerDiem,
@@ -364,9 +362,9 @@ export function computeMsnConfig(
     cabinCrewPerDiem_seniorAtt: msnCabinCrewPerDiem_seniorAtt,
     spareParts_bh: msnSpareParts_bh,
     spareParts_tiresWheels: msnSpareParts_tiresWheels,
-    maintReservesFixed_6yr: msnMaintReservesFixed_6yr,
-    maintReservesFixed_12yr: msnMaintReservesFixed_12yr,
-    maintReservesFixed_ldg: msnMaintReservesFixed_ldg,
+    maintReservesFixed_6yr: fixedEur.sixYearCheck,
+    maintReservesFixed_12yr: fixedEur.twelveYearCheck,
+    maintReservesFixed_ldg: fixedEur.ldg,
     pilotSalary_pilot: msnPilotSalary_pilot,
     pilotSalary_copilot: msnPilotSalary_copilot,
     cabinCrewSalary_cabinAtt: msnCabinCrewSalary_cabinAtt,

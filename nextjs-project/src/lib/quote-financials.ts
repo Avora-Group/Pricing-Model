@@ -11,6 +11,7 @@
 import { computeMsnPnlSummarySeasonal } from '@/lib/pnl-engine'
 import type { CrewStoreData, CostsStoreData } from '@/lib/pnl-engine'
 import { computePeriodMonths } from '@/stores/pricing-store'
+import { optStr } from '@/lib/aircraft-rate-basis'
 import type { MsnInput, SeasonInput } from '@/stores/pricing-store'
 import type { QuoteDetailResponse, QuoteMsnSnapshot } from '@/app/actions/quotes'
 
@@ -37,10 +38,16 @@ export function reconstructMsnInput(snap: QuoteMsnSnapshot): MsnInput {
     excessHourRate: String(input.excessHourRate ?? '0'),
     bhFhRatio: String(input.bhFhRatio ?? '1.2'),
     apuFhRatio: String(input.apuFhRatio ?? '1.1'),
-    leaseRentEur: String(input.leaseRentEur ?? '0'),
-    sixYearCheckEur: String(input.sixYearCheckEur ?? '0'),
-    twelveYearCheckEur: String(input.twelveYearCheckEur ?? '0'),
-    ldgEur: String(input.ldgEur ?? '0'),
+    // USD fixed rates; quotes saved before USD storage carry only the legacy
+    // EUR snapshots, which pickAircraftRates converts back to USD.
+    leaseRentUsd: optStr(input.leaseRentUsd) ?? '',
+    sixYearCheckUsd: optStr(input.sixYearCheckUsd) ?? '',
+    twelveYearCheckUsd: optStr(input.twelveYearCheckUsd) ?? '',
+    ldgUsd: optStr(input.ldgUsd) ?? '',
+    leaseRentEur: optStr(input.leaseRentEur),
+    sixYearCheckEur: optStr(input.sixYearCheckEur),
+    twelveYearCheckEur: optStr(input.twelveYearCheckEur),
+    ldgEur: optStr(input.ldgEur),
     apuRateUsd: String(input.apuRateUsd ?? '0'),
     llp1RateUsd: String(input.llp1RateUsd ?? '0'),
     llp2RateUsd: String(input.llp2RateUsd ?? '0'),

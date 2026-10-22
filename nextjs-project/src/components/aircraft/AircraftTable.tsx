@@ -13,10 +13,6 @@ export interface Aircraft {
   six_year_check_usd: string
   twelve_year_check_usd: string
   ldg_usd: string
-  lease_rent_eur: string
-  six_year_check_eur: string
-  twelve_year_check_eur: string
-  ldg_eur: string
 }
 
 function formatRate(value: string | number | null): string {
@@ -125,19 +121,15 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
                 <th onClick={() => handleSort('aircraft_type')} className="av-th cursor-pointer select-none">Type{sortIndicator('aircraft_type')}</th>
                 <th className="av-th">Registration</th>
                 <th className="av-th r hidden md:table-cell">Lease Rent (USD)</th>
-                <th className="av-th r hidden md:table-cell">Lease Rent (EUR)</th>
                 <th className="av-th r hidden md:table-cell">6Y Check (USD)</th>
-                <th className="av-th r hidden md:table-cell">6Y Check (EUR)</th>
                 <th className="av-th r hidden md:table-cell">12Y Check (USD)</th>
-                <th className="av-th r hidden md:table-cell">12Y Check (EUR)</th>
                 <th className="av-th r hidden md:table-cell">LDG (USD)</th>
-                <th className="av-th r hidden md:table-cell">LDG (EUR)</th>
               </tr>
             </thead>
             <tbody>
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="av-td text-center" style={{ padding: '32px 14px', color: 'var(--muted)' }}>
+                  <td colSpan={7} className="av-td text-center" style={{ padding: '32px 14px', color: 'var(--muted)' }}>
                     No aircraft found
                   </td>
                 </tr>
@@ -152,13 +144,9 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
                     <td className="av-td"><span className="chip">{a.aircraft_type}</span></td>
                     <td className="av-td" style={{ color: 'var(--ink-2)' }}>{a.registration ?? '-'}</td>
                     <td className="av-td r av-num hidden md:table-cell" style={{ color: 'var(--ink-2)' }}>{formatRate(a.lease_rent_usd)}</td>
-                    <td className="av-td r av-num hidden md:table-cell" style={{ color: 'var(--ink-2)' }}>{formatRate(a.lease_rent_eur)}</td>
                     <td className="av-td r av-num hidden md:table-cell" style={{ color: 'var(--ink-2)' }}>{formatRate(a.six_year_check_usd)}</td>
-                    <td className="av-td r av-num hidden md:table-cell" style={{ color: 'var(--ink-2)' }}>{formatRate(a.six_year_check_eur)}</td>
                     <td className="av-td r av-num hidden md:table-cell" style={{ color: 'var(--ink-2)' }}>{formatRate(a.twelve_year_check_usd)}</td>
-                    <td className="av-td r av-num hidden md:table-cell" style={{ color: 'var(--ink-2)' }}>{formatRate(a.twelve_year_check_eur)}</td>
                     <td className="av-td r av-num hidden md:table-cell" style={{ color: 'var(--ink-2)' }}>{formatRate(a.ldg_usd)}</td>
-                    <td className="av-td r av-num hidden md:table-cell" style={{ color: 'var(--ink-2)' }}>{formatRate(a.ldg_eur)}</td>
                   </tr>
                 ))
               )}

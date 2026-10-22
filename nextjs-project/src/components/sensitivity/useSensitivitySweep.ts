@@ -94,10 +94,10 @@ function overlayBasis(m: MsnInput, useNaked: boolean): MsnInput {
   const r = pickAircraftRates(m, true)
   return {
     ...m,
-    leaseRentEur: String(r.leaseRentEur),
-    sixYearCheckEur: String(r.sixYearCheckEur),
-    twelveYearCheckEur: String(r.twelveYearCheckEur),
-    ldgEur: String(r.ldgEur),
+    leaseRentUsd: String(r.leaseRentUsd),
+    sixYearCheckUsd: String(r.sixYearCheckUsd),
+    twelveYearCheckUsd: String(r.twelveYearCheckUsd),
+    ldgUsd: String(r.ldgUsd),
     apuRateUsd: String(r.apuRateUsd),
     llp1RateUsd: String(r.llp1RateUsd),
     llp2RateUsd: String(r.llp2RateUsd),

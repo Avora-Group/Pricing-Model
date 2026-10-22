@@ -9,7 +9,7 @@ import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { fmt, fmtMonths } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
-import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
+import { aircraftFixedEur, pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { periodBhWeightsFromStrings } from '@/lib/mgh-distribution'
 import { LineDetailPopover, type BreakdownItem } from './CostDetailPopover'
@@ -94,8 +94,7 @@ function computeMsnCosts(
   // ── Aircraft (Category A) ──
   // Current vs naked aircraft cost basis (shared with the P&L engine).
   const ar = pickAircraftRates(input, useNaked)
-  const dryLease = ar.leaseRentEur
-  const maintReservesFixed = ar.sixYearCheckEur + ar.twelveYearCheckEur + ar.ldgEur
+  const { dryLease, maintReservesFixed } = aircraftFixedEur(ar, exchangeRate)
   const eprRate = interpolateEpr(ar.eprMatrix, cycleRatio, input.environment)
   const eprMr = eprRate * 2 * fh * exchangeRate
   const llpMr = (ar.llp1RateUsd + ar.llp2RateUsd) * fc * exchangeRate
@@ -394,10 +393,10 @@ export function SummaryTable({
       if (!ac) continue
       patchMsnInput(input.msn, {
         hasNakedRates: Boolean(ac.has_naked_rates),
-        nakedLeaseRentEur: ac.naked_lease_rent_eur ?? undefined,
-        nakedSixYearCheckEur: ac.naked_six_year_check_eur ?? undefined,
-        nakedTwelveYearCheckEur: ac.naked_twelve_year_check_eur ?? undefined,
-        nakedLdgEur: ac.naked_ldg_eur ?? undefined,
+        nakedLeaseRentUsd: ac.naked_lease_rent_usd ?? undefined,
+        nakedSixYearCheckUsd: ac.naked_six_year_check_usd ?? undefined,
+        nakedTwelveYearCheckUsd: ac.naked_twelve_year_check_usd ?? undefined,
+        nakedLdgUsd: ac.naked_ldg_usd ?? undefined,
         nakedApuRateUsd: ac.naked_apu_rate_usd ?? undefined,
         nakedLlp1RateUsd: ac.naked_llp1_rate_usd ?? undefined,
         nakedLlp2RateUsd: ac.naked_llp2_rate_usd ?? undefined,

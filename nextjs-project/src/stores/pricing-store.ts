@@ -47,11 +47,18 @@ export interface MsnInput {
   excessHourRate: string // per excess BH (default 0)
   bhFhRatio: string // BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
   apuFhRatio: string // APU FH:FH ratio — APU FH = FH * apuFhRatio (default 0.7)
-  // Aircraft rates from Aircraft tab (EUR, monthly — fixed)
-  leaseRentEur: string // Dry lease rent per month
-  sixYearCheckEur: string // 6-year check reserve per month
-  twelveYearCheckEur: string // 12-year check reserve per month
-  ldgEur: string // Landing gear reserve per month
+  // Aircraft rates from Aircraft tab (USD, monthly — fixed). Converted to EUR
+  // with the quote's exchange rate at calculation time.
+  leaseRentUsd: string // Dry lease rent per month
+  sixYearCheckUsd: string // 6-year check reserve per month
+  twelveYearCheckUsd: string // 12-year check reserve per month
+  ldgUsd: string // Landing gear reserve per month
+  // Legacy EUR snapshots (taken at 0.85) on quotes saved before USD storage.
+  // Read only as a fallback by pickAircraftRates; never written.
+  leaseRentEur?: string
+  sixYearCheckEur?: string
+  twelveYearCheckEur?: string
+  ldgEur?: string
   // Aircraft rates from Aircraft tab (USD — variable, per engine)
   apuRateUsd: string  // APU rate per APU FH
   llp1RateUsd: string // LLP #1 rate per FC
@@ -61,6 +68,11 @@ export interface MsnInput {
   // Naked rates (parallel cost basis; only populated for cost-access users +
   // aircraft that have naked rates). Used when rateBasis === 'naked'.
   hasNakedRates?: boolean
+  nakedLeaseRentUsd?: string
+  nakedSixYearCheckUsd?: string
+  nakedTwelveYearCheckUsd?: string
+  nakedLdgUsd?: string
+  // Legacy naked EUR snapshots (see leaseRentEur above)
   nakedLeaseRentEur?: string
   nakedSixYearCheckEur?: string
   nakedTwelveYearCheckEur?: string
@@ -211,10 +223,10 @@ interface PricingStore {
     msn: number
     aircraftType: string
     registration: string | null
-    leaseRentEur: string
-    sixYearCheckEur: string
-    twelveYearCheckEur: string
-    ldgEur: string
+    leaseRentUsd: string
+    sixYearCheckUsd: string
+    twelveYearCheckUsd: string
+    ldgUsd: string
     apuRateUsd: string
     llp1RateUsd: string
     llp2RateUsd: string
@@ -320,10 +332,15 @@ export const usePricingStore = create<PricingStore>()((set) => ({
               msn: newAircraft.msn,
               aircraftType: newAircraft.aircraftType,
               registration: newAircraft.registration,
-              leaseRentEur: newAircraft.leaseRentEur,
-              sixYearCheckEur: newAircraft.sixYearCheckEur,
-              twelveYearCheckEur: newAircraft.twelveYearCheckEur,
-              ldgEur: newAircraft.ldgEur,
+              leaseRentUsd: newAircraft.leaseRentUsd,
+              sixYearCheckUsd: newAircraft.sixYearCheckUsd,
+              twelveYearCheckUsd: newAircraft.twelveYearCheckUsd,
+              ldgUsd: newAircraft.ldgUsd,
+              // Drop any legacy EUR snapshot from the previous aircraft
+              leaseRentEur: undefined,
+              sixYearCheckEur: undefined,
+              twelveYearCheckEur: undefined,
+              ldgEur: undefined,
               apuRateUsd: newAircraft.apuRateUsd,
               llp1RateUsd: newAircraft.llp1RateUsd,
               llp2RateUsd: newAircraft.llp2RateUsd,

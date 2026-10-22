@@ -38,11 +38,11 @@ export function buildMsnInput(
     excessHourRate: '0',
     bhFhRatio: bhFhRatio,
     apuFhRatio: apuFhRatio,
-    // Aircraft rates from Aircraft tab (EUR, fixed)
-    leaseRentEur: ac.lease_rent_eur ?? '0',
-    sixYearCheckEur: ac.six_year_check_eur ?? '0',
-    twelveYearCheckEur: ac.twelve_year_check_eur ?? '0',
-    ldgEur: ac.ldg_eur ?? '0',
+    // Aircraft rates from Aircraft tab (USD, fixed — converted at the quote's rate)
+    leaseRentUsd: ac.lease_rent_usd ?? '0',
+    sixYearCheckUsd: ac.six_year_check_usd ?? '0',
+    twelveYearCheckUsd: ac.twelve_year_check_usd ?? '0',
+    ldgUsd: ac.ldg_usd ?? '0',
     // Aircraft rates from Aircraft tab (USD, variable per engine)
     apuRateUsd: ac.apu_rate_usd ?? '0',
     llp1RateUsd: ac.llp1_rate_usd ?? '0',
@@ -55,10 +55,10 @@ export function buildMsnInput(
     })),
     // Naked rates (present only for cost-access users + aircraft with naked data)
     hasNakedRates: Boolean(ac.has_naked_rates),
-    nakedLeaseRentEur: ac.naked_lease_rent_eur ?? undefined,
-    nakedSixYearCheckEur: ac.naked_six_year_check_eur ?? undefined,
-    nakedTwelveYearCheckEur: ac.naked_twelve_year_check_eur ?? undefined,
-    nakedLdgEur: ac.naked_ldg_eur ?? undefined,
+    nakedLeaseRentUsd: ac.naked_lease_rent_usd ?? undefined,
+    nakedSixYearCheckUsd: ac.naked_six_year_check_usd ?? undefined,
+    nakedTwelveYearCheckUsd: ac.naked_twelve_year_check_usd ?? undefined,
+    nakedLdgUsd: ac.naked_ldg_usd ?? undefined,
     nakedApuRateUsd: ac.naked_apu_rate_usd ?? undefined,
     nakedLlp1RateUsd: ac.naked_llp1_rate_usd ?? undefined,
     nakedLlp2RateUsd: ac.naked_llp2_rate_usd ?? undefined,

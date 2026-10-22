@@ -25,13 +25,6 @@ export interface AircraftDetailData {
   epr_escalation: string
   llp_escalation: string
   af_apu_escalation: string
-  lease_rent_eur: string
-  six_year_check_eur: string
-  twelve_year_check_eur: string
-  ldg_eur: string
-  apu_rate_eur: string
-  llp1_rate_eur: string
-  llp2_rate_eur: string
   epr_matrix: EprMatrixRow[]
   // Naked rates — only present in the API response for cost-access users.
   has_naked_rates?: boolean
@@ -42,13 +35,6 @@ export interface AircraftDetailData {
   naked_apu_rate_usd?: string | null
   naked_llp1_rate_usd?: string | null
   naked_llp2_rate_usd?: string | null
-  naked_lease_rent_eur?: string | null
-  naked_six_year_check_eur?: string | null
-  naked_twelve_year_check_eur?: string | null
-  naked_ldg_eur?: string | null
-  naked_apu_rate_eur?: string | null
-  naked_llp1_rate_eur?: string | null
-  naked_llp2_rate_eur?: string | null
   naked_epr_escalation?: string | null
   naked_llp_escalation?: string | null
   naked_af_apu_escalation?: string | null
@@ -63,16 +49,16 @@ export function AircraftDetail({
   canEdit: boolean
 }) {
   const fixedRates: RateRow[] = [
-    { label: 'Lease Rent', usd: aircraft.lease_rent_usd, eur: aircraft.lease_rent_eur, field: 'lease_rent_usd' },
-    { label: '6-Year Check', usd: aircraft.six_year_check_usd, eur: aircraft.six_year_check_eur, field: 'six_year_check_usd' },
-    { label: '12-Year Check', usd: aircraft.twelve_year_check_usd, eur: aircraft.twelve_year_check_eur, field: 'twelve_year_check_usd' },
-    { label: 'Landing Gear (LDG)', usd: aircraft.ldg_usd, eur: aircraft.ldg_eur, field: 'ldg_usd' },
+    { label: 'Lease Rent', usd: aircraft.lease_rent_usd, field: 'lease_rent_usd' },
+    { label: '6-Year Check', usd: aircraft.six_year_check_usd, field: 'six_year_check_usd' },
+    { label: '12-Year Check', usd: aircraft.twelve_year_check_usd, field: 'twelve_year_check_usd' },
+    { label: 'Landing Gear (LDG)', usd: aircraft.ldg_usd, field: 'ldg_usd' },
   ]
 
   const variableRates: RateRow[] = [
-    { label: 'APU Rate', usd: aircraft.apu_rate_usd, eur: aircraft.apu_rate_eur, field: 'apu_rate_usd' },
-    { label: 'LLP #1 Rate', usd: aircraft.llp1_rate_usd, eur: aircraft.llp1_rate_eur, field: 'llp1_rate_usd' },
-    { label: 'LLP #2 Rate', usd: aircraft.llp2_rate_usd, eur: aircraft.llp2_rate_eur, field: 'llp2_rate_usd' },
+    { label: 'APU Rate', usd: aircraft.apu_rate_usd, field: 'apu_rate_usd' },
+    { label: 'LLP #1 Rate', usd: aircraft.llp1_rate_usd, field: 'llp1_rate_usd' },
+    { label: 'LLP #2 Rate', usd: aircraft.llp2_rate_usd, field: 'llp2_rate_usd' },
   ]
 
   const canViewNaked = useCanViewNaked()
@@ -89,16 +75,16 @@ export function AircraftDetail({
   }, [regState])
 
   const nakedFixedRates: RateRow[] = [
-    { label: 'Lease Rent', usd: aircraft.naked_lease_rent_usd ?? '', eur: aircraft.naked_lease_rent_eur ?? '', field: 'naked_lease_rent_usd' },
-    { label: '6-Year Check', usd: aircraft.naked_six_year_check_usd ?? '', eur: aircraft.naked_six_year_check_eur ?? '', field: 'naked_six_year_check_usd' },
-    { label: '12-Year Check', usd: aircraft.naked_twelve_year_check_usd ?? '', eur: aircraft.naked_twelve_year_check_eur ?? '', field: 'naked_twelve_year_check_usd' },
-    { label: 'Landing Gear (LDG)', usd: aircraft.naked_ldg_usd ?? '', eur: aircraft.naked_ldg_eur ?? '', field: 'naked_ldg_usd' },
+    { label: 'Lease Rent', usd: aircraft.naked_lease_rent_usd ?? '', field: 'naked_lease_rent_usd' },
+    { label: '6-Year Check', usd: aircraft.naked_six_year_check_usd ?? '', field: 'naked_six_year_check_usd' },
+    { label: '12-Year Check', usd: aircraft.naked_twelve_year_check_usd ?? '', field: 'naked_twelve_year_check_usd' },
+    { label: 'Landing Gear (LDG)', usd: aircraft.naked_ldg_usd ?? '', field: 'naked_ldg_usd' },
   ]
 
   const nakedVariableRates: RateRow[] = [
-    { label: 'APU Rate', usd: aircraft.naked_apu_rate_usd ?? '', eur: aircraft.naked_apu_rate_eur ?? '', field: 'naked_apu_rate_usd' },
-    { label: 'LLP #1 Rate', usd: aircraft.naked_llp1_rate_usd ?? '', eur: aircraft.naked_llp1_rate_eur ?? '', field: 'naked_llp1_rate_usd' },
-    { label: 'LLP #2 Rate', usd: aircraft.naked_llp2_rate_usd ?? '', eur: aircraft.naked_llp2_rate_eur ?? '', field: 'naked_llp2_rate_usd' },
+    { label: 'APU Rate', usd: aircraft.naked_apu_rate_usd ?? '', field: 'naked_apu_rate_usd' },
+    { label: 'LLP #1 Rate', usd: aircraft.naked_llp1_rate_usd ?? '', field: 'naked_llp1_rate_usd' },
+    { label: 'LLP #2 Rate', usd: aircraft.naked_llp2_rate_usd ?? '', field: 'naked_llp2_rate_usd' },
   ]
 
   return (

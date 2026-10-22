@@ -6,7 +6,6 @@ import { updateRatesAction, type UpdateRatesState } from '@/app/actions/aircraft
 export interface RateRow {
   label: string
   usd: string | number
-  eur: string | number
   field: string
 }
 
@@ -121,21 +120,19 @@ export function RatesSection({ title, rates, msn, canEdit }: RatesSectionProps) 
         ) : (
           <div className="space-y-1">
             <div
-              className="grid grid-cols-[1fr_120px_120px] gap-2 text-[11px] px-1 pb-1.5 mb-1"
+              className="grid grid-cols-[1fr_120px] gap-2 text-[11px] px-1 pb-1.5 mb-1"
               style={{ color: 'var(--muted)', borderBottom: '1px solid var(--line-2)' }}
             >
               <span>Parameter</span>
               <span className="text-right">USD</span>
-              <span className="text-right">EUR</span>
             </div>
             {rates.map((rate) => (
               <div
                 key={rate.field}
-                className="grid grid-cols-[1fr_120px_120px] gap-2 py-1.5 px-1"
+                className="grid grid-cols-[1fr_120px] gap-2 py-1.5 px-1"
               >
                 <span className="text-[13.5px]" style={{ color: 'var(--ink-2)' }}>{rate.label}</span>
                 <span className="text-[13.5px] text-right av-num" style={{ color: 'var(--ink-2)' }}>{formatValue(rate.usd)}</span>
-                <span className="text-[13.5px] text-right av-num" style={{ color: 'var(--muted)' }}>{formatValue(rate.eur)}</span>
               </div>
             ))}
           </div>

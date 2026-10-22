@@ -597,15 +597,18 @@ export function PnlTable({ source }: { source?: PnlSource } = {}) {
             })),
         }
       }
-      case 'maintReservesFixed':
+      case 'maintReservesFixed': {
+        const ar = msnInput ? pickAircraftRates(msnInput, useNaked) : null
+        const usdF = (usd: number) => `$${fn(usd, 2)} × ${fn(exchangeRate, 2)} €/$`
         return {
           title: 'Maint. Reserves - Fixed',
           items: [
-            { label: '6-Year Check', value: v('maintReservesFixed_6yr') },
-            { label: '12-Year Check', value: v('maintReservesFixed_12yr') },
-            { label: 'Landing Gear', value: v('maintReservesFixed_ldg') },
+            { label: '6-Year Check', value: v('maintReservesFixed_6yr'), formula: ar ? usdF(ar.sixYearCheckUsd) : undefined },
+            { label: '12-Year Check', value: v('maintReservesFixed_12yr'), formula: ar ? usdF(ar.twelveYearCheckUsd) : undefined },
+            { label: 'Landing Gear', value: v('maintReservesFixed_ldg'), formula: ar ? usdF(ar.ldgUsd) : undefined },
           ],
         }
+      }
       case 'pilotSalary': {
         const sets = msnInput?.crewSets ?? 0
         return {

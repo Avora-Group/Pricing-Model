@@ -22,7 +22,7 @@ async def _login(client, email: str, password: str) -> dict:
 
 
 async def test_list_aircraft(async_client, test_admin_user, test_aircraft_data):
-    """GET /aircraft returns 200 with list of aircraft including rates and EUR fields."""
+    """GET /aircraft returns 200 with list of aircraft and their USD rates."""
     cookies = await _login(async_client, "admin@test.com", "adminpass123")
     response = await async_client.get("/aircraft", cookies=cookies)
     assert response.status_code == 200
@@ -34,8 +34,8 @@ async def test_list_aircraft(async_client, test_admin_user, test_aircraft_data):
     assert "msn" in first
     assert "aircraft_type" in first
     assert "lease_rent_usd" in first
-    # EUR conversion applied
-    assert "lease_rent_eur" in first
+    # Rates are USD only; EUR is derived per quote in the pricing workspace
+    assert "lease_rent_eur" not in first
 
 
 async def test_search_aircraft_by_msn(async_client, test_admin_user, test_aircraft_data):
@@ -68,9 +68,8 @@ async def test_get_aircraft_detail(async_client, test_admin_user, test_aircraft_
     assert "lease_rent_usd" in data
     assert "apu_rate_usd" in data
     assert "epr_escalation" in data
-    # EUR conversion applied
-    assert "lease_rent_eur" in data
-    assert "apu_rate_eur" in data
+    # Rates are USD only; EUR is derived per quote in the pricing workspace
+    assert not any(k.endswith("_eur") for k in data)
     # EPR matrix present
     assert "epr_matrix" in data
     assert isinstance(data["epr_matrix"], list)
@@ -125,9 +124,6 @@ async def test_update_rates_reflected(async_client, test_admin_user, test_aircra
     assert response.status_code == 200
     data = response.json()
     assert Decimal(data["lease_rent_usd"]) == Decimal("250000.00")
-    # EUR conversion reflects updated value
-    expected_eur = Decimal("250000.00") * Decimal("0.85")
-    assert Decimal(data["lease_rent_eur"]) == expected_eur
 
 
 async def test_seed_data_present(test_aircraft_data, db_store):

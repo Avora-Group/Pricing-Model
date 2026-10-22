@@ -1,7 +1,8 @@
 """Aircraft API router with list, detail, and update endpoints.
 
 All endpoints require authentication. Writes (POST/PUT) require editor role (admin or user).
-EUR conversion is applied to all responses returning monetary values.
+Monetary values are returned in USD; the pricing workspace converts them to
+EUR with each quote's own USD/EUR rate.
 """
 from __future__ import annotations
 
@@ -21,7 +22,6 @@ from app.aircraft.schemas import (
     UpdateEprMatrixRequest,
     UpdateRatesRequest,
 )
-from app.aircraft.service import apply_eur_conversion
 
 router = APIRouter(prefix="/aircraft", tags=["aircraft"])
 
@@ -50,7 +50,7 @@ async def list_aircraft(
 
     result = []
     for r in rows:
-        data = apply_eur_conversion(dict(r))
+        data = dict(r)
         data["epr_matrix"] = [dict(e) for e in epr_map.get(r["id"], [])]
         if can_view and data.get("has_naked_rates"):
             data["naked_epr_matrix"] = [dict(e) for e in naked_epr_map.get(r["id"], [])]
@@ -72,7 +72,7 @@ async def create_aircraft(
     """Create a new aircraft with rates (admin or user).
 
     Creates the aircraft row and upserts all rate fields in one operation.
-    Returns the full aircraft detail with EUR conversions.
+    Returns the full aircraft detail.
     """
     repo = AircraftRepository(db)
 
@@ -99,10 +99,10 @@ async def create_aircraft(
     if rate_fields:
         await repo.upsert_rates(aircraft["id"], **rate_fields)
 
-    # Re-fetch to get complete data with EUR conversions
+    # Re-fetch to get complete data
     full = await repo.fetch_by_msn(body.msn)
     epr_rows = await repo.fetch_epr_matrix(full["id"])
-    data = apply_eur_conversion(dict(full))
+    data = dict(full)
     data["epr_matrix"] = [dict(r) for r in epr_rows]
     return data
 
@@ -123,7 +123,7 @@ async def get_aircraft(
     if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found")
     epr_rows = await repo.fetch_epr_matrix(aircraft["id"], "current")
-    data = apply_eur_conversion(dict(aircraft))
+    data = dict(aircraft)
     data["epr_matrix"] = [dict(r) for r in epr_rows]
 
     if user_can_view_naked(current_user) and data.get("has_naked_rates"):
@@ -163,7 +163,7 @@ async def update_aircraft(
 
     updated = await repo.fetch_by_msn(msn)
     epr_rows = await repo.fetch_epr_matrix(updated["id"], "current")
-    data = apply_eur_conversion(dict(updated))
+    data = dict(updated)
     data["epr_matrix"] = [dict(r) for r in epr_rows]
 
     if user_can_view_naked(current_user) and data.get("has_naked_rates"):
@@ -202,7 +202,7 @@ async def update_rates(
     # Re-fetch to return updated data
     updated = await repo.fetch_by_msn(msn)
     epr_rows = await repo.fetch_epr_matrix(updated["id"])
-    data = apply_eur_conversion(dict(updated))
+    data = dict(updated)
     data["epr_matrix"] = [dict(r) for r in epr_rows]
     return data
 
@@ -240,6 +240,6 @@ async def update_epr_matrix(
     # Re-fetch and return
     updated = await repo.fetch_by_msn(msn)
     epr_rows = await repo.fetch_epr_matrix(updated["id"])
-    data = apply_eur_conversion(dict(updated))
+    data = dict(updated)
     data["epr_matrix"] = [dict(r) for r in epr_rows]
     return data

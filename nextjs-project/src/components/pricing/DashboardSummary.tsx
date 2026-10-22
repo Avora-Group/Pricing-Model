@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Plus, Save, Download, AlertTriangle, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Plus, Save, Download, AlertTriangle, RefreshCw, Undo2 } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
 import type { MsnInput } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
@@ -9,6 +9,9 @@ import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { resetWorkspaceStores } from '@/stores/workspace-stores'
 import { MsnInputRow } from './MsnInputRow'
 import { SummaryTable } from './SummaryTable'
+import { AssumptionsImpact } from './AssumptionsImpact'
+import { CrewConfigTable } from '@/components/crew/CrewConfigTable'
+import { CostsConfigTable } from '@/components/costs/CostsConfigTable'
 import { SaveQuoteDialog } from '@/components/quotes/SaveQuoteDialog'
 import { useCalculation } from './hooks/useCalculation'
 import { useAddAircraft } from './hooks/useAddAircraft'
@@ -24,6 +27,45 @@ interface DashboardSummaryProps {
   /** Sandbox page (/calculation): leak-guard hydrated quote data on mount and
    *  show the reset-workspace button. The quote dialog leaves this off. */
   sandbox?: boolean
+  /** Quote dialog: add Crew / Costs tabs so the quote's own copy of the crew
+   *  and cost assumptions can be edited and saved with it. */
+  assumptionTabs?: boolean
+}
+
+type WorkspaceView = 'deal' | 'crew' | 'costs'
+
+/** In the quote dialog, keeps the tabs, toolbar (Update Quote) and impact
+ *  figures in view while the long Crew / Costs tables scroll beneath. */
+function PinnedHeader({ pinned, children }: { pinned: boolean; children: React.ReactNode }) {
+  if (!pinned) return <>{children}</>
+  return (
+    <div
+      className="sticky top-0 z-10 -mx-[18px] -mt-3 px-[18px] pt-3 pb-3 space-y-3"
+      style={{ background: 'var(--card)', borderBottom: '1px solid var(--line-2)' }}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** Crew / cost assumptions as the quote was opened — the undo target and the
+ *  baseline for the live impact figures. */
+function captureAssumptions() {
+  const c = useCrewConfigStore.getState()
+  const k = useCostsConfigStore.getState()
+  const p = usePricingStore.getState()
+  return {
+    crew: {
+      payroll: c.payroll, otherCost: c.otherCost, training: c.training,
+      averageAC: c.averageAC, fdDays: c.fdDays, nfdDays: c.nfdDays,
+    },
+    costs: {
+      maintPersonnel: k.maintPersonnel, maintCosts: k.maintCosts, insurance: k.insurance,
+      doc: k.doc, otherCogs: k.otherCogs, overhead: k.overhead, avgAc: k.avgAc,
+    },
+    // BH:FH and APU FH:FH are edited on the Costs tab but live in the pricing store
+    ratios: { bhFhRatio: p.bhFhRatio, apuFhRatio: p.apuFhRatio },
+  }
 }
 
 /** Missing / implausible inputs for an MSN, surfaced as a warning on its tab. */
@@ -42,7 +84,7 @@ function msnIssues(i: MsnInput): string[] {
   return issues
 }
 
-export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sandbox = false }: DashboardSummaryProps) {
+export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sandbox = false, assumptionTabs = false }: DashboardSummaryProps) {
   const {
     projectName,
     exchangeRate,
@@ -87,6 +129,31 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sand
   const [savedNotice, setSavedNotice] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+
+  // Deal & Aircraft vs the quote's crew / cost assumptions (quote dialog only).
+  const [view, setView] = useState<WorkspaceView>('deal')
+  const rootRef = useRef<HTMLDivElement>(null)
+  // Each tab opens at its top, not at the previous tab's scroll position.
+  function showView(next: WorkspaceView) {
+    setView(next)
+    rootRef.current?.closest('.overflow-y-auto')?.scrollTo({ top: 0 })
+  }
+  const [opened] = useState(captureAssumptions)
+  const crewChanged = (Object.keys(opened.crew) as (keyof typeof opened.crew)[])
+    .some((k) => crewConfig[k] !== opened.crew[k])
+  const costsChanged =
+    (Object.keys(opened.costs) as (keyof typeof opened.costs)[]).some((k) => costsConfig[k] !== opened.costs[k]) ||
+    bhFhRatio !== opened.ratios.bhFhRatio ||
+    apuFhRatio !== opened.ratios.apuFhRatio
+
+  function undoAssumptions(which: 'crew' | 'costs') {
+    if (which === 'crew') {
+      useCrewConfigStore.getState().loadFromSnapshot(opened.crew)
+    } else {
+      useCostsConfigStore.getState().loadFromSnapshot(opened.costs)
+      usePricingStore.setState(opened.ratios)
+    }
+  }
 
   // Master-detail: which MSN bookmark tab is open.
   const [activeMsn, setActiveMsn] = useState<number | null>(null)
@@ -179,7 +246,7 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sand
   }
 
   return (
-    <div className="space-y-[18px]">
+    <div ref={rootRef} className="space-y-[18px]">
       {/* Error banner */}
       {(lastError || exportError) && (
         <div
@@ -190,9 +257,32 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sand
         </div>
       )}
 
+      <PinnedHeader pinned={assumptionTabs}>
+      {assumptionTabs && (
+        <div className="av-seg" role="tablist" style={{ maxWidth: 420 }}>
+          {([
+            ['deal', 'Deal & Aircraft', false],
+            ['crew', 'Crew', crewChanged],
+            ['costs', 'Costs', costsChanged],
+          ] as const).map(([key, label, changed]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={view === key}
+              className={view === key ? 'on' : ''}
+              onClick={() => showView(key)}
+              title={changed ? 'Edited — differs from the saved quote' : undefined}
+            >
+              {label}
+              {changed && <span aria-label="edited" style={{ color: 'var(--amber)' }}> •</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Unified toolbar: tabs + add picker · rate + actions */}
       <div className="av-toolbar">
-        {msnInputs.map((input) => {
+        {view === 'deal' && msnInputs.map((input) => {
           const active = input.msn === activeMsn
           const margin = marginByMsn.get(input.msn)
           const issues = msnIssues(input)
@@ -216,6 +306,7 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sand
             </button>
           )
         })}
+        {view === 'deal' && (
         <span className="av-addgrp">
           <select
             value={draft ? String(draft.aircraftId) : ''}
@@ -235,6 +326,12 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sand
             Add
           </button>
         </span>
+        )}
+        {view !== 'deal' && (
+          <span className="text-xs" style={{ color: 'var(--muted)' }}>
+            {view === 'crew' ? 'Crew' : 'Cost'} assumptions for this quote only — other quotes and the defaults are not affected.
+          </span>
+        )}
         {sandbox && !isViewer && (
           <button
             onClick={resetWorkspaceStores}
@@ -291,8 +388,29 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sand
         )}
       </div>
 
+      {view !== 'deal' && (
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <AssumptionsImpact baseline={opened} />
+          </div>
+          <button
+            onClick={() => undoAssumptions(view)}
+            disabled={view === 'crew' ? !crewChanged : !costsChanged}
+            title="Restore the values this quote was opened with"
+            className="av-btn av-btn-ghost !text-xs !h-[34px] !py-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Undo2 size={12} />
+            Undo changes
+          </button>
+        </div>
+      )}
+      </PinnedHeader>
+
+      {view === 'crew' && <CrewConfigTable />}
+      {view === 'costs' && <CostsConfigTable />}
+
       {/* Ticket deck as a left rail (≥1280) beside live results; stacks below. */}
-      <div className="av-workspace">
+      <div className="av-workspace" style={view !== 'deal' ? { display: 'none' } : undefined}>
         <div className="av-rail">
           {activeInput ? (
             <MsnInputRow

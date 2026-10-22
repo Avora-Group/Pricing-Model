@@ -92,7 +92,7 @@ export function NewQuoteModal({
     >
       <div className="p-[18px]">
         {ready && (
-          <DashboardSummary aircraftList={aircraftList} isViewer={false} onSaved={onSaved} />
+          <DashboardSummary aircraftList={aircraftList} isViewer={false} onSaved={onSaved} assumptionTabs />
         )}
       </div>
     </MobileSheet>

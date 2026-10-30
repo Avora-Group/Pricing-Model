@@ -28,7 +28,9 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # CURRENT rates (all 11 MSNs), from the IN sheet of Updated rates for 2026.xlsx.
-# MSN 5228 is a direct lease (6Y check 175000, other MRs 0, as in the file).
+# MSN 5228 is a direct lease: 175000/mo fixed MR (held in the 6Y check field)
+# covers all reserves, so there is no variable MR -- APU/LLP 0 and a single
+# zero EPR row (an import can't clear a matrix to empty).
 # ---------------------------------------------------------------------------
 
 AIRCRAFT_DATA = {
@@ -218,17 +220,7 @@ EPR_TABLES = {
         ("3", "227.81", "380.38"),
     ],
     5228: [
-        ("0.99", "450.00", "630.00"),
-        ("1.24", "400.00", "560.00"),
-        ("1.49", "335.00", "469.00"),
-        ("1.74", "315.00", "441.00"),
-        ("1.99", "295.00", "413.00"),
-        ("2.24", "275.00", "385.00"),
-        ("2.49", "265.00", "371.00"),
-        ("2.74", "250.00", "350.00"),
-        ("2.99", "235.00", "329.00"),
-        ("3.24", "220.00", "308.00"),
-        ("3.5", "210.00", "294.00"),
+        ("0", "0.00", "0.00"),
     ],
     5931: [
         ("0.99", "529.97", "741.96"),

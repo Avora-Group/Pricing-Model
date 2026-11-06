@@ -65,6 +65,15 @@ export interface MsnInput {
   llp2RateUsd: string // LLP #2 rate per FC
   // EPR matrix from Aircraft tab (USD per engine)
   eprMatrix: EprMatrixRow[]
+  // Included-MR allowance (e.g. MSN 5228). When set (current basis only) the
+  // fixed MR covers variable MRs up to includedFh / includedFc per month; the
+  // excess FH is charged from suppEprMatrix (USD per FH, per engine) and the
+  // excess FC at suppLlpPerFcUsd (USD per FC, per engine). The normal EPR / LLP
+  // / APU usage rates are not applied in this mode.
+  includedFh?: string
+  includedFc?: string
+  suppLlpPerFcUsd?: string
+  suppEprMatrix?: EprMatrixRow[]
   // Naked rates (parallel cost basis; only populated for cost-access users +
   // aircraft that have naked rates). Used when rateBasis === 'naked'.
   hasNakedRates?: boolean
@@ -231,6 +240,10 @@ interface PricingStore {
     llp1RateUsd: string
     llp2RateUsd: string
     eprMatrix: EprMatrixRow[]
+    includedFh?: string
+    includedFc?: string
+    suppLlpPerFcUsd?: string
+    suppEprMatrix?: EprMatrixRow[]
   }) => void
   toggleSeasonality: (msn: number, enabled: boolean) => void
   updateSeasonInput: (msn: number, season: 'summer' | 'winter', field: keyof SeasonInput, value: string | number) => void
@@ -345,6 +358,10 @@ export const usePricingStore = create<PricingStore>()((set) => ({
               llp1RateUsd: newAircraft.llp1RateUsd,
               llp2RateUsd: newAircraft.llp2RateUsd,
               eprMatrix: newAircraft.eprMatrix,
+              includedFh: newAircraft.includedFh,
+              includedFc: newAircraft.includedFc,
+              suppLlpPerFcUsd: newAircraft.suppLlpPerFcUsd,
+              suppEprMatrix: newAircraft.suppEprMatrix,
               id: undefined, // Clear DB id since this is a new aircraft assignment
             }
           : i

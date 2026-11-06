@@ -5,7 +5,7 @@
  * used by the pricing store.
  */
 
-import type { ComponentBreakdown, MsnPnlResult } from '@/stores/pricing-store'
+import type { ComponentBreakdown, EprMatrixRow, MsnPnlResult } from '@/stores/pricing-store'
 import type { CalculateResponse } from '@/app/actions/pricing'
 
 // ---- API types (snake_case shapes from backend) ----
@@ -31,6 +31,14 @@ export interface AircraftOption {
   llp1_rate_usd: string | null
   llp2_rate_usd: string | null
   epr_matrix: EprMatrixRowApi[]
+  // Included-MR allowance (e.g. MSN 5228): the fixed MR covers variable MRs up
+  // to included_fh / included_fc per month; the excess is charged from the
+  // supplemental matrix (USD per FH, per engine) and the LLP catalogue price
+  // (USD per FC, per engine).
+  included_fh?: string | null
+  included_fc?: string | null
+  supp_llp_per_fc_usd?: string | null
+  supp_epr_matrix?: EprMatrixRowApi[]
   // Naked rates — present only for cost-access users.
   has_naked_rates?: boolean
   naked_lease_rent_usd?: string | null
@@ -44,6 +52,27 @@ export interface AircraftOption {
 }
 
 // ---- Converters ----
+
+/** Allowance fields of an aircraft, in store (camelCase) shape. Absent (all
+ *  undefined) for aircraft without an included-MR allowance. */
+export function allowanceFields(ac: AircraftOption): {
+  includedFh?: string
+  includedFc?: string
+  suppLlpPerFcUsd?: string
+  suppEprMatrix?: EprMatrixRow[]
+} {
+  if (ac.included_fh == null && ac.included_fc == null) return {}
+  return {
+    includedFh: ac.included_fh ?? undefined,
+    includedFc: ac.included_fc ?? undefined,
+    suppLlpPerFcUsd: ac.supp_llp_per_fc_usd ?? undefined,
+    suppEprMatrix: (ac.supp_epr_matrix ?? []).map((r) => ({
+      cycleRatio: parseFloat(r.cycle_ratio),
+      benignRate: parseFloat(r.benign_rate),
+      hotRate: parseFloat(r.hot_rate),
+    })),
+  }
+}
 
 /** Convert API snake_case breakdown to camelCase store format.
  *  Cost/margin fields may be null (server redaction for non-cost-access users);

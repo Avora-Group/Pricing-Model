@@ -172,6 +172,8 @@ async def calculate(
             environment=msn_input.environment,
             exchange_rate=body.exchange_rate,
             margin_percent=body.margin_percent,
+            bh_fh_ratio=msn_input.bh_fh_ratio,
+            apu_fh_ratio=msn_input.apu_fh_ratio,
             aircraft_type=aircraft["aircraft_type"],
             lease_type=msn_input.lease_type,
             crew_sets=msn_input.crew_sets,

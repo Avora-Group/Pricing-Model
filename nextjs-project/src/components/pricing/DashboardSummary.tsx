@@ -289,7 +289,12 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sand
           return (
             <button
               key={input.msn}
-              onClick={() => setActiveMsn(input.msn)}
+              onClick={() => {
+                setActiveMsn(input.msn)
+                // The tab also drives the results scope, so the table, KPIs and
+                // charts follow the aircraft being edited.
+                setSelectedMsn(input.msn)
+              }}
               title={issues.length ? `Check inputs: ${issues.join(' · ')}` : undefined}
               className={`av-ac-tab${active ? ' active' : ''}${input.isDraft ? ' draft' : ''}`}
             >

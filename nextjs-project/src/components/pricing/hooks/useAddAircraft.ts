@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
 import type { MsnInput } from '@/stores/pricing-store'
 import type { AircraftOption } from '@/lib/api-converters'
+import { allowanceFields } from '@/lib/api-converters'
 
 /** Build a fresh MsnInput from an aircraft's master data with pricing defaults. */
 export function buildMsnInput(
@@ -53,6 +54,8 @@ export function buildMsnInput(
       benignRate: parseFloat(r.benign_rate),
       hotRate: parseFloat(r.hot_rate),
     })),
+    // Included-MR allowance (absent for aircraft without one)
+    ...allowanceFields(ac),
     // Naked rates (present only for cost-access users + aircraft with naked data)
     hasNakedRates: Boolean(ac.has_naked_rates),
     nakedLeaseRentUsd: ac.naked_lease_rent_usd ?? undefined,

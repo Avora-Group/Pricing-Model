@@ -29,6 +29,13 @@ class AircraftListResponse(BaseModel):
     af_apu_escalation: Decimal | None = None
     # EPR matrix
     epr_matrix: list[EprMatrixRow] = []
+    # Included-MR allowance (e.g. MSN 5228): the fixed MR covers variable MRs up
+    # to this many FH / FC per month; the excess is charged from the supplemental
+    # matrix (per FH, per engine) and the LLP catalogue price (per FC, per engine).
+    included_fh: Decimal | None = None
+    included_fc: Decimal | None = None
+    supp_llp_per_fc_usd: Decimal | None = None
+    supp_epr_matrix: list[EprMatrixRow] = []
     # --- Naked rates (only populated for cost-access users) ---
     has_naked_rates: bool = False
     naked_lease_rent_usd: Decimal | None = None
@@ -76,6 +83,13 @@ class AircraftDetailResponse(BaseModel):
     af_apu_escalation: Decimal | None = None
     # EPR matrix
     epr_matrix: list[EprMatrixRow] = []
+    # Included-MR allowance (e.g. MSN 5228): the fixed MR covers variable MRs up
+    # to this many FH / FC per month; the excess is charged from the supplemental
+    # matrix (per FH, per engine) and the LLP catalogue price (per FC, per engine).
+    included_fh: Decimal | None = None
+    included_fc: Decimal | None = None
+    supp_llp_per_fc_usd: Decimal | None = None
+    supp_epr_matrix: list[EprMatrixRow] = []
     # --- Naked rates (only populated for cost-access users) ---
     has_naked_rates: bool = False
     naked_lease_rent_usd: Decimal | None = None

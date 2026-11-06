@@ -8,7 +8,7 @@ import { computePeriodMonths, generateMonthRange } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { fmt, fmtMonths } from '@/lib/format'
-import { interpolateEpr } from '@/lib/pnl-engine'
+import { aircraftVariableMr } from '@/lib/pnl-engine'
 import { aircraftFixedEur, pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { periodBhWeightsFromStrings } from '@/lib/mgh-distribution'
@@ -95,10 +95,9 @@ function computeMsnCosts(
   // Current vs naked aircraft cost basis (shared with the P&L engine).
   const ar = pickAircraftRates(input, useNaked)
   const { dryLease, maintReservesFixed } = aircraftFixedEur(ar, exchangeRate)
-  const eprRate = interpolateEpr(ar.eprMatrix, cycleRatio, input.environment)
-  const eprMr = eprRate * 2 * fh * exchangeRate
-  const llpMr = (ar.llp1RateUsd + ar.llp2RateUsd) * fc * exchangeRate
-  const apuMr = ar.apuRateUsd * apuFh * exchangeRate
+  const { eprMr, llpMr, apuMr } = aircraftVariableMr(ar, {
+    fh, fc, apuFh, cycleRatio, environment: input.environment, exchangeRate,
+  })
   const maintReservesVariable = eprMr + llpMr + apuMr
   const aircraft = dryLease + maintReservesFixed + maintReservesVariable
 

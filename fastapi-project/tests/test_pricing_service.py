@@ -228,6 +228,7 @@ class TestCalcAircraft:
             exchange_rate=Decimal("1"),
             mgh=Decimal("1"),
             cycle_ratio=Decimal("1"),
+            bh_fh_ratio=Decimal("1"),
         )
         # 1 FH: epr * 2 engines * 1 FH = 200, EUR = 200 * 1 = 200, per BH = 200 / 1 = 200
         assert result == Decimal("200")
@@ -252,8 +253,27 @@ class TestCalcAircraft:
         base.update({k: Decimal(str(v)) for k, v in kw.items()})
         return AircraftCosts(**base)
 
-    def _calc(self, costs, mgh="300", cr="2"):
-        return _calc_aircraft(costs, Decimal("1"), Decimal(mgh), Decimal(cr))
+    def _calc(self, costs, mgh="300", cr="2", bh_fh="1", apu_fh="1"):
+        """Unit-ratio defaults (BH = FH, APU hours = FH) keep the arithmetic simple."""
+        return _calc_aircraft(
+            costs, Decimal("1"), Decimal(mgh), Decimal(cr),
+            Decimal(bh_fh), Decimal(apu_fh),
+        )
+
+    def test_flight_hours_derive_from_block_hours(self):
+        """FH = BH / 1.2: 300 BH is 250 FH, so 250 x $100 x 2 / 300 BH = 166.67."""
+        costs = self._costs(epr_rate=100)
+        assert self._calc(costs, bh_fh="1.2") == Decimal("250") * 200 / Decimal("300")
+
+    def test_apu_hours_derive_from_flight_hours(self):
+        """APU hours = FH x 0.7: 250 FH -> 175 APU hours x $60 / 300 BH = 35."""
+        costs = self._costs(apu_rate_usd=60)
+        assert self._calc(costs, bh_fh="1.2", apu_fh="0.7") == Decimal("175") * 60 / Decimal("300")
+
+    def test_cycles_derive_from_flight_hours(self):
+        """FC = FH / CR: 300 BH -> 250 FH -> 125 FC at CR 2."""
+        costs = self._costs(llp1_rate_usd=300, llp2_rate_usd=300)
+        assert self._calc(costs, bh_fh="1.2", cr="2") == Decimal("600") * 125 / Decimal("300")
 
     def test_epr_scales_with_flight_hours(self):
         """EPR is USD per FH per engine: 300 FH x $100 x 2 engines / 300 BH = 200."""
@@ -300,28 +320,31 @@ class TestCalcAircraft:
     def test_allowance_mode_charges_only_the_excess(self):
         """MSN 5228 style: fixed MR covers 250 FH / 125 FC; excess at supplemental rates.
 
-        300 BH at CR 2 => 150 FC. Excess = 50 FH and 25 FC.
+        360 BH at BH:FH 1.2 and CR 2 => 300 FH, 150 FC. Excess = 50 FH and 25 FC.
         USD = 360000 + 175000 + 699 x 2 x 50 + 366.15 x 2 x 25 = 623,207.5
         """
         result = _calc_aircraft(
-            self._allowance_costs(), Decimal("0.85"), Decimal("300"), Decimal("2")
+            self._allowance_costs(), Decimal("0.85"), Decimal("360"), Decimal("2"),
+            Decimal("1.2"), Decimal("0.7"),
         )
-        assert result == Decimal("623207.5") * Decimal("0.85") / Decimal("300")
+        assert result == Decimal("623207.5") * Decimal("0.85") / Decimal("360")
 
     def test_allowance_mode_no_excess_within_allowance(self):
-        # 250 BH at CR 2 => 125 FC: exactly at the allowance, nothing extra.
+        # 300 BH at BH:FH 1.2, CR 2 => 250 FH / 125 FC: exactly the allowance.
         result = _calc_aircraft(
-            self._allowance_costs(), Decimal("1"), Decimal("250"), Decimal("2")
+            self._allowance_costs(), Decimal("1"), Decimal("300"), Decimal("2"),
+            Decimal("1.2"), Decimal("0.7"),
         )
-        assert result == Decimal("535000") / Decimal("250")
+        assert result == Decimal("535000") / Decimal("300")
 
     def test_allowance_either_limit_triggers_its_own_charge(self):
         """Only cycles over the allowance: only the LLP charge applies, not EPR."""
-        # 250 BH at CR 1 => 250 FC (125 over), FH exactly at allowance.
+        # 300 BH at BH:FH 1.2, CR 1 => 250 FH (at allowance) / 250 FC (125 over).
         result = _calc_aircraft(
-            self._allowance_costs(), Decimal("1"), Decimal("250"), Decimal("1")
+            self._allowance_costs(), Decimal("1"), Decimal("300"), Decimal("1"),
+            Decimal("1.2"), Decimal("0.7"),
         )
-        expected = (Decimal("535000") + Decimal("366.15") * 2 * 125) / Decimal("250")
+        expected = (Decimal("535000") + Decimal("366.15") * 2 * 125) / Decimal("300")
         assert result == expected
 
 

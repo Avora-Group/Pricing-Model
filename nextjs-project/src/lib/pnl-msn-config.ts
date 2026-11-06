@@ -15,7 +15,7 @@ import type {
   OverheadItem,
 } from '@/stores/costs-config-store'
 import type { MsnInput, EprMatrixRow } from '@/stores/pricing-store'
-import { interpolateEpr } from './pnl-engine'
+import { aircraftVariableMr } from './pnl-engine'
 import { aircraftFixedEur, pickAircraftRates } from './aircraft-rate-basis'
 import type { PnlLineConfig } from './pnl-monthly-builder'
 
@@ -301,10 +301,18 @@ export function computeMsnConfig(
   const msnFh = msnBhFhRatio > 0 ? msnTotalBh / msnBhFhRatio : 0
   const msnFc = msnCycleRatio > 0 ? msnFh / msnCycleRatio : 0
   const msnApuFh = msnFh * msnApuFhRatio
-  const msnEprRate = interpolateEpr(ar.eprMatrix, msnCycleRatio, msnEnvironment)
-  const msnEprMr = msnEprRate * 2 * msnFh * exchangeRate
-  const msnLlpMr = (ar.llp1RateUsd + ar.llp2RateUsd) * msnFc * exchangeRate
-  const msnApuMr = ar.apuRateUsd * msnApuFh * exchangeRate
+  const {
+    eprMr: msnEprMr,
+    llpMr: msnLlpMr,
+    apuMr: msnApuMr,
+  } = aircraftVariableMr(ar, {
+    fh: msnFh,
+    fc: msnFc,
+    apuFh: msnApuFh,
+    cycleRatio: msnCycleRatio,
+    environment: msnEnvironment,
+    exchangeRate,
+  })
   const msnMaintReservesVariable = msnEprMr + msnLlpMr + msnApuMr
 
   // Spare parts = totalBH x spare parts rate + tires/wheels fixed

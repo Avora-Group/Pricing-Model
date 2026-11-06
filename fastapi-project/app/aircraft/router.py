@@ -32,6 +32,7 @@ async def _detail_payload(repo: AircraftRepository, row: dict, user: dict) -> di
     rates and naked EPR only for users with naked access (stripped otherwise)."""
     data = dict(row)
     data["epr_matrix"] = [dict(r) for r in await repo.fetch_epr_matrix(row["id"], "current")]
+    data["supp_epr_matrix"] = [dict(r) for r in await repo.fetch_epr_matrix(row["id"], "supplemental")]
     if user_can_view_naked(user) and data.get("has_naked_rates"):
         data["naked_epr_matrix"] = [dict(r) for r in await repo.fetch_epr_matrix(row["id"], "naked")]
     else:
@@ -63,6 +64,7 @@ async def list_aircraft(
     rows = await repo.list_aircraft(search)
     aircraft_ids = [r["id"] for r in rows]
     epr_map = await repo.fetch_epr_matrices_for_ids(aircraft_ids, "current") if aircraft_ids else {}
+    supp_map = await repo.fetch_epr_matrices_for_ids(aircraft_ids, "supplemental") if aircraft_ids else {}
 
     can_view = user_can_view_naked(current_user)
     naked_epr_map = (
@@ -74,6 +76,7 @@ async def list_aircraft(
     for r in rows:
         data = dict(r)
         data["epr_matrix"] = [dict(e) for e in epr_map.get(r["id"], [])]
+        data["supp_epr_matrix"] = [dict(e) for e in supp_map.get(r["id"], [])]
         if can_view and data.get("has_naked_rates"):
             data["naked_epr_matrix"] = [dict(e) for e in naked_epr_map.get(r["id"], [])]
         else:

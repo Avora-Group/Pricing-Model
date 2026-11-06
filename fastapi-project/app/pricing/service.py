@@ -46,7 +46,8 @@ class AircraftCosts:
       - epr_rate: interpolated per-engine USD per flight hour (FH).
       - llp1_rate_usd / llp2_rate_usd: USD per flight cycle (FC), one rate per
         engine.
-      - apu_rate_usd: USD per flight hour (FH).
+      - apu_rate_usd: USD per APU hour (APU hours = FH x apu_fh_ratio).
+      - Flight hours are derived from block hours: FH = BH / bh_fh_ratio.
 
     Allowance mode (e.g. MSN 5228): when included_fh / included_fc are set, the
     fixed MR (held in six_year_check_usd) already covers all variable MRs up to
@@ -230,15 +231,20 @@ def interpolate_epr(
 # ---------------------------------------------------------------------------
 
 
+DEFAULT_BH_FH_RATIO = Decimal("1.2")  # FH = BH / 1.2
+DEFAULT_APU_FH_RATIO = Decimal("0.7")  # APU hours = FH x 0.7
+
+
 def _aircraft_variable_usd(
     aircraft_costs: AircraftCosts,
     fh: Decimal,
     fc: Decimal,
+    apu_fh: Decimal,
 ) -> Decimal:
-    """Monthly variable MR (USD) for the given monthly FH and FC.
+    """Monthly variable MR (USD) for the given monthly FH, FC and APU hours.
 
-    Usage mode: EPR (x2 engines) and APU scale with FH; LLP1 + LLP2 (one rate
-    per engine) scale with FC.
+    Usage mode: EPR (x2 engines) scales with FH; APU with APU hours; LLP1 +
+    LLP2 (one rate per engine) with FC.
     Allowance mode: only the excess over the included FH / FC is charged, at
     the supplemental per-engine rates.
     """
@@ -252,7 +258,7 @@ def _aircraft_variable_usd(
         )
     return (
         aircraft_costs.epr_rate * two * fh
-        + aircraft_costs.apu_rate_usd * fh
+        + aircraft_costs.apu_rate_usd * apu_fh
         + (aircraft_costs.llp1_rate_usd + aircraft_costs.llp2_rate_usd) * fc
     )
 
@@ -262,25 +268,29 @@ def _calc_aircraft(
     exchange_rate: Decimal,
     mgh: Decimal,
     cycle_ratio: Decimal,
+    bh_fh_ratio: Decimal = DEFAULT_BH_FH_RATIO,
+    apu_fh_ratio: Decimal = DEFAULT_APU_FH_RATIO,
 ) -> Decimal:
     """Calculate Aircraft (A) component: EUR per block hour.
 
     Fixed (monthly USD): lease rent + 6Y check + 12Y check + landing gear.
-    Variable (scales with usage): EPR (per engine, x2) and APU per FH; LLP1 +
-    LLP2 per FC. Monthly FH = MGH; monthly FC = MGH / cycle_ratio (the cycle
-    ratio is FH:FC). See AircraftCosts for allowance-mode aircraft.
+    Variable (scales with usage): EPR (per engine, x2) per FH; APU per APU
+    hour; LLP1 + LLP2 per FC. Monthly FH = MGH / bh_fh_ratio; monthly FC =
+    FH / cycle_ratio (the cycle ratio is FH:FC); APU hours = FH x apu_fh_ratio.
+    See AircraftCosts for allowance-mode aircraft.
 
     Result = (fixed + variable) USD * exchange_rate / MGH.
     """
-    fh = mgh
-    fc = mgh / cycle_ratio if cycle_ratio > Decimal("0") else Decimal("0")
+    fh = mgh / bh_fh_ratio if bh_fh_ratio > Decimal("0") else Decimal("0")
+    fc = fh / cycle_ratio if cycle_ratio > Decimal("0") else Decimal("0")
+    apu_fh = fh * apu_fh_ratio
     fixed_usd = (
         aircraft_costs.lease_rent_usd
         + aircraft_costs.six_year_check_usd
         + aircraft_costs.twelve_year_check_usd
         + aircraft_costs.ldg_usd
     )
-    total_usd = fixed_usd + _aircraft_variable_usd(aircraft_costs, fh, fc)
+    total_usd = fixed_usd + _aircraft_variable_usd(aircraft_costs, fh, fc, apu_fh)
     return total_usd * exchange_rate / mgh
 
 
@@ -434,6 +444,8 @@ def calculate_pricing(
     crew_config: CrewConfig,
     margin_percent: Decimal,
     exchange_rate: Decimal,
+    bh_fh_ratio: Decimal = DEFAULT_BH_FH_RATIO,
+    apu_fh_ratio: Decimal = DEFAULT_APU_FH_RATIO,
 ) -> ComponentBreakdown:
     """Orchestrate all 7 component calculations + margin for a single MSN.
 
@@ -457,12 +469,16 @@ def calculate_pricing(
         crew_config: Current crew config for the aircraft type from DB.
         margin_percent: Target profit margin as percentage (e.g., 10 for 10%).
         exchange_rate: USD/EUR exchange rate.
+        bh_fh_ratio: Block hours per flight hour (FH = BH / ratio), default 1.2.
+        apu_fh_ratio: APU hours per flight hour, default 0.7.
 
     Returns:
         ComponentBreakdown with all 7 per-BH costs, total, margin, and final rate.
     """
     # Calculate all 7 components
-    aircraft = _calc_aircraft(aircraft_costs, exchange_rate, mgh, cycle_ratio)
+    aircraft = _calc_aircraft(
+        aircraft_costs, exchange_rate, mgh, cycle_ratio, bh_fh_ratio, apu_fh_ratio
+    )
     crew = _calc_crew(
         aircraft_type, lease_type, crew_sets, crew_config, mgh,
         pricing_config.average_active_fleet,

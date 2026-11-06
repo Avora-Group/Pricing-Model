@@ -68,6 +68,8 @@ export function useCalculation(
               period_months: computePeriodMonthsInt(i.summer.periodStart, i.summer.periodEnd),
               lease_type: i.leaseType,
               crew_sets: i.summer.crewSets,
+              bh_fh_ratio: i.bhFhRatio,
+              apu_fh_ratio: i.apuFhRatio,
               ...coverage,
             },
             {
@@ -78,6 +80,8 @@ export function useCalculation(
               period_months: computePeriodMonthsInt(i.winter.periodStart, i.winter.periodEnd),
               lease_type: i.leaseType,
               crew_sets: i.winter.crewSets,
+              bh_fh_ratio: i.bhFhRatio,
+              apu_fh_ratio: i.apuFhRatio,
               // Coverage is a per-MSN term-level amount; sending it on both
               // season rows would double-count it in the engine's total.
               ...coverage,
@@ -93,6 +97,8 @@ export function useCalculation(
           period_months: computePeriodMonthsInt(i.periodStart, i.periodEnd),
           lease_type: i.leaseType,
           crew_sets: i.crewSets,
+          bh_fh_ratio: i.bhFhRatio,
+          apu_fh_ratio: i.apuFhRatio,
           ...coverage,
         }]
       })

@@ -23,6 +23,8 @@ class PricingInputs(BaseModel):
     period_months: int = 12     # Contract period in months
     lease_type: str = "wet"     # "wet", "damp", or "moist"
     crew_sets: float = 4         # Number of crew sets (supports decimals e.g. 3.5)
+    bh_fh_ratio: Decimal = Decimal("1.2")   # FH = BH / bh_fh_ratio
+    apu_fh_ratio: Decimal = Decimal("0.7")  # APU hours = FH x apu_fh_ratio
     # Fixed-cost coverage (summer-covers-winter deals): the client covers
     # coverage_percent of this MSN's monthly fixed costs for coverage_months.
     fixed_cost_coverage_enabled: bool = False

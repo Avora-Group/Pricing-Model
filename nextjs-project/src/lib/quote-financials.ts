@@ -54,6 +54,10 @@ export function reconstructMsnInput(snap: QuoteMsnSnapshot): MsnInput {
     eprMatrix:
       (input.eprMatrix as Array<{ cycleRatio: number; benignRate: number; hotRate: number }>) ??
       [],
+    includedFh: optStr(input.includedFh),
+    includedFc: optStr(input.includedFc),
+    suppLlpPerFcUsd: optStr(input.suppLlpPerFcUsd),
+    suppEprMatrix: (input.suppEprMatrix as Array<{ cycleRatio: number; benignRate: number; hotRate: number }> | undefined),
     seasonalityEnabled: (input.seasonalityEnabled as boolean) ?? false,
     summer: input.summer as SeasonInput | undefined,
     winter: input.winter as SeasonInput | undefined,

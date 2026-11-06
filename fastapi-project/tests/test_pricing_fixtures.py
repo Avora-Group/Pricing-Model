@@ -107,9 +107,11 @@ def _compute_expected_scenario_1():
     average_active_fleet = Decimal("11.0")
 
     # A (Aircraft): fixed monthly + usage-scaled MR, convert to EUR, / MGH.
-    # FH = MGH; FC = MGH / cycle_ratio (CR = FH:FC = 1.0 here).
-    fh = mgh
-    fc = mgh / Decimal("1.0")
+    # FH = BH / 1.2; FC = FH / cycle_ratio (CR = FH:FC = 1.0 here);
+    # APU hours = FH x 0.7.
+    fh = mgh / Decimal("1.2")
+    fc = fh / Decimal("1.0")
+    apu_fh = fh * Decimal("0.7")
     total_aircraft_usd = (
         Decimal("185000.00")   # lease rent
         + Decimal("15413.95")  # 6Y check
@@ -117,7 +119,7 @@ def _compute_expected_scenario_1():
         + Decimal("4333.21")   # LDG (fixed)
         + Decimal("448.22") * 2 * fh  # EPR (per-engine * 2) per FH
         + (Decimal("317.905") + Decimal("317.905")) * fc  # LLP1 + LLP2 per FC
-        + Decimal("59.74") * fh  # APU per FH
+        + Decimal("59.74") * apu_fh  # APU per APU hour
     )
     aircraft_eur = total_aircraft_usd * exchange_rate
     aircraft_per_bh = aircraft_eur / mgh
@@ -211,9 +213,11 @@ def _compute_expected_scenario_2():
     mgh = Decimal("300")
     average_active_fleet = Decimal("11.0")
 
-    # A (Aircraft): FH = MGH; FC = MGH / cycle_ratio (CR = 0.62)
-    fh = mgh
-    fc = mgh / Decimal("0.62")
+    # A (Aircraft): FH = BH / 1.2; FC = FH / cycle_ratio (CR = 0.62);
+    # APU hours = FH x 0.7
+    fh = mgh / Decimal("1.2")
+    fc = fh / Decimal("0.62")
+    apu_fh = fh * Decimal("0.7")
     total_aircraft_usd = (
         Decimal("185000.00")
         + Decimal("14334.75")
@@ -221,7 +225,7 @@ def _compute_expected_scenario_2():
         + Decimal("4864.50")  # LDG (fixed)
         + Decimal("870.73") * 2 * fh  # EPR * 2 per FH
         + (Decimal("341.775") + Decimal("353.135")) * fc  # LLP1 + LLP2 per FC
-        + Decimal("53.82") * fh  # APU per FH
+        + Decimal("53.82") * apu_fh  # APU per APU hour
     )
     aircraft_eur = total_aircraft_usd * exchange_rate
     aircraft_per_bh = aircraft_eur / mgh

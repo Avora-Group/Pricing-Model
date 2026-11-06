@@ -12,6 +12,7 @@ import { buildMonthDayInfos } from './pnl-proration'
 import { periodBhWeightsFromStrings } from './mgh-distribution'
 import { aircraftFixedEur, pickAircraftRates } from './aircraft-rate-basis'
 import type { MsnInput, EprMatrixRow } from '@/stores/pricing-store'
+import type { ResolvedAircraftRates } from './aircraft-rate-basis'
 import type { PayrollRow, CostRow, TrainingRow } from '@/stores/crew-config-store'
 import type {
   MaintPersonnel,
@@ -23,6 +24,63 @@ import type {
 } from '@/stores/costs-config-store'
 
 // ---- EPR interpolation (same as PnlTable) ----
+
+/** Monthly variable aircraft MR, in EUR, with the rate used for the EPR line. */
+export interface AircraftVariableMr {
+  eprRate: number
+  eprMr: number
+  llpMr: number
+  apuMr: number
+  /** Allowance mode only: FH / FC above the included monthly allowance. */
+  excessFh: number
+  excessFc: number
+}
+
+/**
+ * Monthly variable maintenance reserves for one aircraft (EUR).
+ *
+ * Usage mode (default): EPR (per engine, x2) scales with FH, LLP1 + LLP2 (one
+ * rate per engine) with FC, APU with APU hours.
+ *
+ * Allowance mode (e.g. MSN 5228, current basis): the fixed MR already covers
+ * all variable MRs up to includedFh / includedFc per month. Only the excess is
+ * charged: excess FH at the supplemental matrix rate (per engine, x2) and
+ * excess FC at the LLP catalogue price (per engine, x2).
+ */
+export function aircraftVariableMr(
+  ar: ResolvedAircraftRates,
+  p: {
+    fh: number
+    fc: number
+    apuFh: number
+    cycleRatio: number
+    environment: 'benign' | 'hot'
+    exchangeRate: number
+  },
+): AircraftVariableMr {
+  if (ar.includedFh != null || ar.includedFc != null) {
+    const excessFh = Math.max(p.fh - (ar.includedFh ?? 0), 0)
+    const excessFc = Math.max(p.fc - (ar.includedFc ?? 0), 0)
+    const suppRate = interpolateEpr(ar.suppEprMatrix, p.cycleRatio, p.environment)
+    return {
+      eprRate: suppRate,
+      eprMr: suppRate * 2 * excessFh * p.exchangeRate,
+      llpMr: ar.suppLlpPerFcUsd * 2 * excessFc * p.exchangeRate,
+      apuMr: 0,
+      excessFh,
+      excessFc,
+    }
+  }
+  const eprRate = interpolateEpr(ar.eprMatrix, p.cycleRatio, p.environment)
+  return {
+    eprRate,
+    eprMr: eprRate * 2 * p.fh * p.exchangeRate,
+    llpMr: (ar.llp1RateUsd + ar.llp2RateUsd) * p.fc * p.exchangeRate,
+    apuMr: ar.apuRateUsd * p.apuFh * p.exchangeRate,
+    excessFh: 0,
+    excessFc: 0,
+  }
+}
 
 export function interpolateEpr(
   matrix: EprMatrixRow[],
@@ -274,19 +332,9 @@ export function computeMsnPnlSummary(
   const fh = bhFhRatio > 0 ? totalBhPerMonth / bhFhRatio : 0
   const fc = cycleRatio > 0 ? fh / cycleRatio : 0
   const apuFh = fh * apuFhRatio
-  const eprRate = interpolateEpr(
-    input.eprMatrix ?? [],
-    cycleRatio,
-    environment,
-  )
-  const eprMr = eprRate * 2 * fh * exchangeRate
-  const llpMr =
-    (parseFloat(input.llp1RateUsd || '0') +
-      parseFloat(input.llp2RateUsd || '0')) *
-    fc *
-    exchangeRate
-  const apuMr =
-    parseFloat(input.apuRateUsd || '0') * apuFh * exchangeRate
+  const { eprMr, llpMr, apuMr } = aircraftVariableMr(pickAircraftRates(input, false), {
+    fh, fc, apuFh, cycleRatio, environment, exchangeRate,
+  })
   const maintReservesVariable = eprMr + llpMr + apuMr
 
   // Spare parts = totalBH × spare parts rate + tires/wheels fixed

@@ -102,6 +102,9 @@ function overlayBasis(m: MsnInput, useNaked: boolean): MsnInput {
     llp1RateUsd: String(r.llp1RateUsd),
     llp2RateUsd: String(r.llp2RateUsd),
     eprMatrix: r.eprMatrix,
+    // The naked basis has no included-MR allowance.
+    includedFh: undefined,
+    includedFc: undefined,
   }
 }
 

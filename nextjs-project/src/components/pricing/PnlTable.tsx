@@ -12,7 +12,7 @@ import { buildMonthlyData } from '@/lib/pnl-monthly-builder'
 import { ALL_DATA_KEYS as ALL_KEYS_IMPORT } from '@/lib/pnl-row-defs'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
 import type { CrewDerivedValues, CostsDerivedValues } from '@/lib/pnl-msn-config'
-import { interpolateEpr } from '@/lib/pnl-engine'
+import { aircraftVariableMr } from '@/lib/pnl-engine'
 import type { CrewStoreData, CostsStoreData } from '@/lib/pnl-engine'
 import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
@@ -511,13 +511,21 @@ export function PnlTable({ source }: { source?: PnlSource } = {}) {
         if (msnInput) {
           const cr = parseFloat(msnInput.cycleRatio || '1')
           const ar = pickAircraftRates(msnInput, useNaked)
-          const eprRate = interpolateEpr(ar.eprMatrix, cr, msnInput.environment)
-          const llp1 = ar.llp1RateUsd
-          const llp2 = ar.llp2RateUsd
-          const apuRate = ar.apuRateUsd
-          eprF = `${fn(eprRate, 2)} \u00d7 2 \u00d7 ${fn(v('fh'), 1)} FH \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
-          llpF = `(${fn(llp1, 2)} + ${fn(llp2, 2)}) \u00d7 ${fn(v('fc'), 1)} FC \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
-          apuF = `${fn(apuRate, 2)} \u00d7 ${fn(v('apuFh'), 1)} APU FH \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+          const vmr = aircraftVariableMr(ar, {
+            fh: v('fh'), fc: v('fc'), apuFh: v('apuFh'), cycleRatio: cr,
+            environment: msnInput.environment, exchangeRate,
+          })
+          if (ar.includedFh != null || ar.includedFc != null) {
+            // Included-MR allowance: the fixed MR covers usage up to the
+            // allowance; only the excess is charged at supplemental rates.
+            eprF = `${fn(vmr.eprRate, 2)} \u00d7 2 \u00d7 ${fn(vmr.excessFh, 1)} excess FH (over ${fn(ar.includedFh ?? 0)} incl.) \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+            llpF = `${fn(ar.suppLlpPerFcUsd, 2)} \u00d7 2 \u00d7 ${fn(vmr.excessFc, 1)} excess FC (over ${fn(ar.includedFc ?? 0)} incl.) \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+            apuF = 'Covered by the fixed MR'
+          } else {
+            eprF = `${fn(vmr.eprRate, 2)} \u00d7 2 \u00d7 ${fn(v('fh'), 1)} FH \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+            llpF = `(${fn(ar.llp1RateUsd, 2)} + ${fn(ar.llp2RateUsd, 2)}) \u00d7 ${fn(v('fc'), 1)} FC \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+            apuF = `${fn(ar.apuRateUsd, 2)} \u00d7 ${fn(v('apuFh'), 1)} APU FH \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+          }
         }
         return {
           title: 'Maint. Reserves - Variable',

@@ -7,6 +7,7 @@ import type { MsnInput, SeasonInput } from '@/stores/pricing-store'
 import { usePricingStore } from '@/stores/pricing-store'
 import { useCanViewNaked } from '@/providers/CostVisibilityProvider'
 import type { AircraftOption } from '@/lib/api-converters'
+import { allowanceFields } from '@/lib/api-converters'
 
 interface MsnInputRowProps {
   input: MsnInput
@@ -285,6 +286,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
         benignRate: parseFloat(r.benign_rate),
         hotRate: parseFloat(r.hot_rate),
       })),
+      ...allowanceFields(ac),
     })
     setShowSwap(false)
   }

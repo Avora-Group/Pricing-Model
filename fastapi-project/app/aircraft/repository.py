@@ -18,7 +18,8 @@ class AircraftRepository(BaseRepository):
                    r.naked_lease_rent_usd, r.naked_six_year_check_usd,
                    r.naked_twelve_year_check_usd, r.naked_ldg_usd,
                    r.naked_apu_rate_usd, r.naked_llp1_rate_usd, r.naked_llp2_rate_usd,
-                   r.naked_epr_escalation, r.naked_llp_escalation, r.naked_af_apu_escalation
+                   r.naked_epr_escalation, r.naked_llp_escalation, r.naked_af_apu_escalation,
+                   r.included_fh, r.included_fc, r.supp_llp_per_fc_usd
             FROM aircraft a
             LEFT JOIN aircraft_rates r ON r.aircraft_id = a.id
         """

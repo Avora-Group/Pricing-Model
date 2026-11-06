@@ -125,6 +125,8 @@ export async function calculatePnlAction(inputs: {
     period_months: number
     lease_type: string
     crew_sets: number
+    bh_fh_ratio?: string
+    apu_fh_ratio?: string
     fixed_cost_coverage_enabled?: boolean
     fixed_cost_coverage_percent?: string
     fixed_cost_coverage_months?: string

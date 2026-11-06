@@ -29,6 +29,11 @@ export interface ResolvedAircraftRates {
   llp1RateUsd: number
   llp2RateUsd: number
   eprMatrix: EprMatrixRow[]
+  /** Included-MR allowance (current basis only; null = none). See MsnInput. */
+  includedFh: number | null
+  includedFc: number | null
+  suppLlpPerFcUsd: number
+  suppEprMatrix: EprMatrixRow[]
 }
 
 const num = (v: string | null | undefined) => parseFloat(v || '0')
@@ -57,6 +62,11 @@ export function pickAircraftRates(input: MsnInput, useNaked: boolean): ResolvedA
     llp1RateUsd: num(nk ? input.nakedLlp1RateUsd : input.llp1RateUsd),
     llp2RateUsd: num(nk ? input.nakedLlp2RateUsd : input.llp2RateUsd),
     eprMatrix: nk && input.nakedEprMatrix?.length ? input.nakedEprMatrix : (input.eprMatrix ?? []),
+    // The naked basis has no allowance.
+    includedFh: !nk && input.includedFh != null && input.includedFh !== '' ? num(input.includedFh) : null,
+    includedFc: !nk && input.includedFc != null && input.includedFc !== '' ? num(input.includedFc) : null,
+    suppLlpPerFcUsd: num(input.suppLlpPerFcUsd),
+    suppEprMatrix: input.suppEprMatrix ?? [],
   }
 }
 

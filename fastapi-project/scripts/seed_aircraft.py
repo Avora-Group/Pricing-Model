@@ -530,6 +530,27 @@ NAKED_EPR_TABLES = {
 }
 
 # All MSNs in fleet order
+# ---------------------------------------------------------------------------
+# Included-MR allowance (MSN 5228). The fixed 175,000/mo MR covers all variable
+# MRs up to 250 FH and 125 FC per month. Excess FH is charged from the
+# supplemental matrix (USD per FH, per engine, keyed on FH:FC); excess FC at the
+# standard IAE LLP catalogue price (USD per FC, per engine). See migration 020.
+# ---------------------------------------------------------------------------
+
+ALLOWANCES = {
+    5228: {"included_fh": "250", "included_fc": "125", "supp_llp_per_fc": "366.15"},
+}
+
+# (cycle_ratio, benign_rate, hot_rate)
+SUPPLEMENTAL_EPR_TABLES = {
+    5228: [
+        ("0.99", "800.00", "900.00"),
+        ("1.99", "700.00", "800.00"),
+        ("2.99", "600.00", "700.00"),
+        ("4", "500.00", "600.00"),
+    ],
+}
+
 ALL_MSNS = [3055, 3378, 3461, 3570, 3605, 4247, 5228, 5931, 1932, 1960, 1503]
 
 # Aircraft type per MSN (A321 for 1503, 1932, 1960; A320 for the rest)
@@ -576,6 +597,12 @@ def _rate_fields(msn: int) -> dict:
         "llp_escalation": Decimal(esc["llp"]),
         "af_apu_escalation": Decimal(esc["af_apu"]),
     }
+    allowance = ALLOWANCES.get(msn)
+    fields.update({
+        "included_fh": Decimal(allowance["included_fh"]) if allowance else None,
+        "included_fc": Decimal(allowance["included_fc"]) if allowance else None,
+        "supp_llp_per_fc_usd": Decimal(allowance["supp_llp_per_fc"]) if allowance else None,
+    })
     if msn in NAKED_MSNS:
         nd = NAKED_AIRCRAFT_DATA[msn]
         nesc = NAKED_ESCALATION_RATES[msn]
@@ -672,6 +699,7 @@ async def seed(database_url: str):
                 await _replace_epr(conn, aircraft_id, "naked", NAKED_EPR_TABLES.get(msn, []))
                 n_nak = len(NAKED_EPR_TABLES.get(msn, []))
 
+            await _replace_epr(conn, aircraft_id, "supplemental", SUPPLEMENTAL_EPR_TABLES.get(msn, []))
             print(f"    Rates + {n_cur} current EPR rows" +
                   (f" + {n_nak} naked EPR rows" if msn in NAKED_MSNS else ""))
 

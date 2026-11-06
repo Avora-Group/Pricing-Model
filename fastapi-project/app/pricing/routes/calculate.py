@@ -149,6 +149,23 @@ async def calculate(
             epr_rate=epr_rate,
         )
 
+        # Included-MR allowance (e.g. MSN 5228): the fixed MR covers variable MRs
+        # up to included_fh / included_fc per month; the excess is charged from
+        # the supplemental matrix + LLP catalogue price. Applies to the current
+        # basis only -- the naked basis has no allowance.
+        if (
+            not use_naked
+            and (aircraft.get("included_fh") is not None or aircraft.get("included_fc") is not None)
+        ):
+            supp_rows = await aircraft_repo.fetch_epr_matrix(aircraft["id"], "supplemental")
+            supp_tuples = sorted((row["cycle_ratio"], row[rate_key]) for row in supp_rows)
+            ac.included_fh = aircraft.get("included_fh")
+            ac.included_fc = aircraft.get("included_fc")
+            ac.supp_epr_rate = (
+                interpolate_epr(supp_tuples, msn_input.cycle_ratio) if supp_tuples else Decimal("0")
+            )
+            ac.supp_llp_per_fc_usd = aircraft.get("supp_llp_per_fc_usd") or Decimal("0")
+
         breakdown = calculate_pricing(
             mgh=msn_input.mgh,
             cycle_ratio=msn_input.cycle_ratio,

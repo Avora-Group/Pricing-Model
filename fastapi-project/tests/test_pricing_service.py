@@ -206,6 +206,7 @@ class TestCalcAircraft:
             aircraft_costs=_TEST_AIRCRAFT_COSTS,
             exchange_rate=_TEST_EXCHANGE_RATE,
             mgh=_TEST_MGH,
+            cycle_ratio=Decimal("1.0"),
         )
         assert isinstance(result, Decimal)
         assert result > Decimal("0")
@@ -226,8 +227,9 @@ class TestCalcAircraft:
             aircraft_costs=costs_low_epr,
             exchange_rate=Decimal("1"),
             mgh=Decimal("1"),
+            cycle_ratio=Decimal("1"),
         )
-        # Total = epr * 2 = 200, EUR = 200 * 1 = 200, per BH = 200 / 1 = 200
+        # 1 FH: epr * 2 engines * 1 FH = 200, EUR = 200 * 1 = 200, per BH = 200 / 1 = 200
         assert result == Decimal("200")
 
     def test_result_is_decimal(self):
@@ -235,8 +237,92 @@ class TestCalcAircraft:
             aircraft_costs=_TEST_AIRCRAFT_COSTS,
             exchange_rate=_TEST_EXCHANGE_RATE,
             mgh=_TEST_MGH,
+            cycle_ratio=Decimal("1.0"),
         )
         assert isinstance(result, Decimal)
+
+    @staticmethod
+    def _costs(**kw):
+        base = dict(
+            lease_rent_usd=Decimal("0"), six_year_check_usd=Decimal("0"),
+            twelve_year_check_usd=Decimal("0"), ldg_usd=Decimal("0"),
+            apu_rate_usd=Decimal("0"), llp1_rate_usd=Decimal("0"),
+            llp2_rate_usd=Decimal("0"), epr_rate=Decimal("0"),
+        )
+        base.update({k: Decimal(str(v)) for k, v in kw.items()})
+        return AircraftCosts(**base)
+
+    def _calc(self, costs, mgh="300", cr="2"):
+        return _calc_aircraft(costs, Decimal("1"), Decimal(mgh), Decimal(cr))
+
+    def test_epr_scales_with_flight_hours(self):
+        """EPR is USD per FH per engine: 300 FH x $100 x 2 engines / 300 BH = 200."""
+        assert self._calc(self._costs(epr_rate=100)) == Decimal("200")
+        # Doubling MGH doubles the monthly EPR charge but not the per-BH rate.
+        assert self._calc(self._costs(epr_rate=100), mgh="600") == Decimal("200")
+
+    def test_apu_scales_with_flight_hours(self):
+        assert self._calc(self._costs(apu_rate_usd=60)) == Decimal("60")
+
+    def test_llp_scales_with_cycles_not_hours(self):
+        """LLP1 + LLP2 are USD per FC, one rate per engine. CR 2 => 150 FC at 300 BH."""
+        costs = self._costs(llp1_rate_usd=300, llp2_rate_usd=300)
+        # (300 + 300) x 150 FC / 300 BH = 300 per BH
+        assert self._calc(costs, cr="2") == Decimal("300")
+        # CR 1 => 300 FC => twice the cycles => twice the per-BH LLP cost
+        assert self._calc(costs, cr="1") == Decimal("600")
+
+    def test_landing_gear_and_checks_are_fixed_monthly(self):
+        """LDG, 6Y, 12Y and lease are fixed per month: per-BH falls as MGH rises."""
+        costs = self._costs(ldg_usd=3000, six_year_check_usd=3000, lease_rent_usd=3000)
+        assert self._calc(costs, mgh="300") == Decimal("30")
+        assert self._calc(costs, mgh="600") == Decimal("15")
+
+    def test_per_bh_variable_cost_differs_by_aircraft(self):
+        """Two aircraft with different usage rates must price differently."""
+        cheap = self._costs(lease_rent_usd=185000, epr_rate=250, llp1_rate_usd=300,
+                            llp2_rate_usd=300, apu_rate_usd=50)
+        dear = self._costs(lease_rent_usd=185000, epr_rate=350, llp1_rate_usd=350,
+                           llp2_rate_usd=350, apu_rate_usd=70)
+        assert self._calc(dear) > self._calc(cheap)
+
+    @staticmethod
+    def _allowance_costs():
+        return AircraftCosts(
+            lease_rent_usd=Decimal("360000"), six_year_check_usd=Decimal("175000"),
+            twelve_year_check_usd=Decimal("0"), ldg_usd=Decimal("0"),
+            apu_rate_usd=Decimal("0"), llp1_rate_usd=Decimal("0"),
+            llp2_rate_usd=Decimal("0"), epr_rate=Decimal("0"),
+            included_fh=Decimal("250"), included_fc=Decimal("125"),
+            supp_epr_rate=Decimal("699"), supp_llp_per_fc_usd=Decimal("366.15"),
+        )
+
+    def test_allowance_mode_charges_only_the_excess(self):
+        """MSN 5228 style: fixed MR covers 250 FH / 125 FC; excess at supplemental rates.
+
+        300 BH at CR 2 => 150 FC. Excess = 50 FH and 25 FC.
+        USD = 360000 + 175000 + 699 x 2 x 50 + 366.15 x 2 x 25 = 623,207.5
+        """
+        result = _calc_aircraft(
+            self._allowance_costs(), Decimal("0.85"), Decimal("300"), Decimal("2")
+        )
+        assert result == Decimal("623207.5") * Decimal("0.85") / Decimal("300")
+
+    def test_allowance_mode_no_excess_within_allowance(self):
+        # 250 BH at CR 2 => 125 FC: exactly at the allowance, nothing extra.
+        result = _calc_aircraft(
+            self._allowance_costs(), Decimal("1"), Decimal("250"), Decimal("2")
+        )
+        assert result == Decimal("535000") / Decimal("250")
+
+    def test_allowance_either_limit_triggers_its_own_charge(self):
+        """Only cycles over the allowance: only the LLP charge applies, not EPR."""
+        # 250 BH at CR 1 => 250 FC (125 over), FH exactly at allowance.
+        result = _calc_aircraft(
+            self._allowance_costs(), Decimal("1"), Decimal("250"), Decimal("1")
+        )
+        expected = (Decimal("535000") + Decimal("366.15") * 2 * 125) / Decimal("250")
+        assert result == expected
 
 
 class TestCalcCrew:

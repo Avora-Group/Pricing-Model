@@ -4,7 +4,7 @@ All arithmetic uses decimal.Decimal -- never float. Functions are pure
 (no I/O, no side effects): they receive pre-fetched data and return results.
 
 Components:
-  A (Aircraft):   Lease rent + all MR rates (6Y, 12Y, LDG, EPR*2, LLP, APU)
+  A (Aircraft):   Fixed (lease, 6Y, 12Y, LDG) + usage-scaled MR (EPR*2 & APU per FH, LLP per FC)
   C (Crew):       Fixed salaries + variable per diems, by aircraft type and lease type
   M (Maintenance):Fixed (line, base, personnel, c-check, training) + variable (spares, per diem)
   I (Insurance):  Fixed USD amount converted to EUR
@@ -40,8 +40,19 @@ from decimal import Decimal
 class AircraftCosts:
     """Aircraft cost data fetched from DB (Phase 2 aircraft_rates table).
 
-    All values are monthly USD amounts except epr_rate which is the
-    interpolated per-engine rate from the EPR matrix.
+    Units:
+      - lease_rent_usd, six_year_check_usd, twelve_year_check_usd, ldg_usd:
+        fixed USD per month (landing gear is a fixed MR charge).
+      - epr_rate: interpolated per-engine USD per flight hour (FH).
+      - llp1_rate_usd / llp2_rate_usd: USD per flight cycle (FC), one rate per
+        engine.
+      - apu_rate_usd: USD per flight hour (FH).
+
+    Allowance mode (e.g. MSN 5228): when included_fh / included_fc are set, the
+    fixed MR (held in six_year_check_usd) already covers all variable MRs up to
+    that many FH / FC per month. Only the excess is charged: excess FH at
+    supp_epr_rate per engine, excess FC at supp_llp_per_fc_usd per engine. The
+    normal EPR / LLP / APU usage rates are not applied in this mode.
     """
     lease_rent_usd: Decimal
     six_year_check_usd: Decimal
@@ -50,7 +61,11 @@ class AircraftCosts:
     apu_rate_usd: Decimal
     llp1_rate_usd: Decimal
     llp2_rate_usd: Decimal
-    epr_rate: Decimal  # Already interpolated per-engine rate
+    epr_rate: Decimal  # Already interpolated per-engine rate (USD per FH)
+    included_fh: Decimal | None = None
+    included_fc: Decimal | None = None
+    supp_epr_rate: Decimal = Decimal("0")  # Interpolated supplemental USD per excess FH, per engine
+    supp_llp_per_fc_usd: Decimal = Decimal("0")  # USD per excess FC, per engine
 
 
 @dataclass
@@ -215,31 +230,58 @@ def interpolate_epr(
 # ---------------------------------------------------------------------------
 
 
+def _aircraft_variable_usd(
+    aircraft_costs: AircraftCosts,
+    fh: Decimal,
+    fc: Decimal,
+) -> Decimal:
+    """Monthly variable MR (USD) for the given monthly FH and FC.
+
+    Usage mode: EPR (x2 engines) and APU scale with FH; LLP1 + LLP2 (one rate
+    per engine) scale with FC.
+    Allowance mode: only the excess over the included FH / FC is charged, at
+    the supplemental per-engine rates.
+    """
+    two = Decimal("2")
+    if aircraft_costs.included_fh is not None or aircraft_costs.included_fc is not None:
+        excess_fh = max(fh - (aircraft_costs.included_fh or Decimal("0")), Decimal("0"))
+        excess_fc = max(fc - (aircraft_costs.included_fc or Decimal("0")), Decimal("0"))
+        return (
+            aircraft_costs.supp_epr_rate * two * excess_fh
+            + aircraft_costs.supp_llp_per_fc_usd * two * excess_fc
+        )
+    return (
+        aircraft_costs.epr_rate * two * fh
+        + aircraft_costs.apu_rate_usd * fh
+        + (aircraft_costs.llp1_rate_usd + aircraft_costs.llp2_rate_usd) * fc
+    )
+
+
 def _calc_aircraft(
     aircraft_costs: AircraftCosts,
     exchange_rate: Decimal,
     mgh: Decimal,
+    cycle_ratio: Decimal,
 ) -> Decimal:
     """Calculate Aircraft (A) component: EUR per block hour.
 
-    Source: Cost Forecast sheet, Aircraft section.
-    Formula: Sum all aircraft cost rates (EPR * 2 for twin-engine),
-             convert USD to EUR, divide by MGH.
+    Fixed (monthly USD): lease rent + 6Y check + 12Y check + landing gear.
+    Variable (scales with usage): EPR (per engine, x2) and APU per FH; LLP1 +
+    LLP2 per FC. Monthly FH = MGH; monthly FC = MGH / cycle_ratio (the cycle
+    ratio is FH:FC). See AircraftCosts for allowance-mode aircraft.
 
-    Note: EPR matrix stores per-engine rates; multiply by 2 per Phase 2 decision.
+    Result = (fixed + variable) USD * exchange_rate / MGH.
     """
-    total_usd = (
+    fh = mgh
+    fc = mgh / cycle_ratio if cycle_ratio > Decimal("0") else Decimal("0")
+    fixed_usd = (
         aircraft_costs.lease_rent_usd
         + aircraft_costs.six_year_check_usd
         + aircraft_costs.twelve_year_check_usd
         + aircraft_costs.ldg_usd
-        + aircraft_costs.epr_rate * 2  # Per-engine * 2 engines
-        + aircraft_costs.llp1_rate_usd
-        + aircraft_costs.llp2_rate_usd
-        + aircraft_costs.apu_rate_usd
     )
-    total_eur = total_usd * exchange_rate
-    return total_eur / mgh
+    total_usd = fixed_usd + _aircraft_variable_usd(aircraft_costs, fh, fc)
+    return total_usd * exchange_rate / mgh
 
 
 def _crew_fixed_monthly(
@@ -420,7 +462,7 @@ def calculate_pricing(
         ComponentBreakdown with all 7 per-BH costs, total, margin, and final rate.
     """
     # Calculate all 7 components
-    aircraft = _calc_aircraft(aircraft_costs, exchange_rate, mgh)
+    aircraft = _calc_aircraft(aircraft_costs, exchange_rate, mgh, cycle_ratio)
     crew = _calc_crew(
         aircraft_type, lease_type, crew_sets, crew_config, mgh,
         pricing_config.average_active_fleet,

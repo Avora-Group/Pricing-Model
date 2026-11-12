@@ -38,6 +38,19 @@ export interface ResolvedAircraftRates {
 
 const num = (v: string | null | undefined) => parseFloat(v || '0')
 
+/**
+ * MSNs leased with a supplemental rent that covers every reserve (MSN 5228:
+ * 175k/mo). They carry no usage-based (variable) maintenance reserves, so
+ * EPR, LLP and APU always resolve to zero whatever rates are stored or
+ * snapshotted in a saved quote. Keep in sync with NO_VARIABLE_MR_MSNS in
+ * fastapi-project/app/pricing/service.py.
+ */
+export const NO_VARIABLE_MR_MSNS: ReadonlySet<number> = new Set([5228])
+
+export function hasVariableMr(msn: number): boolean {
+  return !NO_VARIABLE_MR_MSNS.has(Number(msn))
+}
+
 /** USD value, or the legacy EUR snapshot converted back to USD when the input predates USD storage. */
 function usd(usdValue: string | null | undefined, legacyEur: string | null | undefined): number {
   if (usdValue != null && usdValue !== '') return num(usdValue)
@@ -47,6 +60,7 @@ function usd(usdValue: string | null | undefined, legacyEur: string | null | und
 
 export function pickAircraftRates(input: MsnInput, useNaked: boolean): ResolvedAircraftRates {
   const nk = useNaked && Boolean(input.hasNakedRates)
+  const variableMr = hasVariableMr(input.msn)
   return {
     leaseRentUsd: nk
       ? usd(input.nakedLeaseRentUsd, input.nakedLeaseRentEur)
@@ -58,15 +72,18 @@ export function pickAircraftRates(input: MsnInput, useNaked: boolean): ResolvedA
       ? usd(input.nakedTwelveYearCheckUsd, input.nakedTwelveYearCheckEur)
       : usd(input.twelveYearCheckUsd, input.twelveYearCheckEur),
     ldgUsd: nk ? usd(input.nakedLdgUsd, input.nakedLdgEur) : usd(input.ldgUsd, input.ldgEur),
-    apuRateUsd: num(nk ? input.nakedApuRateUsd : input.apuRateUsd),
-    llp1RateUsd: num(nk ? input.nakedLlp1RateUsd : input.llp1RateUsd),
-    llp2RateUsd: num(nk ? input.nakedLlp2RateUsd : input.llp2RateUsd),
-    eprMatrix: nk && input.nakedEprMatrix?.length ? input.nakedEprMatrix : (input.eprMatrix ?? []),
-    // The naked basis has no allowance.
-    includedFh: !nk && input.includedFh != null && input.includedFh !== '' ? num(input.includedFh) : null,
-    includedFc: !nk && input.includedFc != null && input.includedFc !== '' ? num(input.includedFc) : null,
-    suppLlpPerFcUsd: num(input.suppLlpPerFcUsd),
-    suppEprMatrix: input.suppEprMatrix ?? [],
+    apuRateUsd: variableMr ? num(nk ? input.nakedApuRateUsd : input.apuRateUsd) : 0,
+    llp1RateUsd: variableMr ? num(nk ? input.nakedLlp1RateUsd : input.llp1RateUsd) : 0,
+    llp2RateUsd: variableMr ? num(nk ? input.nakedLlp2RateUsd : input.llp2RateUsd) : 0,
+    eprMatrix: !variableMr
+      ? []
+      : nk && input.nakedEprMatrix?.length ? input.nakedEprMatrix : (input.eprMatrix ?? []),
+    // The naked basis has no allowance; an MSN with no variable MR has no
+    // excess charge either, so its allowance is dropped entirely.
+    includedFh: variableMr && !nk && input.includedFh != null && input.includedFh !== '' ? num(input.includedFh) : null,
+    includedFc: variableMr && !nk && input.includedFc != null && input.includedFc !== '' ? num(input.includedFc) : null,
+    suppLlpPerFcUsd: variableMr ? num(input.suppLlpPerFcUsd) : 0,
+    suppEprMatrix: variableMr ? (input.suppEprMatrix ?? []) : [],
   }
 }
 

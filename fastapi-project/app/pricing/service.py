@@ -36,6 +36,17 @@ from decimal import Decimal
 # ---------------------------------------------------------------------------
 
 
+# MSNs leased with a supplemental rent that covers every reserve (MSN 5228:
+# 175k/mo). They carry no usage-based (variable) maintenance reserves, so EPR,
+# LLP and APU are always zero whatever rates are stored. Keep in sync with
+# NO_VARIABLE_MR_MSNS in nextjs-project/src/lib/aircraft-rate-basis.ts.
+NO_VARIABLE_MR_MSNS: frozenset[int] = frozenset({5228})
+
+
+def has_variable_mr(msn: int) -> bool:
+    return int(msn) not in NO_VARIABLE_MR_MSNS
+
+
 @dataclass
 class AircraftCosts:
     """Aircraft cost data fetched from DB (Phase 2 aircraft_rates table).

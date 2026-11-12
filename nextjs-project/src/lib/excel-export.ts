@@ -681,9 +681,9 @@ export async function buildCalculationWorkbook(data: CalcExportData) {
     acWs.getCell(rr, 4).value = ar.sixYearCheckUsd
     acWs.getCell(rr, 5).value = ar.twelveYearCheckUsd
     acWs.getCell(rr, 6).value = ar.ldgUsd
-    acWs.getCell(rr, 7).value = parseFloat(e.input.apuRateUsd || '0')
-    acWs.getCell(rr, 8).value = parseFloat(e.input.llp1RateUsd || '0')
-    acWs.getCell(rr, 9).value = parseFloat(e.input.llp2RateUsd || '0')
+    acWs.getCell(rr, 7).value = ar.apuRateUsd
+    acWs.getCell(rr, 8).value = ar.llp1RateUsd
+    acWs.getCell(rr, 9).value = ar.llp2RateUsd
     for (const col of [3, 4, 5, 6, 7, 8, 9]) {
       acWs.getCell(rr, col).fill = inputFill
       acWs.getCell(rr, col).numFmt = FMT_EUR2
@@ -694,7 +694,7 @@ export async function buildCalculationWorkbook(data: CalcExportData) {
 
   // EPR matrices (one block per entry) + interpolated EPR rate cell
   entries.forEach((e, ei) => {
-    const matrix = [...(e.input.eprMatrix ?? [])].sort((a, b) => a.cycleRatio - b.cycleRatio)
+    const matrix = [...pickAircraftRates(e.input, false).eprMatrix].sort((a, b) => a.cycleRatio - b.cycleRatio)
     acWs.getCell(acr, 1).value = `${e.label} — EPR Matrix`
     acWs.getCell(acr, 1).font = { bold: true }
     acWs.getCell(acr, 1).fill = sectionFill

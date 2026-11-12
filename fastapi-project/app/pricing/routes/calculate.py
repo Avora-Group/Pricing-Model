@@ -31,6 +31,7 @@ from app.pricing.service import (
     calculate_fixed_cost_coverage,
     calculate_pricing,
     calculate_project_pnl,
+    has_variable_mr,
     interpolate_epr,
 )
 
@@ -110,6 +111,9 @@ async def calculate(
             (row["cycle_ratio"], row[rate_key]) for row in epr_rows
         ]
         epr_tuples.sort(key=lambda x: x[0])
+        variable_mr = has_variable_mr(msn_input.msn)
+        if not variable_mr:
+            epr_tuples = []
 
         # Interpolate EPR rate for the target cycle_ratio
         epr_rate = interpolate_epr(epr_tuples, msn_input.cycle_ratio) if epr_tuples else Decimal("0")
@@ -138,14 +142,17 @@ async def calculate(
         def _rate(name: str) -> Decimal:
             return aircraft.get(f"{rate_prefix}{name}") or Decimal("0")
 
+        def _variable_rate(name: str) -> Decimal:
+            return _rate(name) if variable_mr else Decimal("0")
+
         ac = AircraftCosts(
             lease_rent_usd=_rate("lease_rent_usd"),
             six_year_check_usd=_rate("six_year_check_usd"),
             twelve_year_check_usd=_rate("twelve_year_check_usd"),
             ldg_usd=_rate("ldg_usd"),
-            apu_rate_usd=_rate("apu_rate_usd"),
-            llp1_rate_usd=_rate("llp1_rate_usd"),
-            llp2_rate_usd=_rate("llp2_rate_usd"),
+            apu_rate_usd=_variable_rate("apu_rate_usd"),
+            llp1_rate_usd=_variable_rate("llp1_rate_usd"),
+            llp2_rate_usd=_variable_rate("llp2_rate_usd"),
             epr_rate=epr_rate,
         )
 
@@ -154,7 +161,8 @@ async def calculate(
         # the supplemental matrix + LLP catalogue price. Applies to the current
         # basis only -- the naked basis has no allowance.
         if (
-            not use_naked
+            variable_mr
+            and not use_naked
             and (aircraft.get("included_fh") is not None or aircraft.get("included_fc") is not None)
         ):
             supp_rows = await aircraft_repo.fetch_epr_matrix(aircraft["id"], "supplemental")
